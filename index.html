@@ -453,6 +453,73 @@
     .camera-guide::before { top: 33%; }
     .camera-guide::after { bottom: 33%; }
 
+
+    .result-toolbar {
+      display: grid;
+      gap: 12px;
+    }
+
+    .result-toolbar-top {
+      display: flex;
+      justify-content: flex-start;
+    }
+
+    .display-options {
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px;
+      background: #f8fafc;
+    }
+
+    .display-options summary {
+      cursor: pointer;
+      font-weight: 700;
+    }
+
+    .display-options-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+      margin-top: 12px;
+    }
+
+    .display-options-grid label {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      font-weight: 600;
+    }
+
+    .group-hidden {
+      display: none !important;
+    }
+
+    .code-actions {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .code-actions > * {
+      width: 100%;
+      min-width: 0;
+      padding-left: 8px;
+      padding-right: 8px;
+      text-align: center;
+    }
+
+    @media (max-width: 520px) {
+      .code-actions {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .code-actions > * {
+        font-size: 12px;
+        padding: 10px 5px;
+      }
+    }
+
     .camera-modal {
       position: fixed;
       inset: 0;
@@ -532,10 +599,8 @@
           />
           <button class="btn-primary" id="searchBtn" type="button">Procurar</button>
         </div>
-        <div id="mobileScanWrap" style="display:none;margin-top:10px;">
-          <button class="btn-primary" id="scanBtn" type="button">📷 Ler código</button>
-        </div>
         <div class="code-actions">
+          <button class="btn-primary" id="scanBtn" type="button">📷 Ler código</button>
           <button class="btn-secondary hidden" id="copyCodeBtn" type="button">Copiar código</button>
           <a class="btn-link hidden" id="openNfeSiteBtn"
              href="https://www.nfe.fazenda.gov.br/portal/consultaRecaptcha.aspx?tipoConsulta=resumo&amp;tipoConteudo=7PhJ+gAVw2g="
@@ -585,25 +650,41 @@
         </div>
       </section>
 
+
+      <section class="card result-toolbar">
+        <div class="result-toolbar-top">
+          <button class="btn-primary" id="newSearchBtn" type="button">Nova consulta</button>
+        </div>
+
+        <details class="display-options" open>
+          <summary>Informações exibidas</summary>
+          <div class="display-options-grid">
+            <label><input type="checkbox" data-group-toggle="values" checked> Valores</label>
+            <label><input type="checkbox" data-group-toggle="taxes" checked> Impostos</label>
+            <label><input type="checkbox" data-group-toggle="codes" checked> Códigos</label>
+          </div>
+        </details>
+      </section>
+
       <section class="card">
         <div class="totals">
-          <div class="total-box">
+          <div class="total-box group-values">
             <span>Valor dos produtos</span>
             <strong id="totalProducts">R$ 0,00</strong>
           </div>
-          <div class="total-box">
+          <div class="total-box group-taxes">
             <span>Base total do ICMS-ST</span>
             <strong id="totalBCST">R$ 0,00</strong>
           </div>
-          <div class="total-box">
+          <div class="total-box group-taxes">
             <span>Total do ICMS-ST</span>
             <strong id="totalST">R$ 0,00</strong>
           </div>
-          <div class="total-box">
+          <div class="total-box group-taxes">
             <span>% total do ICMS-ST</span>
             <strong id="totalSTPercent">0,00%</strong>
           </div>
-          <div class="total-box">
+          <div class="total-box group-values">
             <span>Valor total da nota</span>
             <strong id="totalInvoice">R$ 0,00</strong>
           </div>
@@ -629,20 +710,20 @@
               <tr>
                 <th>Item</th>
                 <th>Produto</th>
-                <th class="number">Valor unitário</th>
-                <th class="number">ICMS-ST por unidade</th>
-                <th class="number">Custo unitário + ST</th>
-                <th class="number" id="markupHeader">Preço sugerido (+20%)</th>
-                <th class="number">Valor dos produtos</th>
+                <th class="number" data-group="values">Valor unitário</th>
+                <th class="number" data-group="taxes">ICMS-ST por unidade</th>
+                <th class="number" data-group="values">Custo unitário + ST</th>
+                <th class="number" id="markupHeader" data-group="values">Preço sugerido (+20%)</th>
+                <th class="number" data-group="values">Valor dos produtos</th>
                 <th class="number">Quantidade</th>
-                <th class="number">Base ICMS-ST</th>
-                <th class="number">ICMS-ST total</th>
-                <th class="number">% ICMS-ST</th>
-                <th>Código de barras</th>
-                <th>NCM</th>
-                <th>CST/CSOSN</th>
-                <th>CFOP</th>
-                <th>Código do produto</th>
+                <th class="number" data-group="taxes">Base ICMS-ST</th>
+                <th class="number" data-group="taxes">ICMS-ST total</th>
+                <th class="number" data-group="taxes">% ICMS-ST</th>
+                <th data-group="codes">Código de barras</th>
+                <th data-group="codes">NCM</th>
+                <th data-group="codes">CST/CSOSN</th>
+                <th data-group="codes">CFOP</th>
+                <th data-group="codes">Código do produto</th>
               </tr>
             </thead>
             <tbody id="itemsBody"></tbody>
@@ -688,6 +769,8 @@
     const loadedCount = document.getElementById('loadedCount');
     const invoiceSearch = document.getElementById('invoiceSearch');
     const searchBtn = document.getElementById('searchBtn');
+    const uploadCard = document.querySelector('.upload-card');
+    const newSearchBtn = document.getElementById('newSearchBtn');
 
     let currentItems = [];
     let loadedXmls = [];
@@ -822,6 +905,47 @@
       };
     }
 
+
+    function applyDisplayPreferences() {
+      const toggles = document.querySelectorAll('[data-group-toggle]');
+      toggles.forEach(toggle => {
+        const group = toggle.dataset.groupToggle;
+        const visible = toggle.checked;
+
+        document.querySelectorAll(`[data-group="${group}"], .group-${group}`).forEach(el => {
+          el.classList.toggle('group-hidden', !visible);
+        });
+
+        const headers = Array.from(document.querySelectorAll('thead th'));
+        const hiddenIndexes = headers
+          .map((th, index) => ({ th, index }))
+          .filter(item => item.th.dataset.group === group && !visible)
+          .map(item => item.index);
+
+        document.querySelectorAll('#itemsBody tr').forEach(row => {
+          hiddenIndexes.forEach(index => {
+            if (row.children[index]) row.children[index].classList.add('group-hidden');
+          });
+
+          headers.forEach((th, index) => {
+            if (th.dataset.group === group && visible && row.children[index]) {
+              row.children[index].classList.remove('group-hidden');
+            }
+          });
+        });
+      });
+    }
+
+    function startNewConsultation() {
+      result.classList.add('hidden');
+      uploadCard.classList.remove('hidden');
+      invoiceSearch.value = '';
+      updateCodeButtons();
+      clearStatus();
+      invoiceSearch.focus();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
     function render(data) {
       currentItems = data.items;
       currentNfeNumber = data.nfeNumber;
@@ -845,8 +969,11 @@
 
 
       result.classList.remove('hidden');
+      uploadCard.classList.add('hidden');
       clearBtn.classList.remove('hidden');
+      applyDisplayPreferences();
       showStatus(`XML carregado com sucesso. ${data.items.length} item(ns) encontrado(s).`, 'success');
+      result.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
 
     function getMarkupPercent() {
@@ -885,6 +1012,7 @@
           </tr>
         `;
       }).join('');
+      applyDisplayPreferences();
     }
 
     function normalizeBarcode(value) {
@@ -1084,6 +1212,10 @@
     });
 
     searchBtn.addEventListener('click', searchInvoiceXML);
+    newSearchBtn.addEventListener('click', startNewConsultation);
+    document.querySelectorAll('[data-group-toggle]').forEach(toggle => {
+      toggle.addEventListener('change', applyDisplayPreferences);
+    });
     invoiceSearch.addEventListener('keydown', event => {
       if (event.key === 'Enter') {
         event.preventDefault();
@@ -1120,7 +1252,6 @@
     });
 
 
-    const mobileScanWrap = document.getElementById('mobileScanWrap');
     const scanBtn = document.getElementById('scanBtn');
     const cameraModal = document.getElementById('cameraModal');
     const cameraVideo = document.getElementById('cameraVideo');
@@ -1299,7 +1430,6 @@
       openNfeSiteBtn.classList.remove('hidden');
     }
 
-    if (isMobileDevice()) mobileScanWrap.style.display = 'block';
 
     scanBtn.addEventListener('click', startCameraScanner);
     closeCameraBtn.addEventListener('click', stopCamera);
