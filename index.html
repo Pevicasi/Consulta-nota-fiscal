@@ -520,6 +520,51 @@
       }
     }
 
+
+    .column-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .column-checkbox {
+      width: 16px;
+      height: 16px;
+      margin: 0;
+      flex: 0 0 auto;
+      accent-color: var(--primary);
+    }
+
+    th.column-collapsed {
+      width: 38px !important;
+      min-width: 38px !important;
+      max-width: 38px !important;
+      padding-left: 8px;
+      padding-right: 8px;
+      text-align: center !important;
+    }
+
+    th.column-collapsed .column-label {
+      display: none;
+    }
+
+    td.column-hidden {
+      display: none !important;
+    }
+
+    @media (max-width: 520px) {
+      .column-toggle {
+        gap: 4px;
+      }
+
+      .column-checkbox {
+        width: 15px;
+        height: 15px;
+      }
+    }
+
     .camera-modal {
       position: fixed;
       inset: 0;
@@ -655,36 +700,27 @@
         <div class="result-toolbar-top">
           <button class="btn-primary" id="newSearchBtn" type="button">Nova consulta</button>
         </div>
-
-        <details class="display-options" open>
-          <summary>Informações exibidas</summary>
-          <div class="display-options-grid">
-            <label><input type="checkbox" data-group-toggle="values" checked> Valores</label>
-            <label><input type="checkbox" data-group-toggle="taxes" checked> Impostos</label>
-            <label><input type="checkbox" data-group-toggle="codes" checked> Códigos</label>
-          </div>
-        </details>
       </section>
 
       <section class="card">
         <div class="totals">
-          <div class="total-box group-values">
+          <div class="total-box">
             <span>Valor dos produtos</span>
             <strong id="totalProducts">R$ 0,00</strong>
           </div>
-          <div class="total-box group-taxes">
+          <div class="total-box">
             <span>Base total do ICMS-ST</span>
             <strong id="totalBCST">R$ 0,00</strong>
           </div>
-          <div class="total-box group-taxes">
+          <div class="total-box">
             <span>Total do ICMS-ST</span>
             <strong id="totalST">R$ 0,00</strong>
           </div>
-          <div class="total-box group-taxes">
+          <div class="total-box">
             <span>% total do ICMS-ST</span>
             <strong id="totalSTPercent">0,00%</strong>
           </div>
-          <div class="total-box group-values">
+          <div class="total-box">
             <span>Valor total da nota</span>
             <strong id="totalInvoice">R$ 0,00</strong>
           </div>
@@ -708,22 +744,102 @@
           <table>
             <thead>
               <tr>
-                <th>Item</th>
-                <th>Produto</th>
-                <th class="number" data-group="values">Valor unitário</th>
-                <th class="number" data-group="taxes">ICMS-ST por unidade</th>
-                <th class="number" data-group="values">Custo unitário + ST</th>
-                <th class="number" id="markupHeader" data-group="values">Preço sugerido (+20%)</th>
-                <th class="number" data-group="values">Valor dos produtos</th>
-                <th class="number">Quantidade</th>
-                <th class="number" data-group="taxes">Base ICMS-ST</th>
-                <th class="number" data-group="taxes">ICMS-ST total</th>
-                <th class="number" data-group="taxes">% ICMS-ST</th>
-                <th data-group="codes">Código de barras</th>
-                <th data-group="codes">NCM</th>
-                <th data-group="codes">CST/CSOSN</th>
-                <th data-group="codes">CFOP</th>
-                <th data-group="codes">Código do produto</th>
+                <th data-column-index="0">
+                  <label class="column-toggle">
+                    <input type="checkbox" class="column-checkbox" data-column-index="0" checked>
+                    <span class="column-label">Item</span>
+                  </label>
+                </th>
+                <th data-column-index="1">
+                  <label class="column-toggle">
+                    <input type="checkbox" class="column-checkbox" data-column-index="1" checked>
+                    <span class="column-label">Produto</span>
+                  </label>
+                </th>
+                <th class="number" data-column-index="2">
+                  <label class="column-toggle">
+                    <input type="checkbox" class="column-checkbox" data-column-index="2" checked>
+                    <span class="column-label">Valor unitário</span>
+                  </label>
+                </th>
+                <th class="number" data-column-index="3">
+                  <label class="column-toggle">
+                    <input type="checkbox" class="column-checkbox" data-column-index="3" checked>
+                    <span class="column-label">ICMS-ST por unidade</span>
+                  </label>
+                </th>
+                <th class="number" data-column-index="4">
+                  <label class="column-toggle">
+                    <input type="checkbox" class="column-checkbox" data-column-index="4" checked>
+                    <span class="column-label">Custo unitário + ST</span>
+                  </label>
+                </th>
+                <th class="number" id="markupHeader" data-column-index="5">
+                  <label class="column-toggle">
+                    <input type="checkbox" class="column-checkbox" data-column-index="5" checked>
+                    <span class="column-label">Preço sugerido (+20%)</span>
+                  </label>
+                </th>
+                <th class="number" data-column-index="6">
+                  <label class="column-toggle">
+                    <input type="checkbox" class="column-checkbox" data-column-index="6" checked>
+                    <span class="column-label">Valor dos produtos</span>
+                  </label>
+                </th>
+                <th class="number" data-column-index="7">
+                  <label class="column-toggle">
+                    <input type="checkbox" class="column-checkbox" data-column-index="7" checked>
+                    <span class="column-label">Quantidade</span>
+                  </label>
+                </th>
+                <th class="number" data-column-index="8">
+                  <label class="column-toggle">
+                    <input type="checkbox" class="column-checkbox" data-column-index="8" checked>
+                    <span class="column-label">Base ICMS-ST</span>
+                  </label>
+                </th>
+                <th class="number" data-column-index="9">
+                  <label class="column-toggle">
+                    <input type="checkbox" class="column-checkbox" data-column-index="9" checked>
+                    <span class="column-label">ICMS-ST total</span>
+                  </label>
+                </th>
+                <th class="number" data-column-index="10">
+                  <label class="column-toggle">
+                    <input type="checkbox" class="column-checkbox" data-column-index="10" checked>
+                    <span class="column-label">% ICMS-ST</span>
+                  </label>
+                </th>
+                <th data-column-index="11">
+                  <label class="column-toggle">
+                    <input type="checkbox" class="column-checkbox" data-column-index="11" checked>
+                    <span class="column-label">Código de barras</span>
+                  </label>
+                </th>
+                <th data-column-index="12">
+                  <label class="column-toggle">
+                    <input type="checkbox" class="column-checkbox" data-column-index="12" checked>
+                    <span class="column-label">NCM</span>
+                  </label>
+                </th>
+                <th data-column-index="13">
+                  <label class="column-toggle">
+                    <input type="checkbox" class="column-checkbox" data-column-index="13" checked>
+                    <span class="column-label">CST/CSOSN</span>
+                  </label>
+                </th>
+                <th data-column-index="14">
+                  <label class="column-toggle">
+                    <input type="checkbox" class="column-checkbox" data-column-index="14" checked>
+                    <span class="column-label">CFOP</span>
+                  </label>
+                </th>
+                <th data-column-index="15">
+                  <label class="column-toggle">
+                    <input type="checkbox" class="column-checkbox" data-column-index="15" checked>
+                    <span class="column-label">Código do produto</span>
+                  </label>
+                </th>
               </tr>
             </thead>
             <tbody id="itemsBody"></tbody>
@@ -906,33 +1022,23 @@
     }
 
 
-    function applyDisplayPreferences() {
-      const toggles = document.querySelectorAll('[data-group-toggle]');
-      toggles.forEach(toggle => {
-        const group = toggle.dataset.groupToggle;
-        const visible = toggle.checked;
+    function applyColumnVisibility(columnIndex, visible) {
+      const header = document.querySelector(`thead th[data-column-index="${columnIndex}"]`);
+      if (header) {
+        header.classList.toggle('column-collapsed', !visible);
+      }
 
-        document.querySelectorAll(`[data-group="${group}"], .group-${group}`).forEach(el => {
-          el.classList.toggle('group-hidden', !visible);
-        });
+      document.querySelectorAll('#itemsBody tr').forEach(row => {
+        const cell = row.children[columnIndex];
+        if (cell) {
+          cell.classList.toggle('column-hidden', !visible);
+        }
+      });
+    }
 
-        const headers = Array.from(document.querySelectorAll('thead th'));
-        const hiddenIndexes = headers
-          .map((th, index) => ({ th, index }))
-          .filter(item => item.th.dataset.group === group && !visible)
-          .map(item => item.index);
-
-        document.querySelectorAll('#itemsBody tr').forEach(row => {
-          hiddenIndexes.forEach(index => {
-            if (row.children[index]) row.children[index].classList.add('group-hidden');
-          });
-
-          headers.forEach((th, index) => {
-            if (th.dataset.group === group && visible && row.children[index]) {
-              row.children[index].classList.remove('group-hidden');
-            }
-          });
-        });
+    function applyAllColumnPreferences() {
+      document.querySelectorAll('.column-checkbox').forEach(checkbox => {
+        applyColumnVisibility(Number(checkbox.dataset.columnIndex), checkbox.checked);
       });
     }
 
@@ -971,7 +1077,7 @@
       result.classList.remove('hidden');
       uploadCard.classList.add('hidden');
       clearBtn.classList.remove('hidden');
-      applyDisplayPreferences();
+      applyAllColumnPreferences();
       showStatus(`XML carregado com sucesso. ${data.items.length} item(ns) encontrado(s).`, 'success');
       result.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
@@ -983,7 +1089,10 @@
 
     function renderItems() {
       const markup = getMarkupPercent();
-      markupHeader.textContent = `Preço sugerido (+${percentBR.format(markup)}%)`;
+      const markupLabel = markupHeader.querySelector('.column-label');
+      if (markupLabel) {
+        markupLabel.textContent = `Preço sugerido (+${percentBR.format(markup)}%)`;
+      }
 
       itemsBody.innerHTML = currentItems.map(item => {
         const suggestedPrice = item.unitCostWithST * (1 + markup / 100);
@@ -1012,7 +1121,7 @@
           </tr>
         `;
       }).join('');
-      applyDisplayPreferences();
+      applyAllColumnPreferences();
     }
 
     function normalizeBarcode(value) {
@@ -1213,8 +1322,13 @@
 
     searchBtn.addEventListener('click', searchInvoiceXML);
     newSearchBtn.addEventListener('click', startNewConsultation);
-    document.querySelectorAll('[data-group-toggle]').forEach(toggle => {
-      toggle.addEventListener('change', applyDisplayPreferences);
+    document.querySelectorAll('.column-checkbox').forEach(checkbox => {
+      checkbox.addEventListener('change', () => {
+        applyColumnVisibility(
+          Number(checkbox.dataset.columnIndex),
+          checkbox.checked
+        );
+      });
     });
     invoiceSearch.addEventListener('keydown', event => {
       if (event.key === 'Enter') {
