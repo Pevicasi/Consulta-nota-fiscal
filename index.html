@@ -565,6 +565,59 @@
       }
     }
 
+
+    .column-selector {
+      margin: 16px 0 12px;
+      padding: 12px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: #f8fafc;
+    }
+
+    .column-selector > strong {
+      display: block;
+      margin-bottom: 10px;
+    }
+
+    .column-selector-list {
+      display: flex;
+      gap: 10px 14px;
+      flex-wrap: wrap;
+    }
+
+    .column-selector-list label {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .column-selector-list input {
+      width: 16px;
+      height: 16px;
+      margin: 0;
+      accent-color: var(--primary);
+    }
+
+    th.column-hidden,
+    td.column-hidden {
+      display: none !important;
+    }
+
+    @media (max-width: 520px) {
+      .column-selector-list {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .column-selector-list label {
+        font-size: 12px;
+      }
+    }
+
     .camera-modal {
       position: fixed;
       inset: 0;
@@ -740,106 +793,97 @@
           <small>O padrão é 20%, mas você pode alterar. O preço sugerido é recalculado automaticamente.</small>
         </div>
 
+
+        <div class="column-selector">
+          <strong>Informações da tabela:</strong>
+          <div class="column-selector-list">
+            <label>
+              <input type="checkbox" class="column-checkbox" data-column-index="0" checked>
+              <span>Item</span>
+            </label>
+            <label>
+              <input type="checkbox" class="column-checkbox" data-column-index="1" checked>
+              <span>Produto</span>
+            </label>
+            <label>
+              <input type="checkbox" class="column-checkbox" data-column-index="2" checked>
+              <span>Valor unitário</span>
+            </label>
+            <label>
+              <input type="checkbox" class="column-checkbox" data-column-index="3" checked>
+              <span>ICMS-ST por unidade</span>
+            </label>
+            <label>
+              <input type="checkbox" class="column-checkbox" data-column-index="4" checked>
+              <span>Custo unitário + ST</span>
+            </label>
+            <label>
+              <input type="checkbox" class="column-checkbox" data-column-index="5" checked>
+              <span>Preço sugerido (+20%)</span>
+            </label>
+            <label>
+              <input type="checkbox" class="column-checkbox" data-column-index="6" checked>
+              <span>Valor dos produtos</span>
+            </label>
+            <label>
+              <input type="checkbox" class="column-checkbox" data-column-index="7" checked>
+              <span>Quantidade</span>
+            </label>
+            <label>
+              <input type="checkbox" class="column-checkbox" data-column-index="8" checked>
+              <span>Base ICMS-ST</span>
+            </label>
+            <label>
+              <input type="checkbox" class="column-checkbox" data-column-index="9" checked>
+              <span>ICMS-ST total</span>
+            </label>
+            <label>
+              <input type="checkbox" class="column-checkbox" data-column-index="10" checked>
+              <span>% ICMS-ST</span>
+            </label>
+            <label>
+              <input type="checkbox" class="column-checkbox" data-column-index="11" checked>
+              <span>Código de barras</span>
+            </label>
+            <label>
+              <input type="checkbox" class="column-checkbox" data-column-index="12" checked>
+              <span>NCM</span>
+            </label>
+            <label>
+              <input type="checkbox" class="column-checkbox" data-column-index="13" checked>
+              <span>CST/CSOSN</span>
+            </label>
+            <label>
+              <input type="checkbox" class="column-checkbox" data-column-index="14" checked>
+              <span>CFOP</span>
+            </label>
+            <label>
+              <input type="checkbox" class="column-checkbox" data-column-index="15" checked>
+              <span>Código do produto</span>
+            </label>
+          </div>
+        </div>
+
         <div class="table-wrap">
           <table>
             <thead>
               <tr>
-                <th data-column-index="0">
-                  <label class="column-toggle">
-                    <input type="checkbox" class="column-checkbox" data-column-index="0" checked>
-                    <span class="column-label">Item</span>
-                  </label>
-                </th>
-                <th data-column-index="1">
-                  <label class="column-toggle">
-                    <input type="checkbox" class="column-checkbox" data-column-index="1" checked>
-                    <span class="column-label">Produto</span>
-                  </label>
-                </th>
-                <th class="number" data-column-index="2">
-                  <label class="column-toggle">
-                    <input type="checkbox" class="column-checkbox" data-column-index="2" checked>
-                    <span class="column-label">Valor unitário</span>
-                  </label>
-                </th>
-                <th class="number" data-column-index="3">
-                  <label class="column-toggle">
-                    <input type="checkbox" class="column-checkbox" data-column-index="3" checked>
-                    <span class="column-label">ICMS-ST por unidade</span>
-                  </label>
-                </th>
-                <th class="number" data-column-index="4">
-                  <label class="column-toggle">
-                    <input type="checkbox" class="column-checkbox" data-column-index="4" checked>
-                    <span class="column-label">Custo unitário + ST</span>
-                  </label>
-                </th>
-                <th class="number" id="markupHeader" data-column-index="5">
-                  <label class="column-toggle">
-                    <input type="checkbox" class="column-checkbox" data-column-index="5" checked>
-                    <span class="column-label">Preço sugerido (+20%)</span>
-                  </label>
-                </th>
-                <th class="number" data-column-index="6">
-                  <label class="column-toggle">
-                    <input type="checkbox" class="column-checkbox" data-column-index="6" checked>
-                    <span class="column-label">Valor dos produtos</span>
-                  </label>
-                </th>
-                <th class="number" data-column-index="7">
-                  <label class="column-toggle">
-                    <input type="checkbox" class="column-checkbox" data-column-index="7" checked>
-                    <span class="column-label">Quantidade</span>
-                  </label>
-                </th>
-                <th class="number" data-column-index="8">
-                  <label class="column-toggle">
-                    <input type="checkbox" class="column-checkbox" data-column-index="8" checked>
-                    <span class="column-label">Base ICMS-ST</span>
-                  </label>
-                </th>
-                <th class="number" data-column-index="9">
-                  <label class="column-toggle">
-                    <input type="checkbox" class="column-checkbox" data-column-index="9" checked>
-                    <span class="column-label">ICMS-ST total</span>
-                  </label>
-                </th>
-                <th class="number" data-column-index="10">
-                  <label class="column-toggle">
-                    <input type="checkbox" class="column-checkbox" data-column-index="10" checked>
-                    <span class="column-label">% ICMS-ST</span>
-                  </label>
-                </th>
-                <th data-column-index="11">
-                  <label class="column-toggle">
-                    <input type="checkbox" class="column-checkbox" data-column-index="11" checked>
-                    <span class="column-label">Código de barras</span>
-                  </label>
-                </th>
-                <th data-column-index="12">
-                  <label class="column-toggle">
-                    <input type="checkbox" class="column-checkbox" data-column-index="12" checked>
-                    <span class="column-label">NCM</span>
-                  </label>
-                </th>
-                <th data-column-index="13">
-                  <label class="column-toggle">
-                    <input type="checkbox" class="column-checkbox" data-column-index="13" checked>
-                    <span class="column-label">CST/CSOSN</span>
-                  </label>
-                </th>
-                <th data-column-index="14">
-                  <label class="column-toggle">
-                    <input type="checkbox" class="column-checkbox" data-column-index="14" checked>
-                    <span class="column-label">CFOP</span>
-                  </label>
-                </th>
-                <th data-column-index="15">
-                  <label class="column-toggle">
-                    <input type="checkbox" class="column-checkbox" data-column-index="15" checked>
-                    <span class="column-label">Código do produto</span>
-                  </label>
-                </th>
+                <th data-column-index="0">Item</th>
+                <th data-column-index="1">Produto</th>
+                <th class="number" data-column-index="2">Valor unitário</th>
+                <th class="number" data-column-index="3">ICMS-ST por unidade</th>
+                <th class="number" data-column-index="4">Custo unitário + ST</th>
+                <th class="number" id="markupHeader" data-column-index="5">Preço sugerido (+20%)</th>
+                <th class="number" data-column-index="6">Valor dos produtos</th>
+                <th class="number" data-column-index="7">Quantidade</th>
+                <th class="number" data-column-index="8">Base ICMS-ST</th>
+                <th class="number" data-column-index="9">ICMS-ST total</th>
+                <th class="number" data-column-index="10">% ICMS-ST</th>
+                <th data-column-index="11">Código de barras</th>
+                <th data-column-index="12">NCM</th>
+                <th data-column-index="13">CST/CSOSN</th>
+                <th data-column-index="14">CFOP</th>
+                <th data-column-index="15">Código do produto</th>
               </tr>
             </thead>
             <tbody id="itemsBody"></tbody>
@@ -1025,7 +1069,7 @@
     function applyColumnVisibility(columnIndex, visible) {
       const header = document.querySelector(`thead th[data-column-index="${columnIndex}"]`);
       if (header) {
-        header.classList.toggle('column-collapsed', !visible);
+        header.classList.toggle('column-hidden', !visible);
       }
 
       document.querySelectorAll('#itemsBody tr').forEach(row => {
@@ -1089,10 +1133,7 @@
 
     function renderItems() {
       const markup = getMarkupPercent();
-      const markupLabel = markupHeader.querySelector('.column-label');
-      if (markupLabel) {
-        markupLabel.textContent = `Preço sugerido (+${percentBR.format(markup)}%)`;
-      }
+      markupHeader.textContent = `Preço sugerido (+${percentBR.format(markup)}%)`;
 
       itemsBody.innerHTML = currentItems.map(item => {
         const suggestedPrice = item.unitCostWithST * (1 + markup / 100);
