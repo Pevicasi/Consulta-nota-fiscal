@@ -649,6 +649,109 @@
       transition: opacity .15s ease;
     }
 
+
+    .scan-list {
+      margin-top: 14px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: #fff;
+      overflow: hidden;
+    }
+
+    .scan-list-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 12px;
+      background: #f8fafc;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .scan-list-items {
+      display: grid;
+    }
+
+    .scan-item {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 10px;
+      align-items: center;
+      padding: 12px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .scan-item:last-child {
+      border-bottom: 0;
+    }
+
+    .scan-code {
+      font-family: monospace;
+      font-size: 13px;
+      word-break: break-all;
+    }
+
+    .scan-item-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .scan-item-actions button,
+    .scan-item-actions a {
+      padding: 8px 10px;
+      font-size: 12px;
+    }
+
+    .notes-tabs {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding-bottom: 4px;
+      margin-bottom: 14px;
+      scrollbar-width: thin;
+    }
+
+    .note-tab {
+      flex: 0 0 auto;
+      border: 1px solid var(--border);
+      background: #eef2f7;
+      color: #344054;
+      border-radius: 999px;
+      padding: 9px 14px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .note-tab.active {
+      background: var(--primary);
+      color: #fff;
+      border-color: var(--primary);
+    }
+
+    .notes-summary {
+      color: var(--muted);
+      font-size: 13px;
+      margin-bottom: 10px;
+    }
+
+    @media (max-width: 520px) {
+      .scan-item {
+        grid-template-columns: 1fr;
+      }
+
+      .scan-item-actions {
+        justify-content: stretch;
+      }
+
+      .scan-item-actions button,
+      .scan-item-actions a {
+        flex: 1 1 auto;
+        text-align: center;
+      }
+    }
+
     .camera-modal {
       position: fixed;
       inset: 0;
@@ -737,6 +840,14 @@
         </div>
       </div>
 
+        <div id="scanList" class="scan-list hidden">
+          <div class="scan-list-header">
+            <strong>Notas escaneadas</strong>
+            <button class="btn-secondary" id="clearScansBtn" type="button">Limpar lista</button>
+          </div>
+          <div id="scanListItems" class="scan-list-items"></div>
+        </div>
+
       <div class="manual-separator"><span>ou selecione um XML individual</span></div>
 
 <label class="upload-area" id="dropArea" for="xmlFile">
@@ -754,6 +865,12 @@
     </section>
 
     <section id="result" class="hidden">
+
+      <section class="card">
+        <div id="notesSummary" class="notes-summary"></div>
+        <div id="notesTabs" class="notes-tabs"></div>
+      </section>
+
       <section class="card">
         <div class="summary-grid">
           <div class="summary-item">
@@ -1010,10 +1127,18 @@
     const searchBtn = document.getElementById('searchBtn');
     const uploadCard = document.querySelector('.upload-card');
     const newSearchBtn = document.getElementById('newSearchBtn');
+    const scanList = document.getElementById('scanList');
+    const scanListItems = document.getElementById('scanListItems');
+    const clearScansBtn = document.getElementById('clearScansBtn');
+    const notesTabs = document.getElementById('notesTabs');
+    const notesSummary = document.getElementById('notesSummary');
 
     let currentItems = [];
     let loadedXmls = [];
     let currentNfeNumber = '';
+    let loadedNotes = [];
+    let activeNoteIndex = 0;
+    let scannedCodes = [];
 
     const brl = new Intl.NumberFormat('pt-BR', {
       style: 'currency',
@@ -1335,9 +1460,79 @@
       });
     }
 
+
+    function normalizeNfeKey(value) {
+      return String(value || '').replace(/\D/g, '').slice(0, 44);
+    }
+
+    function addScannedCode(value) {
+      const code = normalizeNfeKey(value);
+      if (!code) return false;
+
+      if (!scannedCodes.includes(code)) {
+        scannedCodes.push(code);
+        renderScannedCodes();
+      }
+
+      invoiceSearch.value = code;
+      updateCodeButtons();
+      return true;
+    }
+
+    function renderScannedCodes() {
+      scanList.classList.toggle('hidden', scannedCodes.length === 0);
+
+      scanListItems.innerHTML = scannedCodes.map((code, index) => `
+        <div class="scan-item">
+          <div>
+            <div class="scan-code">${escapeHTML(code)}</div>
+          </div>
+          <div class="scan-item-actions">
+            <button class="btn-secondary scan-copy-btn" data-index="${index}" type="button">Copiar</button>
+            <a class="btn-link"
+               href="https://www.nfe.fazenda.gov.br/portal/consultaRecaptcha.aspx?tipoConsulta=resumo&amp;tipoConteudo=7PhJ+gAVw2g="
+               target="_blank" rel="noopener noreferrer">Abrir site</a>
+            <button class="btn-secondary scan-remove-btn" data-index="${index}" type="button">Remover</button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    async function copyText(value) {
+      try {
+        await navigator.clipboard.writeText(value);
+      } catch (_) {
+        const temp = document.createElement('textarea');
+        temp.value = value;
+        temp.style.position = 'fixed';
+        temp.style.opacity = '0';
+        document.body.appendChild(temp);
+        temp.select();
+        document.execCommand('copy');
+        temp.remove();
+      }
+    }
+
+    async function copyScannedCode(index) {
+      const code = scannedCodes[index];
+      if (!code) return;
+
+      await copyText(code);
+      showStatus('Código copiado.', 'success');
+    }
+
+    function removeScannedCode(index) {
+      scannedCodes.splice(index, 1);
+      renderScannedCodes();
+    }
+
     function startNewConsultation() {
       result.classList.add('hidden');
       uploadCard.classList.remove('hidden');
+      loadedNotes = [];
+      activeNoteIndex = 0;
+      notesTabs.innerHTML = '';
+      notesSummary.textContent = '';
       invoiceSearch.value = '';
       updateCodeButtons();
       clearStatus();
@@ -1345,7 +1540,7 @@
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
-    function render(data) {
+    function renderNoteData(data) {
       currentItems = data.items;
       currentNfeNumber = data.nfeNumber;
 
@@ -1367,11 +1562,55 @@
       renderItems();
 
 
+      applyAllColumnPreferences();
+    }
+
+
+    function renderNotesTabs() {
+      notesTabs.innerHTML = loadedNotes.map((entry, index) => `
+        <button
+          class="note-tab ${index === activeNoteIndex ? 'active' : ''}"
+          type="button"
+          data-note-index="${index}">
+          NF-e ${escapeHTML(entry.data.nfeNumber || String(index + 1))}
+        </button>
+      `).join('');
+
+      notesSummary.textContent = loadedNotes.length === 1
+        ? '1 nota carregada'
+        : `${loadedNotes.length} notas carregadas`;
+    }
+
+    function showNote(index) {
+      if (!loadedNotes.length) return;
+
+      activeNoteIndex = Math.max(0, Math.min(index, loadedNotes.length - 1));
+      renderNotesTabs();
+      renderNoteData(loadedNotes[activeNoteIndex].data);
+    }
+
+    function openLoadedNotes(entries) {
+      loadedNotes = entries;
+      activeNoteIndex = 0;
+
+      if (!loadedNotes.length) {
+        showStatus('Nenhum XML válido de NF-e foi encontrado.', 'error');
+        return;
+      }
+
       result.classList.remove('hidden');
       uploadCard.classList.add('hidden');
       clearBtn.classList.remove('hidden');
-      applyAllColumnPreferences();
-      showStatus(`XML carregado com sucesso. ${data.items.length} item(ns) encontrado(s).`, 'success');
+      renderNotesTabs();
+      showNote(0);
+
+      showStatus(
+        loadedNotes.length === 1
+          ? '✅ 1 nota foi aberta abaixo.'
+          : `✅ ${loadedNotes.length} notas foram abertas abaixo.`,
+        'success'
+      );
+
       result.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
 
@@ -1452,7 +1691,7 @@
       reader.onload = event => {
         try {
           const data = parseXML(event.target.result);
-          render(data);
+          openLoadedNotes([{ file, data }]);
         } catch (error) {
           result.classList.add('hidden');
           showStatus(error.message || 'Não foi possível processar o XML.', 'error');
@@ -1555,8 +1794,7 @@
         loadedCount.textContent = `${loadedXmls.length} XML(s) carregado(s)`;
 
         if (loadedXmls.length) {
-          showStatus('XMLs carregados. Agora digite ou leia o código da nota.', 'success');
-          invoiceSearch.focus();
+          openLoadedNotes(loadedXmls);
         } else {
           showStatus('Nenhum XML válido de NF-e foi encontrado.', 'error');
         }
@@ -1609,8 +1847,7 @@
         return;
       }
 
-      render(found.data);
-      showStatus('✅ XML encontrado! A nota foi aberta abaixo.', 'success');
+      openLoadedNotes([found]);
       invoiceSearch.select();
     }
 
@@ -1621,6 +1858,30 @@
 
     searchBtn.addEventListener('click', searchInvoiceXML);
     newSearchBtn.addEventListener('click', startNewConsultation);
+
+    notesTabs.addEventListener('click', event => {
+      const button = event.target.closest('[data-note-index]');
+      if (!button) return;
+      showNote(Number(button.dataset.noteIndex));
+    });
+
+    scanListItems.addEventListener('click', event => {
+      const copyButton = event.target.closest('.scan-copy-btn');
+      const removeButton = event.target.closest('.scan-remove-btn');
+
+      if (copyButton) {
+        copyScannedCode(Number(copyButton.dataset.index));
+      }
+
+      if (removeButton) {
+        removeScannedCode(Number(removeButton.dataset.index));
+      }
+    });
+
+    clearScansBtn.addEventListener('click', () => {
+      scannedCodes = [];
+      renderScannedCodes();
+    });
     document.querySelectorAll('.column-checkbox').forEach(checkbox => {
       checkbox.addEventListener('change', () => {
         applyColumnVisibility(
@@ -1631,6 +1892,7 @@
     });
     restoreSavedColumnOrder();
     setupColumnDragging();
+    renderScannedCodes();
     invoiceSearch.addEventListener('keydown', event => {
       if (event.key === 'Enter') {
         event.preventDefault();
@@ -1644,7 +1906,11 @@
     printBtn.addEventListener('click', () => window.print());
     csvBtn.addEventListener('click', downloadCSV);
     markupPercentInput.addEventListener('input', () => {
-      if (currentItems.length) renderItems();
+      if (loadedNotes.length) {
+        renderNoteData(loadedNotes[activeNoteIndex].data);
+      } else if (currentItems.length) {
+        renderItems();
+      }
     });
 
     ['dragenter', 'dragover'].forEach(eventName => {
@@ -1758,10 +2024,9 @@
           if (result) {
             scannerBusy = true;
             const code = result.getText ? result.getText() : result.text;
-            invoiceSearch.value = String(code || '').replace(/\D/g, '').trim();
-            updateCodeButtons();
+            addScannedCode(code);
             stopCamera();
-            searchInvoiceXML();
+            showStatus('Código adicionado à lista de notas escaneadas.', 'success');
             return true;
           }
         } catch (_) {
@@ -1841,6 +2106,7 @@
         document.execCommand('copy');
       }
 
+      addScannedCode(code);
       showStatus('Código copiado.', 'success');
       openNfeSiteBtn.classList.remove('hidden');
     }
