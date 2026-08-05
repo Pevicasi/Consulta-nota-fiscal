@@ -618,6 +618,37 @@
       }
     }
 
+
+    .draggable-column {
+      cursor: grab;
+      touch-action: none;
+    }
+
+    .draggable-column:active {
+      cursor: grabbing;
+    }
+
+    .drag-handle {
+      display: inline-block;
+      margin-right: 5px;
+      color: var(--muted);
+      font-size: 12px;
+      transform: rotate(90deg);
+    }
+
+    .draggable-column.dragging {
+      opacity: .45;
+    }
+
+    .draggable-column.drag-over {
+      outline: 2px solid var(--primary);
+      outline-offset: -2px;
+    }
+
+    .column-selector-list label {
+      transition: opacity .15s ease;
+    }
+
     .camera-modal {
       position: fixed;
       inset: 0;
@@ -797,68 +828,68 @@
         <div class="column-selector">
           <strong>Informações da tabela:</strong>
           <div class="column-selector-list">
-            <label>
-              <input type="checkbox" class="column-checkbox" data-column-index="0" checked>
+            <label data-column-key="0">
+              <input type="checkbox" class="column-checkbox" data-column-key="0" checked>
               <span>Item</span>
             </label>
-            <label>
-              <input type="checkbox" class="column-checkbox" data-column-index="1" checked>
-              <span>Produto</span>
-            </label>
-            <label>
-              <input type="checkbox" class="column-checkbox" data-column-index="2" checked>
-              <span>Valor unitário</span>
-            </label>
-            <label>
-              <input type="checkbox" class="column-checkbox" data-column-index="3" checked>
-              <span>ICMS-ST por unidade</span>
-            </label>
-            <label>
-              <input type="checkbox" class="column-checkbox" data-column-index="4" checked>
-              <span>Custo unitário + ST</span>
-            </label>
-            <label>
-              <input type="checkbox" class="column-checkbox" data-column-index="5" checked>
-              <span>Preço sugerido (+20%)</span>
-            </label>
-            <label>
-              <input type="checkbox" class="column-checkbox" data-column-index="6" checked>
-              <span>Valor dos produtos</span>
-            </label>
-            <label>
-              <input type="checkbox" class="column-checkbox" data-column-index="7" checked>
+            <label data-column-key="7">
+              <input type="checkbox" class="column-checkbox" data-column-key="7" checked>
               <span>Quantidade</span>
             </label>
-            <label>
-              <input type="checkbox" class="column-checkbox" data-column-index="8" checked>
+            <label data-column-key="1">
+              <input type="checkbox" class="column-checkbox" data-column-key="1" checked>
+              <span>Produto</span>
+            </label>
+            <label data-column-key="2">
+              <input type="checkbox" class="column-checkbox" data-column-key="2" checked>
+              <span>Valor unitário</span>
+            </label>
+            <label data-column-key="3">
+              <input type="checkbox" class="column-checkbox" data-column-key="3" checked>
+              <span>ICMS-ST por unidade</span>
+            </label>
+            <label data-column-key="4">
+              <input type="checkbox" class="column-checkbox" data-column-key="4" checked>
+              <span>Custo unitário + ST</span>
+            </label>
+            <label data-column-key="5">
+              <input type="checkbox" class="column-checkbox" data-column-key="5" checked>
+              <span>Preço sugerido (+20%)</span>
+            </label>
+            <label data-column-key="6">
+              <input type="checkbox" class="column-checkbox" data-column-key="6" checked>
+              <span>Valor dos produtos</span>
+            </label>
+            <label data-column-key="8">
+              <input type="checkbox" class="column-checkbox" data-column-key="8" checked>
               <span>Base ICMS-ST</span>
             </label>
-            <label>
-              <input type="checkbox" class="column-checkbox" data-column-index="9" checked>
+            <label data-column-key="9">
+              <input type="checkbox" class="column-checkbox" data-column-key="9" checked>
               <span>ICMS-ST total</span>
             </label>
-            <label>
-              <input type="checkbox" class="column-checkbox" data-column-index="10" checked>
+            <label data-column-key="10">
+              <input type="checkbox" class="column-checkbox" data-column-key="10" checked>
               <span>% ICMS-ST</span>
             </label>
-            <label>
-              <input type="checkbox" class="column-checkbox" data-column-index="11" checked>
+            <label data-column-key="11">
+              <input type="checkbox" class="column-checkbox" data-column-key="11" checked>
               <span>Código de barras</span>
             </label>
-            <label>
-              <input type="checkbox" class="column-checkbox" data-column-index="12" checked>
+            <label data-column-key="12">
+              <input type="checkbox" class="column-checkbox" data-column-key="12" checked>
               <span>NCM</span>
             </label>
-            <label>
-              <input type="checkbox" class="column-checkbox" data-column-index="13" checked>
+            <label data-column-key="13">
+              <input type="checkbox" class="column-checkbox" data-column-key="13" checked>
               <span>CST/CSOSN</span>
             </label>
-            <label>
-              <input type="checkbox" class="column-checkbox" data-column-index="14" checked>
+            <label data-column-key="14">
+              <input type="checkbox" class="column-checkbox" data-column-key="14" checked>
               <span>CFOP</span>
             </label>
-            <label>
-              <input type="checkbox" class="column-checkbox" data-column-index="15" checked>
+            <label data-column-key="15">
+              <input type="checkbox" class="column-checkbox" data-column-key="15" checked>
               <span>Código do produto</span>
             </label>
           </div>
@@ -867,23 +898,71 @@
         <div class="table-wrap">
           <table>
             <thead>
-              <tr>
-                <th data-column-index="0">Item</th>
-                <th data-column-index="1">Produto</th>
-                <th class="number" data-column-index="2">Valor unitário</th>
-                <th class="number" data-column-index="3">ICMS-ST por unidade</th>
-                <th class="number" data-column-index="4">Custo unitário + ST</th>
-                <th class="number" id="markupHeader" data-column-index="5">Preço sugerido (+20%)</th>
-                <th class="number" data-column-index="6">Valor dos produtos</th>
-                <th class="number" data-column-index="7">Quantidade</th>
-                <th class="number" data-column-index="8">Base ICMS-ST</th>
-                <th class="number" data-column-index="9">ICMS-ST total</th>
-                <th class="number" data-column-index="10">% ICMS-ST</th>
-                <th data-column-index="11">Código de barras</th>
-                <th data-column-index="12">NCM</th>
-                <th data-column-index="13">CST/CSOSN</th>
-                <th data-column-index="14">CFOP</th>
-                <th data-column-index="15">Código do produto</th>
+              <tr id="draggableHeaderRow">
+                <th class="draggable-column" data-column-key="0" draggable="true">
+                  <span class="drag-handle" aria-hidden="true">↕</span>
+                  <span class="header-label">Item</span>
+                </th>
+                <th class="number draggable-column" data-column-key="7" draggable="true">
+                  <span class="drag-handle" aria-hidden="true">↕</span>
+                  <span class="header-label">Quantidade</span>
+                </th>
+                <th class="draggable-column" data-column-key="1" draggable="true">
+                  <span class="drag-handle" aria-hidden="true">↕</span>
+                  <span class="header-label">Produto</span>
+                </th>
+                <th class="number draggable-column" data-column-key="2" draggable="true">
+                  <span class="drag-handle" aria-hidden="true">↕</span>
+                  <span class="header-label">Valor unitário</span>
+                </th>
+                <th class="number draggable-column" data-column-key="3" draggable="true">
+                  <span class="drag-handle" aria-hidden="true">↕</span>
+                  <span class="header-label">ICMS-ST por unidade</span>
+                </th>
+                <th class="number draggable-column" data-column-key="4" draggable="true">
+                  <span class="drag-handle" aria-hidden="true">↕</span>
+                  <span class="header-label">Custo unitário + ST</span>
+                </th>
+                <th class="number draggable-column" id="markupHeader" data-column-key="5" draggable="true">
+                  <span class="drag-handle" aria-hidden="true">↕</span>
+                  <span class="header-label">Preço sugerido (+20%)</span>
+                </th>
+                <th class="number draggable-column" data-column-key="6" draggable="true">
+                  <span class="drag-handle" aria-hidden="true">↕</span>
+                  <span class="header-label">Valor dos produtos</span>
+                </th>
+                <th class="number draggable-column" data-column-key="8" draggable="true">
+                  <span class="drag-handle" aria-hidden="true">↕</span>
+                  <span class="header-label">Base ICMS-ST</span>
+                </th>
+                <th class="number draggable-column" data-column-key="9" draggable="true">
+                  <span class="drag-handle" aria-hidden="true">↕</span>
+                  <span class="header-label">ICMS-ST total</span>
+                </th>
+                <th class="number draggable-column" data-column-key="10" draggable="true">
+                  <span class="drag-handle" aria-hidden="true">↕</span>
+                  <span class="header-label">% ICMS-ST</span>
+                </th>
+                <th class="draggable-column" data-column-key="11" draggable="true">
+                  <span class="drag-handle" aria-hidden="true">↕</span>
+                  <span class="header-label">Código de barras</span>
+                </th>
+                <th class="draggable-column" data-column-key="12" draggable="true">
+                  <span class="drag-handle" aria-hidden="true">↕</span>
+                  <span class="header-label">NCM</span>
+                </th>
+                <th class="draggable-column" data-column-key="13" draggable="true">
+                  <span class="drag-handle" aria-hidden="true">↕</span>
+                  <span class="header-label">CST/CSOSN</span>
+                </th>
+                <th class="draggable-column" data-column-key="14" draggable="true">
+                  <span class="drag-handle" aria-hidden="true">↕</span>
+                  <span class="header-label">CFOP</span>
+                </th>
+                <th class="draggable-column" data-column-key="15" draggable="true">
+                  <span class="drag-handle" aria-hidden="true">↕</span>
+                  <span class="header-label">Código do produto</span>
+                </th>
               </tr>
             </thead>
             <tbody id="itemsBody"></tbody>
@@ -1066,14 +1145,31 @@
     }
 
 
-    function applyColumnVisibility(columnIndex, visible) {
-      const header = document.querySelector(`thead th[data-column-index="${columnIndex}"]`);
+    const COLUMN_ORDER_STORAGE_KEY = 'icmsStColumnOrderV1';
+
+    function getHeaderCells() {
+      return Array.from(document.querySelectorAll('#draggableHeaderRow th'));
+    }
+
+    function getColumnOrder() {
+      return getHeaderCells().map(th => th.dataset.columnKey);
+    }
+
+    function getColumnPositionByKey(columnKey) {
+      return getHeaderCells().findIndex(th => th.dataset.columnKey === String(columnKey));
+    }
+
+    function applyColumnVisibility(columnKey, visible) {
+      const position = getColumnPositionByKey(columnKey);
+      if (position < 0) return;
+
+      const header = getHeaderCells()[position];
       if (header) {
         header.classList.toggle('column-hidden', !visible);
       }
 
       document.querySelectorAll('#itemsBody tr').forEach(row => {
-        const cell = row.children[columnIndex];
+        const cell = row.children[position];
         if (cell) {
           cell.classList.toggle('column-hidden', !visible);
         }
@@ -1082,7 +1178,150 @@
 
     function applyAllColumnPreferences() {
       document.querySelectorAll('.column-checkbox').forEach(checkbox => {
-        applyColumnVisibility(Number(checkbox.dataset.columnIndex), checkbox.checked);
+        applyColumnVisibility(checkbox.dataset.columnKey, checkbox.checked);
+      });
+    }
+
+    function reorderRowCells(row, orderKeys) {
+      const currentCells = Array.from(row.children);
+      const cellsByKey = new Map(
+        getHeaderCells().map((th, index) => [th.dataset.columnKey, currentCells[index]])
+      );
+
+      orderKeys.forEach(key => {
+        const cell = cellsByKey.get(String(key));
+        if (cell) row.appendChild(cell);
+      });
+    }
+
+    function reorderTableTo(orderKeys, save = true) {
+      const headerRow = document.getElementById('draggableHeaderRow');
+      const headersByKey = new Map(
+        getHeaderCells().map(th => [th.dataset.columnKey, th])
+      );
+
+      orderKeys.forEach(key => {
+        const header = headersByKey.get(String(key));
+        if (header) headerRow.appendChild(header);
+      });
+
+      document.querySelectorAll('#itemsBody tr').forEach(row => {
+        const cells = Array.from(row.children);
+        const currentOrder = getColumnOrder();
+        const cellsByKey = new Map(
+          currentOrder.map((key, index) => [key, cells[index]])
+        );
+
+        orderKeys.forEach(key => {
+          const cell = cellsByKey.get(String(key));
+          if (cell) row.appendChild(cell);
+        });
+      });
+
+      const selectorList = document.querySelector('.column-selector-list');
+      const selectorByKey = new Map(
+        Array.from(selectorList.children).map(label => [label.dataset.columnKey, label])
+      );
+      orderKeys.forEach(key => {
+        const label = selectorByKey.get(String(key));
+        if (label) selectorList.appendChild(label);
+      });
+
+      if (save) {
+        localStorage.setItem(COLUMN_ORDER_STORAGE_KEY, JSON.stringify(orderKeys));
+      }
+
+      applyAllColumnPreferences();
+    }
+
+    function restoreSavedColumnOrder() {
+      try {
+        const saved = JSON.parse(localStorage.getItem(COLUMN_ORDER_STORAGE_KEY) || 'null');
+        const current = getColumnOrder();
+
+        if (
+          Array.isArray(saved) &&
+          saved.length === current.length &&
+          saved.every(key => current.includes(String(key)))
+        ) {
+          reorderTableTo(saved.map(String), false);
+        }
+      } catch (_) {}
+    }
+
+    function moveColumn(sourceKey, targetKey) {
+      const order = getColumnOrder();
+      const sourceIndex = order.indexOf(String(sourceKey));
+      const targetIndex = order.indexOf(String(targetKey));
+
+      if (sourceIndex < 0 || targetIndex < 0 || sourceIndex === targetIndex) return;
+
+      order.splice(sourceIndex, 1);
+      order.splice(targetIndex, 0, String(sourceKey));
+      reorderTableTo(order);
+    }
+
+    function setupColumnDragging() {
+      let draggedKey = null;
+      let pointerSource = null;
+
+      getHeaderCells().forEach(header => {
+        header.addEventListener('dragstart', event => {
+          draggedKey = header.dataset.columnKey;
+          header.classList.add('dragging');
+          event.dataTransfer.effectAllowed = 'move';
+          event.dataTransfer.setData('text/plain', draggedKey);
+        });
+
+        header.addEventListener('dragend', () => {
+          header.classList.remove('dragging');
+          getHeaderCells().forEach(th => th.classList.remove('drag-over'));
+          draggedKey = null;
+        });
+
+        header.addEventListener('dragover', event => {
+          event.preventDefault();
+          header.classList.add('drag-over');
+          event.dataTransfer.dropEffect = 'move';
+        });
+
+        header.addEventListener('dragleave', () => {
+          header.classList.remove('drag-over');
+        });
+
+        header.addEventListener('drop', event => {
+          event.preventDefault();
+          header.classList.remove('drag-over');
+          const sourceKey = draggedKey || event.dataTransfer.getData('text/plain');
+          moveColumn(sourceKey, header.dataset.columnKey);
+        });
+
+        header.addEventListener('pointerdown', event => {
+          if (event.pointerType === 'mouse') return;
+          pointerSource = {
+            key: header.dataset.columnKey,
+            x: event.clientX,
+            y: event.clientY
+          };
+          header.setPointerCapture?.(event.pointerId);
+        });
+
+        header.addEventListener('pointerup', event => {
+          if (!pointerSource) return;
+
+          const target = document.elementFromPoint(event.clientX, event.clientY)
+            ?.closest('th[data-column-key]');
+
+          if (target) {
+            moveColumn(pointerSource.key, target.dataset.columnKey);
+          }
+
+          pointerSource = null;
+        });
+
+        header.addEventListener('pointercancel', () => {
+          pointerSource = null;
+        });
       });
     }
 
@@ -1133,32 +1372,41 @@
 
     function renderItems() {
       const markup = getMarkupPercent();
-      markupHeader.textContent = `Preço sugerido (+${percentBR.format(markup)}%)`;
+      const headerLabel = markupHeader.querySelector('.header-label');
+      if (headerLabel) {
+        headerLabel.textContent = `Preço sugerido (+${percentBR.format(markup)}%)`;
+      }
 
       itemsBody.innerHTML = currentItems.map(item => {
         const suggestedPrice = item.unitCostWithST * (1 + markup / 100);
 
+        const rowCellsByKey = {
+          0: `<td>${escapeHTML(item.item)}</td>`,
+          1: `<td>
+                <div class="product-name">${escapeHTML(item.name)}</div>
+                <div class="muted">${escapeHTML(item.unit)}</div>
+              </td>`,
+          2: `<td class="number">${brl.format(item.unitValue)}</td>`,
+          3: `<td class="number">${brl.format(item.stPerUnit)}</td>`,
+          4: `<td class="number">${brl.format(item.unitCostWithST)}</td>`,
+          5: `<td class="number"><strong>${brl.format(suggestedPrice)}</strong></td>`,
+          6: `<td class="number">${brl.format(item.productValue)}</td>`,
+          7: `<td class="number">${numberBR.format(item.quantity)}</td>`,
+          8: `<td class="number">${brl.format(item.bcST)}</td>`,
+          9: `<td class="number"><strong>${brl.format(item.stValue)}</strong></td>`,
+          10: `<td class="number">${percentBR.format(item.productValue > 0 ? (item.stValue / item.productValue) * 100 : 0)}%</td>`,
+          11: `<td>${escapeHTML(normalizeBarcode(item.barcode))}</td>`,
+          12: `<td>${escapeHTML(item.ncm)}</td>`,
+          13: `<td>${escapeHTML(item.cstCsosn)}</td>`,
+          14: `<td>${escapeHTML(item.cfop)}</td>`,
+          15: `<td>${escapeHTML(item.productCode)}</td>`
+        };
+
+        const order = getColumnOrder();
+
         return `
           <tr>
-            <td>${escapeHTML(item.item)}</td>
-            <td>
-              <div class="product-name">${escapeHTML(item.name)}</div>
-              <div class="muted">${escapeHTML(item.unit)}</div>
-            </td>
-            <td class="number">${brl.format(item.unitValue)}</td>
-            <td class="number">${brl.format(item.stPerUnit)}</td>
-            <td class="number">${brl.format(item.unitCostWithST)}</td>
-            <td class="number"><strong>${brl.format(suggestedPrice)}</strong></td>
-            <td class="number">${brl.format(item.productValue)}</td>
-            <td class="number">${numberBR.format(item.quantity)}</td>
-            <td class="number">${brl.format(item.bcST)}</td>
-            <td class="number"><strong>${brl.format(item.stValue)}</strong></td>
-            <td class="number">${percentBR.format(item.productValue > 0 ? (item.stValue / item.productValue) * 100 : 0)}%</td>
-            <td>${escapeHTML(normalizeBarcode(item.barcode))}</td>
-            <td>${escapeHTML(item.ncm)}</td>
-            <td>${escapeHTML(item.cstCsosn)}</td>
-            <td>${escapeHTML(item.cfop)}</td>
-            <td>${escapeHTML(item.productCode)}</td>
+            ${order.map(key => rowCellsByKey[key]).join('')}
           </tr>
         `;
       }).join('');
@@ -1366,11 +1614,13 @@
     document.querySelectorAll('.column-checkbox').forEach(checkbox => {
       checkbox.addEventListener('change', () => {
         applyColumnVisibility(
-          Number(checkbox.dataset.columnIndex),
+          checkbox.dataset.columnKey,
           checkbox.checked
         );
       });
     });
+    restoreSavedColumnOrder();
+    setupColumnDragging();
     invoiceSearch.addEventListener('keydown', event => {
       if (event.key === 'Enter') {
         event.preventDefault();
