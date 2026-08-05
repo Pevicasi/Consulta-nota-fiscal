@@ -633,7 +633,7 @@
       margin-right: 5px;
       color: var(--muted);
       font-size: 12px;
-      transform: rotate(90deg);
+      transform: none;
     }
 
     .draggable-column.dragging {
@@ -900,67 +900,67 @@
             <thead>
               <tr id="draggableHeaderRow">
                 <th class="draggable-column" data-column-key="0" draggable="true">
-                  <span class="drag-handle" aria-hidden="true">↕</span>
+                  <span class="drag-handle" aria-hidden="true">↔</span>
                   <span class="header-label">Item</span>
                 </th>
                 <th class="number draggable-column" data-column-key="7" draggable="true">
-                  <span class="drag-handle" aria-hidden="true">↕</span>
+                  <span class="drag-handle" aria-hidden="true">↔</span>
                   <span class="header-label">Quantidade</span>
                 </th>
                 <th class="draggable-column" data-column-key="1" draggable="true">
-                  <span class="drag-handle" aria-hidden="true">↕</span>
+                  <span class="drag-handle" aria-hidden="true">↔</span>
                   <span class="header-label">Produto</span>
                 </th>
                 <th class="number draggable-column" data-column-key="2" draggable="true">
-                  <span class="drag-handle" aria-hidden="true">↕</span>
+                  <span class="drag-handle" aria-hidden="true">↔</span>
                   <span class="header-label">Valor unitário</span>
                 </th>
                 <th class="number draggable-column" data-column-key="3" draggable="true">
-                  <span class="drag-handle" aria-hidden="true">↕</span>
+                  <span class="drag-handle" aria-hidden="true">↔</span>
                   <span class="header-label">ICMS-ST por unidade</span>
                 </th>
                 <th class="number draggable-column" data-column-key="4" draggable="true">
-                  <span class="drag-handle" aria-hidden="true">↕</span>
+                  <span class="drag-handle" aria-hidden="true">↔</span>
                   <span class="header-label">Custo unitário + ST</span>
                 </th>
                 <th class="number draggable-column" id="markupHeader" data-column-key="5" draggable="true">
-                  <span class="drag-handle" aria-hidden="true">↕</span>
+                  <span class="drag-handle" aria-hidden="true">↔</span>
                   <span class="header-label">Preço sugerido (+20%)</span>
                 </th>
                 <th class="number draggable-column" data-column-key="6" draggable="true">
-                  <span class="drag-handle" aria-hidden="true">↕</span>
+                  <span class="drag-handle" aria-hidden="true">↔</span>
                   <span class="header-label">Valor dos produtos</span>
                 </th>
                 <th class="number draggable-column" data-column-key="8" draggable="true">
-                  <span class="drag-handle" aria-hidden="true">↕</span>
+                  <span class="drag-handle" aria-hidden="true">↔</span>
                   <span class="header-label">Base ICMS-ST</span>
                 </th>
                 <th class="number draggable-column" data-column-key="9" draggable="true">
-                  <span class="drag-handle" aria-hidden="true">↕</span>
+                  <span class="drag-handle" aria-hidden="true">↔</span>
                   <span class="header-label">ICMS-ST total</span>
                 </th>
                 <th class="number draggable-column" data-column-key="10" draggable="true">
-                  <span class="drag-handle" aria-hidden="true">↕</span>
+                  <span class="drag-handle" aria-hidden="true">↔</span>
                   <span class="header-label">% ICMS-ST</span>
                 </th>
                 <th class="draggable-column" data-column-key="11" draggable="true">
-                  <span class="drag-handle" aria-hidden="true">↕</span>
+                  <span class="drag-handle" aria-hidden="true">↔</span>
                   <span class="header-label">Código de barras</span>
                 </th>
                 <th class="draggable-column" data-column-key="12" draggable="true">
-                  <span class="drag-handle" aria-hidden="true">↕</span>
+                  <span class="drag-handle" aria-hidden="true">↔</span>
                   <span class="header-label">NCM</span>
                 </th>
                 <th class="draggable-column" data-column-key="13" draggable="true">
-                  <span class="drag-handle" aria-hidden="true">↕</span>
+                  <span class="drag-handle" aria-hidden="true">↔</span>
                   <span class="header-label">CST/CSOSN</span>
                 </th>
                 <th class="draggable-column" data-column-key="14" draggable="true">
-                  <span class="drag-handle" aria-hidden="true">↕</span>
+                  <span class="drag-handle" aria-hidden="true">↔</span>
                   <span class="header-label">CFOP</span>
                 </th>
                 <th class="draggable-column" data-column-key="15" draggable="true">
-                  <span class="drag-handle" aria-hidden="true">↕</span>
+                  <span class="drag-handle" aria-hidden="true">↔</span>
                   <span class="header-label">Código do produto</span>
                 </th>
               </tr>
@@ -1145,7 +1145,7 @@
     }
 
 
-    const COLUMN_ORDER_STORAGE_KEY = 'icmsStColumnOrderV1';
+    const COLUMN_ORDER_STORAGE_KEY = 'icmsStColumnOrderV2';
 
     function getHeaderCells() {
       return Array.from(document.querySelectorAll('#draggableHeaderRow th'));
@@ -1195,43 +1195,43 @@
     }
 
     function reorderTableTo(orderKeys, save = true) {
+      const normalizedOrder = orderKeys.map(String);
       const headerRow = document.getElementById('draggableHeaderRow');
+
       const headersByKey = new Map(
         getHeaderCells().map(th => [th.dataset.columnKey, th])
       );
 
-      orderKeys.forEach(key => {
-        const header = headersByKey.get(String(key));
+      normalizedOrder.forEach(key => {
+        const header = headersByKey.get(key);
         if (header) headerRow.appendChild(header);
-      });
-
-      document.querySelectorAll('#itemsBody tr').forEach(row => {
-        const cells = Array.from(row.children);
-        const currentOrder = getColumnOrder();
-        const cellsByKey = new Map(
-          currentOrder.map((key, index) => [key, cells[index]])
-        );
-
-        orderKeys.forEach(key => {
-          const cell = cellsByKey.get(String(key));
-          if (cell) row.appendChild(cell);
-        });
       });
 
       const selectorList = document.querySelector('.column-selector-list');
       const selectorByKey = new Map(
-        Array.from(selectorList.children).map(label => [label.dataset.columnKey, label])
+        Array.from(selectorList.children).map(label => [
+          label.dataset.columnKey,
+          label
+        ])
       );
-      orderKeys.forEach(key => {
-        const label = selectorByKey.get(String(key));
+
+      normalizedOrder.forEach(key => {
+        const label = selectorByKey.get(key);
         if (label) selectorList.appendChild(label);
       });
 
       if (save) {
-        localStorage.setItem(COLUMN_ORDER_STORAGE_KEY, JSON.stringify(orderKeys));
+        localStorage.setItem(
+          COLUMN_ORDER_STORAGE_KEY,
+          JSON.stringify(normalizedOrder)
+        );
       }
 
-      applyAllColumnPreferences();
+      if (currentItems.length) {
+        renderItems();
+      } else {
+        applyAllColumnPreferences();
+      }
     }
 
     function restoreSavedColumnOrder() {
@@ -1298,11 +1298,14 @@
 
         header.addEventListener('pointerdown', event => {
           if (event.pointerType === 'mouse') return;
+
           pointerSource = {
             key: header.dataset.columnKey,
             x: event.clientX,
             y: event.clientY
           };
+
+          header.classList.add('dragging');
           header.setPointerCapture?.(event.pointerId);
         });
 
@@ -1316,10 +1319,17 @@
             moveColumn(pointerSource.key, target.dataset.columnKey);
           }
 
+          getHeaderCells().forEach(th => {
+            th.classList.remove('dragging', 'drag-over');
+          });
+
           pointerSource = null;
         });
 
         header.addEventListener('pointercancel', () => {
+          getHeaderCells().forEach(th => {
+            th.classList.remove('dragging', 'drag-over');
+          });
           pointerSource = null;
         });
       });
