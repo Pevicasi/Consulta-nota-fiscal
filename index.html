@@ -400,6 +400,59 @@
     }
 
 
+
+    .code-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    .btn-link {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 10px;
+      padding: 11px 16px;
+      font-weight: 700;
+      font-size: 14px;
+      text-decoration: none;
+      background: var(--primary);
+      color: #fff;
+    }
+
+    .camera-frame {
+      position: relative;
+      overflow: hidden;
+      border-radius: 12px;
+      background: #000;
+    }
+
+    .camera-guide {
+      position: absolute;
+      left: 8%;
+      right: 8%;
+      top: 38%;
+      height: 24%;
+      border: 3px solid rgba(255,255,255,.95);
+      border-radius: 10px;
+      box-shadow: 0 0 0 9999px rgba(0,0,0,.18);
+      pointer-events: none;
+    }
+
+    .camera-guide::before,
+    .camera-guide::after {
+      content: "";
+      position: absolute;
+      left: 10%;
+      right: 10%;
+      height: 2px;
+      background: rgba(255,255,255,.8);
+    }
+
+    .camera-guide::before { top: 33%; }
+    .camera-guide::after { bottom: 33%; }
+
     .camera-modal {
       position: fixed;
       inset: 0;
@@ -481,6 +534,12 @@
         </div>
         <div id="mobileScanWrap" style="display:none;margin-top:10px;">
           <button class="btn-primary" id="scanBtn" type="button">📷 Ler código</button>
+        </div>
+        <div class="code-actions">
+          <button class="btn-secondary hidden" id="copyCodeBtn" type="button">Copiar código</button>
+          <a class="btn-link hidden" id="openNfeSiteBtn"
+             href="https://www.nfe.fazenda.gov.br/portal/consultaRecaptcha.aspx?tipoConsulta=resumo&amp;tipoConteudo=7PhJ+gAVw2g="
+             target="_blank" rel="noopener noreferrer">Ir ao site da NF-e</a>
         </div>
       </div>
 
@@ -599,8 +658,11 @@
     <div id="cameraModal" class="camera-modal hidden" aria-hidden="true">
       <div class="camera-box">
         <h2>Aponte para o código de barras</h2>
-        <video id="cameraVideo" class="camera-video" muted playsinline></video>
-        <p class="camera-help">Mantenha o código inteiro dentro da imagem.</p>
+        <div class="camera-frame">
+          <video id="cameraVideo" class="camera-video" muted playsinline></video>
+          <div class="camera-guide"></div>
+        </div>
+        <p class="camera-help">Pode segurar o celular em pé ou deitado. Centralize o código dentro da faixa.</p>
         <div class="camera-actions">
           <button class="btn-secondary" id="closeCameraBtn" type="button">Fechar câmera</button>
         </div>
@@ -1063,8 +1125,12 @@
     const cameraModal = document.getElementById('cameraModal');
     const cameraVideo = document.getElementById('cameraVideo');
     const closeCameraBtn = document.getElementById('closeCameraBtn');
+    const copyCodeBtn = document.getElementById('copyCodeBtn');
+    const openNfeSiteBtn = document.getElementById('openNfeSiteBtn');
 
-    let cameraControls = null;
+    let cameraStream = null;
+    let cameraReader = null;
+    let scannerTimer = null;
     let scannerBusy = false;
 
     function isMobileDevice() {
@@ -1072,21 +1138,102 @@
         (navigator.maxTouchPoints > 1 && window.innerWidth <= 900);
     }
 
-    function stopCamera() {
-      try {
-        if (cameraControls) cameraControls.stop();
-      } catch (_) {}
+    function updateCodeButtons() {
+      const hasCode = invoiceSearch.value.trim().length > 0;
+      copyCodeBtn.classList.toggle('hidden', !hasCode);
+      if (!hasCode) openNfeSiteBtn.classList.add('hidden');
+    }
 
-      cameraControls = null;
+    function stopCamera() {
+      if (scannerTimer) {
+        clearTimeout(scannerTimer);
+        scannerTimer = null;
+      }
+
       scannerBusy = false;
 
-      if (cameraVideo && cameraVideo.srcObject) {
-        cameraVideo.srcObject.getTracks().forEach(track => track.stop());
+      if (cameraStream) {
+        cameraStream.getTracks().forEach(track => track.stop());
+        cameraStream = null;
+      }
+
+      if (cameraVideo) {
+        cameraVideo.pause();
         cameraVideo.srcObject = null;
       }
 
       cameraModal.classList.add('hidden');
       cameraModal.setAttribute('aria-hidden', 'true');
+    }
+
+    function makeRotatedCanvas(video, rotation, crop = false) {
+      const sourceWidth = video.videoWidth;
+      const sourceHeight = video.videoHeight;
+
+      let sx = 0, sy = 0, sw = sourceWidth, sh = sourceHeight;
+
+      if (crop) {
+        sw = Math.round(sourceWidth * 0.90);
+        sh = Math.round(sourceHeight * 0.58);
+        sx = Math.round((sourceWidth - sw) / 2);
+        sy = Math.round((sourceHeight - sh) / 2);
+      }
+
+      const swap = rotation === 90 || rotation === 270;
+      const canvas = document.createElement('canvas');
+      canvas.width = swap ? sh : sw;
+      canvas.height = swap ? sw : sh;
+
+      const ctx = canvas.getContext('2d', { willReadFrequently: true });
+      ctx.translate(canvas.width / 2, canvas.height / 2);
+      ctx.rotate(rotation * Math.PI / 180);
+      ctx.drawImage(
+        video,
+        sx, sy, sw, sh,
+        -sw / 2, -sh / 2, sw, sh
+      );
+
+      return canvas;
+    }
+
+    async function tryDecodeCurrentFrame() {
+      if (!cameraStream || scannerBusy || cameraVideo.readyState < 2) return false;
+
+      const attempts = [
+        [0, true], [90, true], [270, true], [180, true],
+        [0, false], [90, false], [270, false], [180, false]
+      ];
+
+      for (const [rotation, crop] of attempts) {
+        try {
+          const canvas = makeRotatedCanvas(cameraVideo, rotation, crop);
+          const result = await cameraReader.decodeFromCanvas(canvas);
+
+          if (result) {
+            scannerBusy = true;
+            const code = result.getText ? result.getText() : result.text;
+            invoiceSearch.value = String(code || '').replace(/\D/g, '').trim();
+            updateCodeButtons();
+            stopCamera();
+            searchInvoiceXML();
+            return true;
+          }
+        } catch (_) {
+          // Continua tentando outras rotações e recortes.
+        }
+      }
+
+      return false;
+    }
+
+    async function scanLoop() {
+      if (!cameraStream) return;
+
+      await tryDecodeCurrentFrame();
+
+      if (cameraStream && !scannerBusy) {
+        scannerTimer = setTimeout(scanLoop, 280);
+      }
     }
 
     async function startCameraScanner() {
@@ -1105,29 +1252,21 @@
       cameraModal.setAttribute('aria-hidden', 'false');
 
       try {
-        const reader = new ZXingBrowser.BrowserMultiFormatReader();
+        cameraReader = new ZXingBrowser.BrowserMultiFormatReader();
 
-        cameraControls = await reader.decodeFromConstraints(
-          {
-            audio: false,
-            video: {
-              facingMode: { ideal: 'environment' },
-              width: { ideal: 1280 },
-              height: { ideal: 720 }
-            }
-          },
-          cameraVideo,
-          (result, error, controls) => {
-            if (result && !scannerBusy) {
-              scannerBusy = true;
-              const code = result.getText ? result.getText() : result.text;
-              invoiceSearch.value = String(code || '').trim();
-              controls.stop();
-              stopCamera();
-              searchInvoiceXML();
-            }
+        cameraStream = await navigator.mediaDevices.getUserMedia({
+          audio: false,
+          video: {
+            facingMode: { ideal: 'environment' },
+            width: { ideal: 1920 },
+            height: { ideal: 1080 },
+            focusMode: { ideal: 'continuous' }
           }
-        );
+        });
+
+        cameraVideo.srcObject = cameraStream;
+        await cameraVideo.play();
+        scanLoop();
       } catch (error) {
         stopCamera();
 
@@ -1143,13 +1282,35 @@
       }
     }
 
+    async function copyCurrentCode() {
+      const code = invoiceSearch.value.trim();
+
+      if (!code) return;
+
+      try {
+        await navigator.clipboard.writeText(code);
+      } catch (_) {
+        invoiceSearch.focus();
+        invoiceSearch.select();
+        document.execCommand('copy');
+      }
+
+      showStatus('Código copiado.', 'success');
+      openNfeSiteBtn.classList.remove('hidden');
+    }
+
     if (isMobileDevice()) mobileScanWrap.style.display = 'block';
 
     scanBtn.addEventListener('click', startCameraScanner);
     closeCameraBtn.addEventListener('click', stopCamera);
+    copyCodeBtn.addEventListener('click', copyCurrentCode);
+
+    invoiceSearch.addEventListener('input', updateCodeButtons);
+
     cameraModal.addEventListener('click', event => {
       if (event.target === cameraModal) stopCamera();
     });
+
     window.addEventListener('pagehide', stopCamera);
 
   </script>
