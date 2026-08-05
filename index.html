@@ -848,16 +848,16 @@
           <div id="scanListItems" class="scan-list-items"></div>
         </div>
 
-      <div class="manual-separator"><span>ou selecione um XML individual</span></div>
+      <div class="manual-separator"><span>ou selecione vários XMLs</span></div>
 
 <label class="upload-area" id="dropArea" for="xmlFile">
-        <strong>Toque para selecionar ou arraste o XML aqui</strong>
-        <span>Aceita arquivo XML de NF-e modelo 55.</span>
+        <strong>Toque para selecionar ou arraste os XMLs aqui</strong>
+        <span>Aceita vários arquivos XML de NF-e modelo 55.</span>
       </label>
-      <input id="xmlFile" type="file" accept=".xml,text/xml,application/xml" />
+      <input id="xmlFile" type="file" accept=".xml,text/xml,application/xml" multiple />
 
       <div class="actions">
-        <button class="btn-primary" id="selectBtn" type="button">Selecionar XML</button>
+        <button class="btn-primary" id="selectBtn" type="button">Selecionar XMLs</button>
         <button class="btn-secondary hidden" id="clearBtn" type="button">Limpar</button>
       </div>
 
@@ -1901,7 +1901,7 @@
     });
 
     selectBtn.addEventListener('click', () => fileInput.click());
-    fileInput.addEventListener('change', () => processFile(fileInput.files[0]));
+    fileInput.addEventListener('change', () => loadMultipleXmls(fileInput.files));
     clearBtn.addEventListener('click', clearAll);
     printBtn.addEventListener('click', () => window.print());
     csvBtn.addEventListener('click', downloadCSV);
@@ -1928,8 +1928,7 @@
     });
 
     dropArea.addEventListener('drop', event => {
-      const file = event.dataTransfer.files[0];
-      processFile(file);
+      loadMultipleXmls(event.dataTransfer.files);
     });
 
 
