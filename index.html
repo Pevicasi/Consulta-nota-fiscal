@@ -1,0 +1,2335 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NF-e Fácil</title>
+  <style>
+    :root {
+      --bg: #f4f7fb;
+      --card: #ffffff;
+      --text: #172033;
+      --muted: #667085;
+      --border: #dfe4ec;
+      --primary: #1f5eff;
+      --primary-dark: #1747bf;
+      --success-bg: #ecfdf3;
+      --success-text: #027a48;
+      --danger-bg: #fff1f1;
+      --danger-text: #b42318;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    .container {
+      width: min(1180px, calc(100% - 24px));
+      margin: 24px auto 48px;
+    }
+
+    .header {
+      margin-bottom: 18px;
+    }
+
+    .header h1 {
+      margin: 0 0 8px;
+      font-size: clamp(25px, 4vw, 38px);
+    }
+
+    .header p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      box-shadow: 0 8px 24px rgba(16, 24, 40, 0.06);
+      padding: 18px;
+      margin-bottom: 18px;
+    }
+
+    .upload-area {
+      display: block;
+      width: 100%;
+      border: 2px dashed #aeb8c8;
+      border-radius: 14px;
+      padding: 28px 18px;
+      text-align: center;
+      cursor: pointer;
+      transition: .2s;
+      background: #fafbfc;
+    }
+
+    .upload-area:hover,
+    .upload-area.dragover {
+      border-color: var(--primary);
+      background: #f1f5ff;
+    }
+
+    .upload-area strong {
+      display: block;
+      font-size: 18px;
+      margin-bottom: 7px;
+    }
+
+    .upload-area span {
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    input[type="file"] {
+      display: none;
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    button {
+      border: 0;
+      border-radius: 10px;
+      padding: 11px 16px;
+      font-weight: 700;
+      cursor: pointer;
+      font-size: 14px;
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: #fff;
+    }
+
+    .btn-primary:hover { background: var(--primary-dark); }
+
+    .btn-secondary {
+      background: #eef2f7;
+      color: #344054;
+    }
+
+    .status {
+      margin-top: 14px;
+      border-radius: 10px;
+      padding: 12px 14px;
+      display: none;
+      line-height: 1.45;
+    }
+
+    .status.success {
+      display: block;
+      background: var(--success-bg);
+      color: var(--success-text);
+    }
+
+    .status.error {
+      display: block;
+      background: var(--danger-bg);
+      color: var(--danger-text);
+    }
+
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .summary-item {
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 13px;
+      min-width: 0;
+    }
+
+    .summary-item small {
+      display: block;
+      color: var(--muted);
+      margin-bottom: 5px;
+    }
+
+    .summary-item strong {
+      display: block;
+      word-break: break-word;
+    }
+
+    .totals {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .total-box {
+      border-radius: 12px;
+      padding: 15px;
+      background: #f8fafc;
+      border: 1px solid var(--border);
+    }
+
+    .total-box span {
+      display: block;
+      color: var(--muted);
+      font-size: 13px;
+      margin-bottom: 6px;
+    }
+
+    .total-box strong {
+      font-size: 20px;
+    }
+
+    .table-wrap {
+      overflow-x: auto;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+    }
+
+    table {
+      width: 100%;
+      min-width: 1450px;
+      border-collapse: collapse;
+      background: #fff;
+    }
+
+    th, td {
+      border-bottom: 1px solid var(--border);
+      padding: 11px 10px;
+      text-align: left;
+      vertical-align: top;
+      font-size: 13px;
+    }
+
+    th {
+      background: #f8fafc;
+      color: #344054;
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      white-space: nowrap;
+    }
+
+    tbody tr:hover {
+      background: #fbfcfe;
+    }
+
+    td.number, th.number {
+      text-align: right;
+      white-space: nowrap;
+    }
+
+    .product-name {
+      font-weight: 700;
+      min-width: 260px;
+    }
+
+    .muted {
+      color: var(--muted);
+      font-size: 12px;
+      margin-top: 4px;
+    }
+
+    .hidden { display: none !important; }
+
+    .footer-note {
+      color: var(--muted);
+      font-size: 13px;
+      margin-top: 12px;
+      line-height: 1.45;
+    }
+    .simple-loader {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
+    }
+
+    .loaded-count {
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .scanner-box {
+      display: grid;
+      gap: 10px;
+      margin-bottom: 18px;
+      padding: 14px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: #f8fafc;
+    }
+
+    .scanner-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .scanner-row input {
+      flex: 1 1 420px;
+      min-width: 0;
+      padding: 12px 13px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      font-size: 16px;
+      background: #fff;
+    }
+
+    .manual-separator {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 18px 0;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .manual-separator::before,
+    .manual-separator::after {
+      content: "";
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    .markup-control {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 16px 0;
+      padding: 14px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: #f8fafc;
+    }
+
+    .markup-input-wrap {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .markup-input-wrap input {
+      width: 100px;
+      padding: 10px 11px;
+      border: 1px solid var(--border);
+      border-radius: 9px;
+      font-size: 15px;
+      background: #fff;
+    }
+
+    .markup-control small {
+      color: var(--muted);
+      width: 100%;
+    }
+
+
+    @media (max-width: 820px) {
+      .summary-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .totals {
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        gap: 6px;
+      }
+
+      .total-box {
+        padding: 9px 7px;
+      }
+
+      .total-box span {
+        font-size: 10px;
+        line-height: 1.2;
+      }
+
+      .total-box strong {
+        font-size: 14px;
+        white-space: nowrap;
+      }
+    }
+
+    @media (max-width: 520px) {
+      .summary-grid, .totals {
+        grid-template-columns: 1fr;
+      }
+
+      .container {
+        width: min(100% - 14px, 1180px);
+        margin-top: 10px;
+      }
+
+      .card { padding: 13px; }
+
+      .scanner-row {
+        align-items: stretch;
+      }
+
+      .scanner-row input,
+      .scanner-row button,
+      .simple-loader button {
+        width: 100%;
+      }
+
+      .upload-area {
+        padding: 22px 16px;
+      }
+
+      .upload-area strong {
+        font-size: 17px;
+        line-height: 1.35;
+      }
+
+      .upload-card > .actions {
+        margin-top: 12px;
+      }
+
+      .upload-card > .actions #selectBtn {
+        width: 100%;
+      }
+    }
+
+
+
+    .code-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    .btn-link {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 10px;
+      padding: 11px 16px;
+      font-weight: 700;
+      font-size: 14px;
+      text-decoration: none;
+      background: var(--primary);
+      color: #fff;
+    }
+
+    .camera-frame {
+      position: relative;
+      overflow: hidden;
+      border-radius: 12px;
+      background: #000;
+    }
+
+    .camera-guide {
+      position: absolute;
+      left: 8%;
+      right: 8%;
+      top: 38%;
+      height: 24%;
+      border: 3px solid rgba(255,255,255,.95);
+      border-radius: 10px;
+      box-shadow: 0 0 0 9999px rgba(0,0,0,.18);
+      pointer-events: none;
+    }
+
+    .camera-guide::before,
+    .camera-guide::after {
+      content: "";
+      position: absolute;
+      left: 10%;
+      right: 10%;
+      height: 2px;
+      background: rgba(255,255,255,.8);
+    }
+
+    .camera-guide::before { top: 33%; }
+    .camera-guide::after { bottom: 33%; }
+
+
+    .result-toolbar {
+      display: grid;
+      gap: 12px;
+    }
+
+    .result-toolbar-top {
+      display: flex;
+      justify-content: flex-start;
+    }
+
+    .display-options {
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px;
+      background: #f8fafc;
+    }
+
+    .display-options summary {
+      cursor: pointer;
+      font-weight: 700;
+    }
+
+    .display-options-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+      margin-top: 12px;
+    }
+
+    .display-options-grid label {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      font-weight: 600;
+    }
+
+    .group-hidden {
+      display: none !important;
+    }
+
+    .code-actions {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .code-actions > * {
+      width: 100%;
+      min-width: 0;
+      padding-left: 8px;
+      padding-right: 8px;
+      text-align: center;
+    }
+
+    @media (max-width: 520px) {
+      .code-actions {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .code-actions > * {
+        font-size: 12px;
+        padding: 10px 5px;
+      }
+    }
+
+
+    .column-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .column-checkbox {
+      width: 16px;
+      height: 16px;
+      margin: 0;
+      flex: 0 0 auto;
+      accent-color: var(--primary);
+    }
+
+    th.column-collapsed {
+      width: 38px !important;
+      min-width: 38px !important;
+      max-width: 38px !important;
+      padding-left: 8px;
+      padding-right: 8px;
+      text-align: center !important;
+    }
+
+    th.column-collapsed .column-label {
+      display: none;
+    }
+
+    td.column-hidden {
+      display: none !important;
+    }
+
+    @media (max-width: 520px) {
+      .column-toggle {
+        gap: 4px;
+      }
+
+      .column-checkbox {
+        width: 15px;
+        height: 15px;
+      }
+    }
+
+
+    .column-selector {
+      margin: 16px 0 12px;
+      padding: 0;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: #f8fafc;
+      overflow: hidden;
+    }
+
+    .column-selector summary {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 12px;
+      cursor: pointer;
+      font-weight: 700;
+      list-style: none;
+    }
+
+    .column-selector summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .column-selector summary::before {
+      content: "▶";
+      margin-right: 8px;
+      font-size: 12px;
+    }
+
+    .column-selector[open] summary::before {
+      content: "▼";
+    }
+
+    .column-selector summary span {
+      flex: 1;
+    }
+
+    .column-selector summary strong {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .column-selector-list {
+      display: flex;
+      gap: 10px 14px;
+      flex-wrap: wrap;
+      padding: 12px;
+      border-top: 1px solid var(--border);
+    }
+
+    .column-selector-list label {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .column-selector-list input {
+      width: 16px;
+      height: 16px;
+      margin: 0;
+      accent-color: var(--primary);
+    }
+
+    th.column-hidden,
+    td.column-hidden {
+      display: none !important;
+    }
+
+    @media (max-width: 520px) {
+      .column-selector-list {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .column-selector-list label {
+        font-size: 12px;
+      }
+    }
+
+
+    .draggable-column {
+      cursor: grab;
+      touch-action: none;
+    }
+
+    .draggable-column:active {
+      cursor: grabbing;
+    }
+
+    .drag-handle {
+      display: inline-block;
+      margin-right: 5px;
+      color: var(--muted);
+      font-size: 12px;
+      transform: none;
+    }
+
+    .draggable-column.dragging {
+      opacity: .45;
+    }
+
+    .draggable-column.drag-over {
+      outline: 2px solid var(--primary);
+      outline-offset: -2px;
+    }
+
+    .column-selector-list label {
+      transition: opacity .15s ease;
+    }
+
+
+    .scan-list {
+      margin-top: 14px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: #fff;
+      overflow: hidden;
+    }
+
+    .scan-list-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 12px;
+      background: #f8fafc;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .scan-list-items {
+      display: grid;
+    }
+
+    .scan-item {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 10px;
+      align-items: center;
+      padding: 12px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .scan-item:last-child {
+      border-bottom: 0;
+    }
+
+    .scan-code {
+      font-family: monospace;
+      font-size: 13px;
+      word-break: break-all;
+    }
+
+    .scan-item-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .scan-item-actions button,
+    .scan-item-actions a {
+      padding: 8px 10px;
+      font-size: 12px;
+    }
+
+    .notes-tabs {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding-bottom: 4px;
+      margin-bottom: 14px;
+      scrollbar-width: thin;
+    }
+
+    .note-tab {
+      flex: 0 0 auto;
+      border: 1px solid var(--border);
+      background: #eef2f7;
+      color: #344054;
+      border-radius: 999px;
+      padding: 9px 14px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .note-tab.active {
+      background: var(--primary);
+      color: #fff;
+      border-color: var(--primary);
+    }
+
+    .notes-summary {
+      color: var(--muted);
+      font-size: 13px;
+      margin-bottom: 10px;
+    }
+
+    @media (max-width: 520px) {
+      .scan-item {
+        grid-template-columns: 1fr;
+      }
+
+      .scan-item-actions {
+        justify-content: stretch;
+      }
+
+      .scan-item-actions button,
+      .scan-item-actions a {
+        flex: 1 1 auto;
+        text-align: center;
+      }
+    }
+
+    .camera-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 14px;
+      background: rgba(0, 0, 0, 0.78);
+    }
+    .camera-box {
+      width: min(520px, 100%);
+      background: #fff;
+      border-radius: 16px;
+      padding: 14px;
+    }
+    .camera-box h2 {
+      margin: 0 0 12px;
+      font-size: 20px;
+    }
+    .camera-video {
+      width: 100%;
+      max-height: 68vh;
+      border-radius: 12px;
+      background: #000;
+      object-fit: cover;
+    }
+    .camera-help {
+      margin: 10px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+      text-align: center;
+    }
+    .camera-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 12px;
+    }
+    .camera-actions button { width: 100%; }
+
+
+    .camera-photo-status {
+      margin-top: 10px;
+      color: var(--muted);
+      font-size: 13px;
+      text-align: center;
+      min-height: 18px;
+    }
+
+    .camera-actions {
+      flex-wrap: wrap;
+    }
+
+    .camera-actions button {
+      flex: 1 1 160px;
+    }
+
+    @media print {
+      body { background: #fff; }
+      .upload-card, .actions { display: none !important; }
+      .container { width: 100%; margin: 0; }
+      .card { box-shadow: none; border: 0; padding: 0; }
+      .table-wrap { overflow: visible; border: 0; }
+      table { min-width: 0; font-size: 9px; }
+      th, td { padding: 5px; font-size: 9px; }
+      .header p, .footer-note { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <main class="container">
+    <header class="header">
+      <h1>NF-e Fácil</h1>
+      <p>Leia a chave de acesso, importe vários XMLs e analise todas as informações da nota fiscal em um único lugar.</p>
+    </header>
+
+    <section class="card upload-card">
+      <div class="simple-loader">
+        <button class="btn-primary" id="loadXmlsBtn" type="button">Carregar XMLs</button>
+        <span id="loadedCount" class="loaded-count">Nenhum XML carregado</span>
+      </div>
+
+      <input id="multipleXmlFiles" type="file" accept=".xml,text/xml,application/xml" multiple />
+
+      <div class="scanner-box">
+        <label for="invoiceSearch"><strong>Digite ou passe o leitor no código da nota</strong></label>
+        <div class="scanner-row">
+          <input
+            id="invoiceSearch"
+            type="text"
+            inputmode="numeric"
+            autocomplete="off"
+            placeholder="Leia o código e pressione Enter"
+          />
+          <button class="btn-primary" id="searchBtn" type="button">Procurar</button>
+        </div>
+        <div class="code-actions">
+          <button class="btn-primary" id="scanBtn" type="button">📷 Ler código</button>
+          <button class="btn-secondary hidden" id="copyCodeBtn" type="button">Copiar código</button>
+          <a class="btn-link hidden" id="openNfeSiteBtn"
+             href="https://www.nfe.fazenda.gov.br/portal/consultaRecaptcha.aspx?tipoConsulta=resumo&amp;tipoConteudo=7PhJ+gAVw2g="
+             target="_blank" rel="noopener noreferrer">Ir ao site da NF-e</a>
+        </div>
+      </div>
+
+        <div id="scanList" class="scan-list hidden">
+          <div class="scan-list-header">
+            <strong>Notas escaneadas</strong>
+            <button class="btn-secondary" id="clearScansBtn" type="button">Limpar lista</button>
+          </div>
+          <div id="scanListItems" class="scan-list-items"></div>
+        </div>
+
+      <div class="manual-separator"><span>ou selecione vários XMLs</span></div>
+
+<label class="upload-area" id="dropArea" for="xmlFile">
+        <strong>Toque para selecionar ou arraste os XMLs aqui</strong>
+        <span>Aceita vários arquivos XML de NF-e modelo 55.</span>
+      </label>
+      <input id="xmlFile" type="file" accept=".xml,text/xml,application/xml" multiple />
+
+      <div class="actions">
+        <button class="btn-primary" id="selectBtn" type="button">Selecionar XMLs</button>
+        <button class="btn-secondary hidden" id="clearBtn" type="button">Limpar</button>
+      </div>
+
+      <div id="status" class="status"></div>
+    </section>
+
+    <section id="result" class="hidden">
+
+      <section class="card">
+        <div id="notesSummary" class="notes-summary"></div>
+        <div id="notesTabs" class="notes-tabs"></div>
+      </section>
+
+      <section class="card">
+        <div class="summary-grid">
+          <div class="summary-item">
+            <small>Número da NF-e</small>
+            <strong id="nfeNumber">—</strong>
+          </div>
+          <div class="summary-item">
+            <small>Data de emissão</small>
+            <strong id="issueDate">—</strong>
+          </div>
+          <div class="summary-item">
+            <small>Emitente</small>
+            <strong id="issuer">—</strong>
+          </div>
+          <div class="summary-item">
+            <small>Destinatário</small>
+            <strong id="recipient">—</strong>
+          </div>
+          <div class="summary-item" style="grid-column: 1 / -1;">
+            <small>Chave de acesso</small>
+            <strong id="accessKey">—</strong>
+          </div>
+        </div>
+      </section>
+
+
+      <section class="card result-toolbar">
+        <div class="result-toolbar-top">
+          <button class="btn-primary" id="newSearchBtn" type="button">Nova consulta</button>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="totals">
+          <div class="total-box">
+            <span>Valor dos produtos</span>
+            <strong id="totalProducts">R$ 0,00</strong>
+          </div>
+          <div class="total-box">
+            <span>Base total do ICMS-ST</span>
+            <strong id="totalBCST">R$ 0,00</strong>
+          </div>
+          <div class="total-box">
+            <span>Total do ICMS-ST</span>
+            <strong id="totalST">R$ 0,00</strong>
+          </div>
+          <div class="total-box">
+            <span>% total do ICMS-ST</span>
+            <strong id="totalSTPercent">0,00%</strong>
+          </div>
+          <div class="total-box">
+            <span>Valor total da nota</span>
+            <strong id="totalInvoice">R$ 0,00</strong>
+          </div>
+        </div>
+
+        <div class="actions">
+          <button class="btn-primary" id="printBtn" type="button">Imprimir</button>
+          <button class="btn-secondary" id="csvBtn" type="button">Baixar CSV</button>
+        </div>
+
+        <div class="markup-control">
+          <label for="markupPercent"><strong>Porcentagem adicionada ao custo final:</strong></label>
+          <div class="markup-input-wrap">
+            <input id="markupPercent" type="number" min="0" step="0.01" value="20" inputmode="decimal" />
+            <span>%</span>
+          </div>
+          <small>O padrão é 20%, mas você pode alterar. O preço sugerido é recalculado automaticamente.</small>
+        </div>
+
+
+        <details class="column-selector" id="columnSelectorDetails">
+          <summary>
+            <span>Informações da tabela</span>
+            <strong id="columnCounter">16/16</strong>
+          </summary>
+          <div class="column-selector-list">
+            <label data-column-key="0">
+              <input type="checkbox" class="column-checkbox" data-column-key="0" checked>
+              <span>Item</span>
+            </label>
+            <label data-column-key="7">
+              <input type="checkbox" class="column-checkbox" data-column-key="7" checked>
+              <span>Quantidade</span>
+            </label>
+            <label data-column-key="1">
+              <input type="checkbox" class="column-checkbox" data-column-key="1" checked>
+              <span>Produto</span>
+            </label>
+            <label data-column-key="2">
+              <input type="checkbox" class="column-checkbox" data-column-key="2" checked>
+              <span>Valor unitário</span>
+            </label>
+            <label data-column-key="3">
+              <input type="checkbox" class="column-checkbox" data-column-key="3" checked>
+              <span>ICMS-ST por unidade</span>
+            </label>
+            <label data-column-key="4">
+              <input type="checkbox" class="column-checkbox" data-column-key="4" checked>
+              <span>Custo unitário + ST</span>
+            </label>
+            <label data-column-key="5">
+              <input type="checkbox" class="column-checkbox" data-column-key="5" checked>
+              <span>Preço sugerido (+20%)</span>
+            </label>
+            <label data-column-key="6">
+              <input type="checkbox" class="column-checkbox" data-column-key="6" checked>
+              <span>Valor dos produtos</span>
+            </label>
+            <label data-column-key="8">
+              <input type="checkbox" class="column-checkbox" data-column-key="8" checked>
+              <span>Base ICMS-ST</span>
+            </label>
+            <label data-column-key="9">
+              <input type="checkbox" class="column-checkbox" data-column-key="9" checked>
+              <span>ICMS-ST total</span>
+            </label>
+            <label data-column-key="10">
+              <input type="checkbox" class="column-checkbox" data-column-key="10" checked>
+              <span>% ICMS-ST</span>
+            </label>
+            <label data-column-key="11">
+              <input type="checkbox" class="column-checkbox" data-column-key="11" checked>
+              <span>Código de barras</span>
+            </label>
+            <label data-column-key="12">
+              <input type="checkbox" class="column-checkbox" data-column-key="12" checked>
+              <span>NCM</span>
+            </label>
+            <label data-column-key="13">
+              <input type="checkbox" class="column-checkbox" data-column-key="13" checked>
+              <span>CST/CSOSN</span>
+            </label>
+            <label data-column-key="14">
+              <input type="checkbox" class="column-checkbox" data-column-key="14" checked>
+              <span>CFOP</span>
+            </label>
+            <label data-column-key="15">
+              <input type="checkbox" class="column-checkbox" data-column-key="15" checked>
+              <span>Código do produto</span>
+            </label>
+          </div>
+        </details>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr id="draggableHeaderRow">
+                <th class="draggable-column" data-column-key="0" draggable="true">
+                  <span class="drag-handle" aria-hidden="true">↔</span>
+                  <span class="header-label">Item</span>
+                </th>
+                <th class="number draggable-column" data-column-key="7" draggable="true">
+                  <span class="drag-handle" aria-hidden="true">↔</span>
+                  <span class="header-label">Quantidade</span>
+                </th>
+                <th class="draggable-column" data-column-key="1" draggable="true">
+                  <span class="drag-handle" aria-hidden="true">↔</span>
+                  <span class="header-label">Produto</span>
+                </th>
+                <th class="number draggable-column" data-column-key="2" draggable="true">
+                  <span class="drag-handle" aria-hidden="true">↔</span>
+                  <span class="header-label">Valor unitário</span>
+                </th>
+                <th class="number draggable-column" data-column-key="3" draggable="true">
+                  <span class="drag-handle" aria-hidden="true">↔</span>
+                  <span class="header-label">ICMS-ST por unidade</span>
+                </th>
+                <th class="number draggable-column" data-column-key="4" draggable="true">
+                  <span class="drag-handle" aria-hidden="true">↔</span>
+                  <span class="header-label">Custo unitário + ST</span>
+                </th>
+                <th class="number draggable-column" id="markupHeader" data-column-key="5" draggable="true">
+                  <span class="drag-handle" aria-hidden="true">↔</span>
+                  <span class="header-label">Preço sugerido (+20%)</span>
+                </th>
+                <th class="number draggable-column" data-column-key="6" draggable="true">
+                  <span class="drag-handle" aria-hidden="true">↔</span>
+                  <span class="header-label">Valor dos produtos</span>
+                </th>
+                <th class="number draggable-column" data-column-key="8" draggable="true">
+                  <span class="drag-handle" aria-hidden="true">↔</span>
+                  <span class="header-label">Base ICMS-ST</span>
+                </th>
+                <th class="number draggable-column" data-column-key="9" draggable="true">
+                  <span class="drag-handle" aria-hidden="true">↔</span>
+                  <span class="header-label">ICMS-ST total</span>
+                </th>
+                <th class="number draggable-column" data-column-key="10" draggable="true">
+                  <span class="drag-handle" aria-hidden="true">↔</span>
+                  <span class="header-label">% ICMS-ST</span>
+                </th>
+                <th class="draggable-column" data-column-key="11" draggable="true">
+                  <span class="drag-handle" aria-hidden="true">↔</span>
+                  <span class="header-label">Código de barras</span>
+                </th>
+                <th class="draggable-column" data-column-key="12" draggable="true">
+                  <span class="drag-handle" aria-hidden="true">↔</span>
+                  <span class="header-label">NCM</span>
+                </th>
+                <th class="draggable-column" data-column-key="13" draggable="true">
+                  <span class="drag-handle" aria-hidden="true">↔</span>
+                  <span class="header-label">CST/CSOSN</span>
+                </th>
+                <th class="draggable-column" data-column-key="14" draggable="true">
+                  <span class="drag-handle" aria-hidden="true">↔</span>
+                  <span class="header-label">CFOP</span>
+                </th>
+                <th class="draggable-column" data-column-key="15" draggable="true">
+                  <span class="drag-handle" aria-hidden="true">↔</span>
+                  <span class="header-label">Código do produto</span>
+                </th>
+              </tr>
+            </thead>
+            <tbody id="itemsBody"></tbody>
+          </table>
+        </div>
+
+        <p class="footer-note">
+          O “custo unitário + ST” considera o valor unitário do produto somado ao ICMS-ST por unidade. O “preço sugerido” adiciona a porcentagem escolhida sobre esse custo. Outras despesas, frete, descontos e demais tributos não são rateados nessas colunas.
+        </p>
+      </section>
+    </section>
+
+    <div id="cameraModal" class="camera-modal hidden" aria-hidden="true">
+      <div class="camera-box">
+        <h2>Aponte para o código de barras</h2>
+        <div class="camera-frame">
+          <video id="cameraVideo" class="camera-video" muted playsinline></video>
+          <div class="camera-guide"></div>
+        </div>
+        <p class="camera-help">Pode segurar o celular em pé ou deitado. Centralize o código dentro da faixa.</p>
+        <div id="photoStatus" class="camera-photo-status" aria-live="polite">
+          Tentando reconhecer o código automaticamente…
+        </div>
+        <div class="camera-actions">
+          <button class="btn-primary hidden" id="takePhotoBtn" type="button">📸 Tirar foto</button>
+          <button class="btn-secondary" id="closeCameraBtn" type="button">Fechar câmera</button>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <script>
+    const fileInput = document.getElementById('xmlFile');
+    const selectBtn = document.getElementById('selectBtn');
+    const clearBtn = document.getElementById('clearBtn');
+    const dropArea = document.getElementById('dropArea');
+    const statusBox = document.getElementById('status');
+    const result = document.getElementById('result');
+    const itemsBody = document.getElementById('itemsBody');
+    const printBtn = document.getElementById('printBtn');
+    const csvBtn = document.getElementById('csvBtn');
+    const markupPercentInput = document.getElementById('markupPercent');
+    const markupHeader = document.getElementById('markupHeader');
+    const loadXmlsBtn = document.getElementById('loadXmlsBtn');
+    const multipleXmlFiles = document.getElementById('multipleXmlFiles');
+    const loadedCount = document.getElementById('loadedCount');
+    const invoiceSearch = document.getElementById('invoiceSearch');
+    const searchBtn = document.getElementById('searchBtn');
+    const uploadCard = document.querySelector('.upload-card');
+    const newSearchBtn = document.getElementById('newSearchBtn');
+    const scanList = document.getElementById('scanList');
+    const scanListItems = document.getElementById('scanListItems');
+    const clearScansBtn = document.getElementById('clearScansBtn');
+    const notesTabs = document.getElementById('notesTabs');
+    const notesSummary = document.getElementById('notesSummary');
+    const columnCounter = document.getElementById('columnCounter');
+
+    let currentItems = [];
+    let loadedXmls = [];
+    let currentNfeNumber = '';
+    let loadedNotes = [];
+    let activeNoteIndex = 0;
+    let scannedCodes = [];
+
+    const brl = new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL'
+    });
+
+    const numberBR = new Intl.NumberFormat('pt-BR', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 4
+    });
+
+    const percentBR = new Intl.NumberFormat('pt-BR', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    });
+
+    function localNameElements(parent, name) {
+      return Array.from(parent.getElementsByTagNameNS('*', name));
+    }
+
+    function firstElement(parent, name) {
+      return localNameElements(parent, name)[0] || null;
+    }
+
+    function directChild(parent, name) {
+      if (!parent) return null;
+      return Array.from(parent.children).find(el => el.localName === name) || null;
+    }
+
+    function text(parent, name, fallback = '') {
+      const el = firstElement(parent, name);
+      return el ? el.textContent.trim() : fallback;
+    }
+
+    function directText(parent, name, fallback = '') {
+      const el = directChild(parent, name);
+      return el ? el.textContent.trim() : fallback;
+    }
+
+    function num(value) {
+      const parsed = Number(String(value || '0').replace(',', '.'));
+      return Number.isFinite(parsed) ? parsed : 0;
+    }
+
+    function showStatus(message, type) {
+      statusBox.textContent = message;
+      statusBox.className = `status ${type}`;
+    }
+
+    function clearStatus() {
+      statusBox.textContent = '';
+      statusBox.className = 'status';
+    }
+
+    function formatDate(value) {
+      if (!value) return '—';
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) return value;
+      return date.toLocaleString('pt-BR');
+    }
+
+    function parseXML(xmlText) {
+      const parser = new DOMParser();
+      const xml = parser.parseFromString(xmlText, 'application/xml');
+
+      if (xml.querySelector('parsererror')) {
+        throw new Error('O arquivo selecionado não é um XML válido.');
+      }
+
+      const infNFe = firstElement(xml, 'infNFe');
+      if (!infNFe) {
+        throw new Error('Não foi possível localizar os dados da NF-e neste XML.');
+      }
+
+      const ide = directChild(infNFe, 'ide');
+      const emit = directChild(infNFe, 'emit');
+      const dest = directChild(infNFe, 'dest');
+      const total = directChild(infNFe, 'total');
+      const icmsTot = total ? directChild(total, 'ICMSTot') : null;
+
+      const itemNodes = Array.from(infNFe.children).filter(el => el.localName === 'det');
+      if (!itemNodes.length) {
+        throw new Error('O XML não possui itens de produtos.');
+      }
+
+      const items = itemNodes.map((det, index) => {
+        const prod = directChild(det, 'prod');
+        const imposto = directChild(det, 'imposto');
+        const icms = imposto ? directChild(imposto, 'ICMS') : null;
+        const icmsGroup = icms ? Array.from(icms.children)[0] : null;
+
+        const quantity = num(directText(prod, 'qCom'));
+        const unitValue = num(directText(prod, 'vUnCom'));
+        const productValue = num(directText(prod, 'vProd'));
+        const bcST = num(directText(icmsGroup, 'vBCST'));
+        const stValue = num(directText(icmsGroup, 'vICMSST'));
+
+        return {
+          item: det.getAttribute('nItem') || String(index + 1),
+          name: directText(prod, 'xProd', 'Produto sem descrição'),
+          productCode: directText(prod, 'cProd', '—'),
+          barcode: directText(prod, 'cEAN', '—'),
+          ncm: directText(prod, 'NCM', '—'),
+          cstCsosn: directText(icmsGroup, 'CST', '') || directText(icmsGroup, 'CSOSN', '—'),
+          cfop: directText(prod, 'CFOP', '—'),
+          unit: directText(prod, 'uCom', ''),
+          quantity,
+          unitValue,
+          productValue,
+          bcST,
+          stValue,
+          stPerUnit: quantity > 0 ? stValue / quantity : 0,
+          unitCostWithST: quantity > 0 ? unitValue + (stValue / quantity) : unitValue
+        };
+      });
+
+      return {
+        nfeNumber: directText(ide, 'nNF', '—'),
+        issueDate: directText(ide, 'dhEmi', ''),
+        issuer: directText(emit, 'xNome', '—'),
+        recipient: directText(dest, 'xNome', '—'),
+        accessKey: (infNFe.getAttribute('Id') || '').replace(/^NFe/, '') || text(xml, 'chNFe', '—'),
+        totalProducts: num(directText(icmsTot, 'vProd')),
+        totalBCST: num(directText(icmsTot, 'vBCST')),
+        totalST: num(directText(icmsTot, 'vST')),
+        totalInvoice: num(directText(icmsTot, 'vNF')),
+        items
+      };
+    }
+
+
+    const COLUMN_ORDER_STORAGE_KEY = 'icmsStColumnOrderV2';
+
+    function getHeaderCells() {
+      return Array.from(document.querySelectorAll('#draggableHeaderRow th'));
+    }
+
+    function getColumnOrder() {
+      return getHeaderCells().map(th => th.dataset.columnKey);
+    }
+
+    function getColumnPositionByKey(columnKey) {
+      return getHeaderCells().findIndex(th => th.dataset.columnKey === String(columnKey));
+    }
+
+    function applyColumnVisibility(columnKey, visible) {
+      const position = getColumnPositionByKey(columnKey);
+      if (position < 0) return;
+
+      const header = getHeaderCells()[position];
+      if (header) {
+        header.classList.toggle('column-hidden', !visible);
+      }
+
+      document.querySelectorAll('#itemsBody tr').forEach(row => {
+        const cell = row.children[position];
+        if (cell) {
+          cell.classList.toggle('column-hidden', !visible);
+        }
+      });
+    }
+
+    function updateColumnCounter() {
+      const checkboxes = Array.from(document.querySelectorAll('.column-checkbox'));
+      const visible = checkboxes.filter(checkbox => checkbox.checked).length;
+      columnCounter.textContent = `${visible}/${checkboxes.length}`;
+    }
+
+    function applyAllColumnPreferences() {
+      document.querySelectorAll('.column-checkbox').forEach(checkbox => {
+        applyColumnVisibility(checkbox.dataset.columnKey, checkbox.checked);
+      });
+      updateColumnCounter();
+    }
+
+    function reorderRowCells(row, orderKeys) {
+      const currentCells = Array.from(row.children);
+      const cellsByKey = new Map(
+        getHeaderCells().map((th, index) => [th.dataset.columnKey, currentCells[index]])
+      );
+
+      orderKeys.forEach(key => {
+        const cell = cellsByKey.get(String(key));
+        if (cell) row.appendChild(cell);
+      });
+    }
+
+    function reorderTableTo(orderKeys, save = true) {
+      const normalizedOrder = orderKeys.map(String);
+      const headerRow = document.getElementById('draggableHeaderRow');
+
+      const headersByKey = new Map(
+        getHeaderCells().map(th => [th.dataset.columnKey, th])
+      );
+
+      normalizedOrder.forEach(key => {
+        const header = headersByKey.get(key);
+        if (header) headerRow.appendChild(header);
+      });
+
+      const selectorList = document.querySelector('.column-selector-list');
+      const selectorByKey = new Map(
+        Array.from(selectorList.children).map(label => [
+          label.dataset.columnKey,
+          label
+        ])
+      );
+
+      normalizedOrder.forEach(key => {
+        const label = selectorByKey.get(key);
+        if (label) selectorList.appendChild(label);
+      });
+
+      if (save) {
+        localStorage.setItem(
+          COLUMN_ORDER_STORAGE_KEY,
+          JSON.stringify(normalizedOrder)
+        );
+      }
+
+      if (currentItems.length) {
+        renderItems();
+      } else {
+        applyAllColumnPreferences();
+      }
+    }
+
+    function restoreSavedColumnOrder() {
+      try {
+        const saved = JSON.parse(localStorage.getItem(COLUMN_ORDER_STORAGE_KEY) || 'null');
+        const current = getColumnOrder();
+
+        if (
+          Array.isArray(saved) &&
+          saved.length === current.length &&
+          saved.every(key => current.includes(String(key)))
+        ) {
+          reorderTableTo(saved.map(String), false);
+        }
+      } catch (_) {}
+    }
+
+    function moveColumn(sourceKey, targetKey) {
+      const order = getColumnOrder();
+      const sourceIndex = order.indexOf(String(sourceKey));
+      const targetIndex = order.indexOf(String(targetKey));
+
+      if (sourceIndex < 0 || targetIndex < 0 || sourceIndex === targetIndex) return;
+
+      order.splice(sourceIndex, 1);
+      order.splice(targetIndex, 0, String(sourceKey));
+      reorderTableTo(order);
+    }
+
+    function setupColumnDragging() {
+      let draggedKey = null;
+      let pointerSource = null;
+
+      getHeaderCells().forEach(header => {
+        header.addEventListener('dragstart', event => {
+          draggedKey = header.dataset.columnKey;
+          header.classList.add('dragging');
+          event.dataTransfer.effectAllowed = 'move';
+          event.dataTransfer.setData('text/plain', draggedKey);
+        });
+
+        header.addEventListener('dragend', () => {
+          header.classList.remove('dragging');
+          getHeaderCells().forEach(th => th.classList.remove('drag-over'));
+          draggedKey = null;
+        });
+
+        header.addEventListener('dragover', event => {
+          event.preventDefault();
+          header.classList.add('drag-over');
+          event.dataTransfer.dropEffect = 'move';
+        });
+
+        header.addEventListener('dragleave', () => {
+          header.classList.remove('drag-over');
+        });
+
+        header.addEventListener('drop', event => {
+          event.preventDefault();
+          header.classList.remove('drag-over');
+          const sourceKey = draggedKey || event.dataTransfer.getData('text/plain');
+          moveColumn(sourceKey, header.dataset.columnKey);
+        });
+
+        header.addEventListener('pointerdown', event => {
+          if (event.pointerType === 'mouse') return;
+
+          pointerSource = {
+            key: header.dataset.columnKey,
+            x: event.clientX,
+            y: event.clientY
+          };
+
+          header.classList.add('dragging');
+          header.setPointerCapture?.(event.pointerId);
+        });
+
+        header.addEventListener('pointerup', event => {
+          if (!pointerSource) return;
+
+          const target = document.elementFromPoint(event.clientX, event.clientY)
+            ?.closest('th[data-column-key]');
+
+          if (target) {
+            moveColumn(pointerSource.key, target.dataset.columnKey);
+          }
+
+          getHeaderCells().forEach(th => {
+            th.classList.remove('dragging', 'drag-over');
+          });
+
+          pointerSource = null;
+        });
+
+        header.addEventListener('pointercancel', () => {
+          getHeaderCells().forEach(th => {
+            th.classList.remove('dragging', 'drag-over');
+          });
+          pointerSource = null;
+        });
+      });
+    }
+
+
+    function normalizeNfeKey(value) {
+      return String(value || '').replace(/\D/g, '').slice(0, 44);
+    }
+
+    function addScannedCode(value) {
+      const code = normalizeNfeKey(value);
+      if (!code) return false;
+
+      if (!scannedCodes.includes(code)) {
+        scannedCodes.push(code);
+        renderScannedCodes();
+    updateColumnCounter();
+      }
+
+      invoiceSearch.value = code;
+      updateCodeButtons();
+      return true;
+    }
+
+    function renderScannedCodes() {
+      scanList.classList.toggle('hidden', scannedCodes.length === 0);
+
+      scanListItems.innerHTML = scannedCodes.map((code, index) => `
+        <div class="scan-item">
+          <div>
+            <div class="scan-code">${escapeHTML(code)}</div>
+          </div>
+          <div class="scan-item-actions">
+            <button class="btn-secondary scan-copy-btn" data-index="${index}" type="button">Copiar</button>
+            <a class="btn-link"
+               href="https://www.nfe.fazenda.gov.br/portal/consultaRecaptcha.aspx?tipoConsulta=resumo&amp;tipoConteudo=7PhJ+gAVw2g="
+               target="_blank" rel="noopener noreferrer">Abrir site</a>
+            <button class="btn-secondary scan-remove-btn" data-index="${index}" type="button">Remover</button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    async function copyText(value) {
+      try {
+        await navigator.clipboard.writeText(value);
+      } catch (_) {
+        const temp = document.createElement('textarea');
+        temp.value = value;
+        temp.style.position = 'fixed';
+        temp.style.opacity = '0';
+        document.body.appendChild(temp);
+        temp.select();
+        document.execCommand('copy');
+        temp.remove();
+      }
+    }
+
+    async function copyScannedCode(index) {
+      const code = scannedCodes[index];
+      if (!code) return;
+
+      await copyText(code);
+      showStatus('Código copiado.', 'success');
+    }
+
+    function removeScannedCode(index) {
+      scannedCodes.splice(index, 1);
+      renderScannedCodes();
+    }
+
+    function startNewConsultation() {
+      result.classList.add('hidden');
+      uploadCard.classList.remove('hidden');
+      loadedNotes = [];
+      activeNoteIndex = 0;
+      notesTabs.innerHTML = '';
+      notesSummary.textContent = '';
+      invoiceSearch.value = '';
+      updateCodeButtons();
+      clearStatus();
+      invoiceSearch.focus();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function renderNoteData(data) {
+      currentItems = data.items;
+      currentNfeNumber = data.nfeNumber;
+
+      document.getElementById('nfeNumber').textContent = data.nfeNumber;
+      document.getElementById('issueDate').textContent = formatDate(data.issueDate);
+      document.getElementById('issuer').textContent = data.issuer;
+      document.getElementById('recipient').textContent = data.recipient;
+      document.getElementById('accessKey').textContent = data.accessKey;
+      document.getElementById('totalProducts').textContent = brl.format(data.totalProducts);
+      document.getElementById('totalBCST').textContent = brl.format(data.totalBCST);
+      document.getElementById('totalST').textContent = brl.format(data.totalST);
+      const totalSTPercent = data.totalProducts > 0
+        ? (data.totalST / data.totalProducts) * 100
+        : 0;
+      document.getElementById('totalSTPercent').textContent =
+        `${percentBR.format(totalSTPercent)}%`;
+      document.getElementById('totalInvoice').textContent = brl.format(data.totalInvoice);
+
+      renderItems();
+
+
+      applyAllColumnPreferences();
+    }
+
+
+    function renderNotesTabs() {
+      notesTabs.innerHTML = loadedNotes.map((entry, index) => `
+        <button
+          class="note-tab ${index === activeNoteIndex ? 'active' : ''}"
+          type="button"
+          data-note-index="${index}">
+          NF-e ${escapeHTML(entry.data.nfeNumber || String(index + 1))}
+        </button>
+      `).join('');
+
+      notesSummary.textContent = loadedNotes.length === 1
+        ? '1 nota carregada'
+        : `${loadedNotes.length} notas carregadas`;
+    }
+
+    function showNote(index) {
+      if (!loadedNotes.length) return;
+
+      activeNoteIndex = Math.max(0, Math.min(index, loadedNotes.length - 1));
+      renderNotesTabs();
+      renderNoteData(loadedNotes[activeNoteIndex].data);
+    }
+
+    function openLoadedNotes(entries) {
+      loadedNotes = entries;
+      activeNoteIndex = 0;
+
+      if (!loadedNotes.length) {
+        showStatus('Nenhum XML válido de NF-e foi encontrado.', 'error');
+        return;
+      }
+
+      result.classList.remove('hidden');
+      uploadCard.classList.add('hidden');
+      clearBtn.classList.remove('hidden');
+      renderNotesTabs();
+      showNote(0);
+
+      showStatus(
+        loadedNotes.length === 1
+          ? '✅ 1 nota foi aberta abaixo.'
+          : `✅ ${loadedNotes.length} notas foram abertas abaixo.`,
+        'success'
+      );
+
+      result.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    function getMarkupPercent() {
+      const value = Number(String(markupPercentInput.value || '0').replace(',', '.'));
+      return Number.isFinite(value) && value >= 0 ? value : 0;
+    }
+
+    function renderItems() {
+      const markup = getMarkupPercent();
+      const headerLabel = markupHeader.querySelector('.header-label');
+      if (headerLabel) {
+        headerLabel.textContent = `Preço sugerido (+${percentBR.format(markup)}%)`;
+      }
+
+      itemsBody.innerHTML = currentItems.map(item => {
+        const suggestedPrice = item.unitCostWithST * (1 + markup / 100);
+
+        const rowCellsByKey = {
+          0: `<td>${escapeHTML(item.item)}</td>`,
+          1: `<td>
+                <div class="product-name">${escapeHTML(item.name)}</div>
+                <div class="muted">${escapeHTML(item.unit)}</div>
+              </td>`,
+          2: `<td class="number">${brl.format(item.unitValue)}</td>`,
+          3: `<td class="number">${brl.format(item.stPerUnit)}</td>`,
+          4: `<td class="number">${brl.format(item.unitCostWithST)}</td>`,
+          5: `<td class="number"><strong>${brl.format(suggestedPrice)}</strong></td>`,
+          6: `<td class="number">${brl.format(item.productValue)}</td>`,
+          7: `<td class="number">${numberBR.format(item.quantity)}</td>`,
+          8: `<td class="number">${brl.format(item.bcST)}</td>`,
+          9: `<td class="number"><strong>${brl.format(item.stValue)}</strong></td>`,
+          10: `<td class="number">${percentBR.format(item.productValue > 0 ? (item.stValue / item.productValue) * 100 : 0)}%</td>`,
+          11: `<td>${escapeHTML(normalizeBarcode(item.barcode))}</td>`,
+          12: `<td>${escapeHTML(item.ncm)}</td>`,
+          13: `<td>${escapeHTML(item.cstCsosn)}</td>`,
+          14: `<td>${escapeHTML(item.cfop)}</td>`,
+          15: `<td>${escapeHTML(item.productCode)}</td>`
+        };
+
+        const order = getColumnOrder();
+
+        return `
+          <tr>
+            ${order.map(key => rowCellsByKey[key]).join('')}
+          </tr>
+        `;
+      }).join('');
+      applyAllColumnPreferences();
+    }
+
+    function normalizeBarcode(value) {
+      if (!value || value === 'SEM GTIN') return 'Sem código de barras';
+      return value;
+    }
+
+    function escapeHTML(value) {
+      return String(value)
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#039;');
+    }
+
+    function processFile(file) {
+      clearStatus();
+
+      if (!file) return;
+
+      if (!file.name.toLowerCase().endsWith('.xml')) {
+        showStatus('Selecione um arquivo com extensão .xml.', 'error');
+        return;
+      }
+
+      const reader = new FileReader();
+
+      reader.onload = event => {
+        try {
+          const data = parseXML(event.target.result);
+          openLoadedNotes([{ file, data }]);
+        } catch (error) {
+          result.classList.add('hidden');
+          showStatus(error.message || 'Não foi possível processar o XML.', 'error');
+        }
+      };
+
+      reader.onerror = () => {
+        showStatus('Ocorreu um erro ao ler o arquivo.', 'error');
+      };
+
+      reader.readAsText(file, 'UTF-8');
+    }
+
+    function clearAll() {
+      fileInput.value = '';
+      itemsBody.innerHTML = '';
+      currentItems = [];
+      currentNfeNumber = '';
+      result.classList.add('hidden');
+      clearBtn.classList.add('hidden');
+      clearStatus();
+    }
+
+    function csvEscape(value) {
+      const str = String(value ?? '');
+      return `"${str.replaceAll('"', '""')}"`;
+    }
+
+    function downloadCSV() {
+      if (!currentItems.length) return;
+
+      const headers = [
+        'Item', 'Produto', 'Valor unitário', 'ICMS-ST por unidade',
+        'Custo unitário + ST', `Preço sugerido (+${numberBR.format(getMarkupPercent())}%)`,
+        'Valor dos produtos', 'Quantidade', 'Base ICMS-ST', 'ICMS-ST total', '% ICMS-ST',
+        'Código de barras', 'NCM', 'CST/CSOSN', 'CFOP', 'Código do produto'
+      ];
+
+      const markup = getMarkupPercent();
+      const rows = currentItems.map(item => [
+        item.item, item.name, item.unitValue, item.stPerUnit,
+        item.unitCostWithST, item.unitCostWithST * (1 + markup / 100),
+        item.productValue, item.quantity, item.bcST, item.stValue,
+        ((item.productValue>0?(item.stValue/item.productValue)*100:0).toFixed(2)+'%'),
+        normalizeBarcode(item.barcode), item.ncm, item.cstCsosn,
+        item.cfop, item.productCode
+      ]);
+
+      const csv = '\uFEFF' + [headers, ...rows]
+        .map(row => row.map(csvEscape).join(';'))
+        .join('\r\n');
+
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `nfe-${currentNfeNumber || 'consulta'}-icms-st.csv`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    }
+
+
+    function normalizeSearchValue(value) {
+      return String(value || '').replace(/\D/g, '');
+    }
+
+    async function loadMultipleXmls(files) {
+      const xmlFiles = Array.from(files || []).filter(file =>
+        file.name.toLowerCase().endsWith('.xml')
+      );
+
+      if (!xmlFiles.length) {
+        showStatus('Nenhum arquivo XML foi selecionado.', 'error');
+        return;
+      }
+
+      loadedXmls = [];
+      loadXmlsBtn.disabled = true;
+      loadXmlsBtn.textContent = 'Carregando...';
+
+      try {
+        for (const file of xmlFiles) {
+          const content = await file.text();
+
+          try {
+            const data = parseXML(content);
+            loadedXmls.push({
+              file,
+              content,
+              data,
+              normalizedContent: normalizeSearchValue(content)
+            });
+          } catch {
+            // Ignora XMLs que não sejam NF-e válidas.
+          }
+        }
+
+        loadedCount.textContent = `${loadedXmls.length} XML(s) carregado(s)`;
+
+        if (loadedXmls.length) {
+          openLoadedNotes(loadedXmls);
+        } else {
+          showStatus('Nenhum XML válido de NF-e foi encontrado.', 'error');
+        }
+      } finally {
+        loadXmlsBtn.disabled = false;
+        loadXmlsBtn.textContent = 'Carregar XMLs';
+      }
+    }
+
+    function findLoadedXml(searchValue) {
+      const normalized = normalizeSearchValue(searchValue);
+      const textValue = String(searchValue || '').trim();
+
+      if (!normalized && !textValue) return null;
+
+      return loadedXmls.find(entry => {
+        const fileNameDigits = normalizeSearchValue(entry.file.name);
+        const key = normalizeSearchValue(entry.data.accessKey);
+        const nfeNumber = normalizeSearchValue(entry.data.nfeNumber);
+
+        return (
+          (normalized && (
+            fileNameDigits.includes(normalized) ||
+            key.includes(normalized) ||
+            nfeNumber === normalized ||
+            entry.normalizedContent.includes(normalized)
+          ))
+        );
+      }) || null;
+    }
+
+    function searchInvoiceXML() {
+      const value = invoiceSearch.value.trim();
+
+      if (!loadedXmls.length) {
+        showStatus('Primeiro clique em Carregar XMLs.', 'error');
+        return;
+      }
+
+      if (!value) {
+        showStatus('Digite ou leia o código da nota.', 'error');
+        invoiceSearch.focus();
+        return;
+      }
+
+      const found = findLoadedXml(value);
+
+      if (!found) {
+        showStatus('❌ XML não encontrado. Tente novamente.', 'error');
+        return;
+      }
+
+      openLoadedNotes([found]);
+      invoiceSearch.select();
+    }
+
+    loadXmlsBtn.addEventListener('click', () => multipleXmlFiles.click());
+    multipleXmlFiles.addEventListener('change', () => {
+      loadMultipleXmls(multipleXmlFiles.files);
+    });
+
+    searchBtn.addEventListener('click', searchInvoiceXML);
+    newSearchBtn.addEventListener('click', startNewConsultation);
+
+    notesTabs.addEventListener('click', event => {
+      const button = event.target.closest('[data-note-index]');
+      if (!button) return;
+      showNote(Number(button.dataset.noteIndex));
+    });
+
+    scanListItems.addEventListener('click', event => {
+      const copyButton = event.target.closest('.scan-copy-btn');
+      const removeButton = event.target.closest('.scan-remove-btn');
+
+      if (copyButton) {
+        copyScannedCode(Number(copyButton.dataset.index));
+      }
+
+      if (removeButton) {
+        removeScannedCode(Number(removeButton.dataset.index));
+      }
+    });
+
+    clearScansBtn.addEventListener('click', () => {
+      scannedCodes = [];
+      renderScannedCodes();
+    });
+    document.querySelectorAll('.column-checkbox').forEach(checkbox => {
+      checkbox.addEventListener('change', () => {
+        applyColumnVisibility(
+          checkbox.dataset.columnKey,
+          checkbox.checked
+        );
+        updateColumnCounter();
+      });
+    });
+    restoreSavedColumnOrder();
+    setupColumnDragging();
+    renderScannedCodes();
+    invoiceSearch.addEventListener('keydown', event => {
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        searchInvoiceXML();
+      }
+    });
+
+    selectBtn.addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', () => loadMultipleXmls(fileInput.files));
+    clearBtn.addEventListener('click', clearAll);
+    printBtn.addEventListener('click', () => window.print());
+    csvBtn.addEventListener('click', downloadCSV);
+    markupPercentInput.addEventListener('input', () => {
+      if (loadedNotes.length) {
+        renderNoteData(loadedNotes[activeNoteIndex].data);
+      } else if (currentItems.length) {
+        renderItems();
+      }
+    });
+
+    ['dragenter', 'dragover'].forEach(eventName => {
+      dropArea.addEventListener(eventName, event => {
+        event.preventDefault();
+        dropArea.classList.add('dragover');
+      });
+    });
+
+    ['dragleave', 'drop'].forEach(eventName => {
+      dropArea.addEventListener(eventName, event => {
+        event.preventDefault();
+        dropArea.classList.remove('dragover');
+      });
+    });
+
+    dropArea.addEventListener('drop', event => {
+      loadMultipleXmls(event.dataTransfer.files);
+    });
+
+
+    const scanBtn = document.getElementById('scanBtn');
+    const cameraModal = document.getElementById('cameraModal');
+    const cameraVideo = document.getElementById('cameraVideo');
+    const closeCameraBtn = document.getElementById('closeCameraBtn');
+    const takePhotoBtn = document.getElementById('takePhotoBtn');
+    const photoStatus = document.getElementById('photoStatus');
+    const copyCodeBtn = document.getElementById('copyCodeBtn');
+    const openNfeSiteBtn = document.getElementById('openNfeSiteBtn');
+
+    let cameraStream = null;
+    let cameraReader = null;
+    let scannerTimer = null;
+    let photoButtonTimer = null;
+    let scannerBusy = false;
+
+    function isMobileDevice() {
+      return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) ||
+        (navigator.maxTouchPoints > 1 && window.innerWidth <= 900);
+    }
+
+    function updateCodeButtons() {
+      const hasCode = invoiceSearch.value.trim().length > 0;
+      copyCodeBtn.classList.toggle('hidden', !hasCode);
+      if (!hasCode) openNfeSiteBtn.classList.add('hidden');
+    }
+
+    function stopCamera() {
+      if (scannerTimer) {
+        clearTimeout(scannerTimer);
+        scannerTimer = null;
+      }
+
+      if (photoButtonTimer) {
+        clearTimeout(photoButtonTimer);
+        photoButtonTimer = null;
+      }
+
+      takePhotoBtn.classList.add('hidden');
+      takePhotoBtn.disabled = false;
+      takePhotoBtn.textContent = '📸 Tirar foto';
+      photoStatus.textContent = 'Tentando reconhecer o código automaticamente…';
+      scannerBusy = false;
+
+      if (cameraStream) {
+        cameraStream.getTracks().forEach(track => track.stop());
+        cameraStream = null;
+      }
+
+      if (cameraVideo) {
+        cameraVideo.pause();
+        cameraVideo.srcObject = null;
+      }
+
+      cameraModal.classList.add('hidden');
+      cameraModal.setAttribute('aria-hidden', 'true');
+    }
+
+    function makeRotatedCanvas(video, rotation, crop = false) {
+      const sourceWidth = video.videoWidth;
+      const sourceHeight = video.videoHeight;
+
+      let sx = 0, sy = 0, sw = sourceWidth, sh = sourceHeight;
+
+      if (crop) {
+        sw = Math.round(sourceWidth * 0.90);
+        sh = Math.round(sourceHeight * 0.58);
+        sx = Math.round((sourceWidth - sw) / 2);
+        sy = Math.round((sourceHeight - sh) / 2);
+      }
+
+      const swap = rotation === 90 || rotation === 270;
+      const canvas = document.createElement('canvas');
+      canvas.width = swap ? sh : sw;
+      canvas.height = swap ? sw : sh;
+
+      const ctx = canvas.getContext('2d', { willReadFrequently: true });
+      ctx.translate(canvas.width / 2, canvas.height / 2);
+      ctx.rotate(rotation * Math.PI / 180);
+      ctx.drawImage(
+        video,
+        sx, sy, sw, sh,
+        -sw / 2, -sh / 2, sw, sh
+      );
+
+      return canvas;
+    }
+
+
+    function enhanceCanvas(sourceCanvas, mode) {
+      const canvas = document.createElement('canvas');
+      canvas.width = sourceCanvas.width;
+      canvas.height = sourceCanvas.height;
+
+      const ctx = canvas.getContext('2d', { willReadFrequently: true });
+      ctx.drawImage(sourceCanvas, 0, 0);
+
+      const image = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const data = image.data;
+
+      for (let i = 0; i < data.length; i += 4) {
+        const gray = Math.round(
+          data[i] * 0.299 +
+          data[i + 1] * 0.587 +
+          data[i + 2] * 0.114
+        );
+
+        let value = gray;
+
+        if (mode === 'contrast') {
+          value = Math.max(0, Math.min(255, (gray - 128) * 1.9 + 128));
+        } else if (mode === 'threshold') {
+          value = gray > 155 ? 255 : 0;
+        } else if (mode === 'dark-threshold') {
+          value = gray > 125 ? 255 : 0;
+        }
+
+        data[i] = value;
+        data[i + 1] = value;
+        data[i + 2] = value;
+      }
+
+      ctx.putImageData(image, 0, 0);
+      return canvas;
+    }
+
+    async function decodeCanvasAttempts(baseCanvas) {
+      const modes = ['original', 'contrast', 'threshold', 'dark-threshold'];
+      const rotations = [0, 90, 270, 180];
+
+      for (const mode of modes) {
+        const processed = mode === 'original'
+          ? baseCanvas
+          : enhanceCanvas(baseCanvas, mode);
+
+        for (const rotation of rotations) {
+          const rotated = document.createElement('canvas');
+          const swap = rotation === 90 || rotation === 270;
+
+          rotated.width = swap ? processed.height : processed.width;
+          rotated.height = swap ? processed.width : processed.height;
+
+          const ctx = rotated.getContext('2d', { willReadFrequently: true });
+          ctx.translate(rotated.width / 2, rotated.height / 2);
+          ctx.rotate(rotation * Math.PI / 180);
+          ctx.drawImage(
+            processed,
+            -processed.width / 2,
+            -processed.height / 2
+          );
+
+          try {
+            const result = await cameraReader.decodeFromCanvas(rotated);
+            if (result) return result;
+          } catch (_) {}
+        }
+      }
+
+      return null;
+    }
+
+    async function captureAndDecodePhoto() {
+      if (!cameraStream || scannerBusy || cameraVideo.readyState < 2) return;
+
+      scannerBusy = true;
+      takePhotoBtn.disabled = true;
+      takePhotoBtn.textContent = 'Analisando…';
+      photoStatus.textContent = 'Analisando a foto com contraste e rotações…';
+
+      if (scannerTimer) {
+        clearTimeout(scannerTimer);
+        scannerTimer = null;
+      }
+
+      try {
+        const fullFrame = makeRotatedCanvas(cameraVideo, 0, false);
+        const centerFrame = makeRotatedCanvas(cameraVideo, 0, true);
+
+        let result = await decodeCanvasAttempts(centerFrame);
+
+        if (!result) {
+          result = await decodeCanvasAttempts(fullFrame);
+        }
+
+        if (result) {
+          const code = result.getText ? result.getText() : result.text;
+          addScannedCode(code);
+          stopCamera();
+          showStatus('Código capturado pela foto e adicionado à lista.', 'success');
+          return;
+        }
+
+        photoStatus.textContent = 'Não foi possível reconhecer. Aproxime, alinhe e tente outra foto.';
+        takePhotoBtn.disabled = false;
+        takePhotoBtn.textContent = '📸 Tirar outra foto';
+        scannerBusy = false;
+        scanLoop();
+      } catch (_) {
+        photoStatus.textContent = 'Não foi possível analisar a foto. Tente novamente.';
+        takePhotoBtn.disabled = false;
+        takePhotoBtn.textContent = '📸 Tirar outra foto';
+        scannerBusy = false;
+        scanLoop();
+      }
+    }
+
+    async function tryDecodeCurrentFrame() {
+      if (!cameraStream || scannerBusy || cameraVideo.readyState < 2) return false;
+
+      const attempts = [
+        [0, true], [90, true], [270, true], [180, true],
+        [0, false], [90, false], [270, false], [180, false]
+      ];
+
+      for (const [rotation, crop] of attempts) {
+        try {
+          const canvas = makeRotatedCanvas(cameraVideo, rotation, crop);
+          const result = await cameraReader.decodeFromCanvas(canvas);
+
+          if (result) {
+            scannerBusy = true;
+            const code = result.getText ? result.getText() : result.text;
+            addScannedCode(code);
+            stopCamera();
+            showStatus('Código adicionado à lista de notas escaneadas.', 'success');
+            return true;
+          }
+        } catch (_) {
+          // Continua tentando outras rotações e recortes.
+        }
+      }
+
+      return false;
+    }
+
+    async function scanLoop() {
+      if (!cameraStream) return;
+
+      await tryDecodeCurrentFrame();
+
+      if (cameraStream && !scannerBusy) {
+        scannerTimer = setTimeout(scanLoop, 280);
+      }
+    }
+
+    async function startCameraScanner() {
+      if (!window.ZXingBrowser) {
+        showStatus('Não foi possível carregar o leitor da câmera. Verifique a internet e tente novamente.', 'error');
+        return;
+      }
+
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        showStatus('Este navegador não permite acessar a câmera.', 'error');
+        return;
+      }
+
+      stopCamera();
+      cameraModal.classList.remove('hidden');
+      cameraModal.setAttribute('aria-hidden', 'false');
+      takePhotoBtn.classList.add('hidden');
+      photoStatus.textContent = 'Tentando reconhecer o código automaticamente…';
+
+      photoButtonTimer = setTimeout(() => {
+        if (cameraStream && !scannerBusy) {
+          takePhotoBtn.classList.remove('hidden');
+          photoStatus.textContent = 'Está demorando? Tire uma foto para uma análise mais detalhada.';
+        }
+      }, 5000);
+
+      try {
+        cameraReader = new ZXingBrowser.BrowserMultiFormatReader();
+
+        cameraStream = await navigator.mediaDevices.getUserMedia({
+          audio: false,
+          video: {
+            facingMode: { ideal: 'environment' },
+            width: { ideal: 1920 },
+            height: { ideal: 1080 },
+            focusMode: { ideal: 'continuous' }
+          }
+        });
+
+        cameraVideo.srcObject = cameraStream;
+        await cameraVideo.play();
+        scanLoop();
+      } catch (error) {
+        stopCamera();
+
+        if (error && error.name === 'NotAllowedError') {
+          showStatus('Permissão da câmera negada. Libere a câmera nas configurações do navegador e tente novamente.', 'error');
+        } else if (error && error.name === 'NotFoundError') {
+          showStatus('Nenhuma câmera foi encontrada neste aparelho.', 'error');
+        } else if (error && error.name === 'NotReadableError') {
+          showStatus('A câmera está sendo usada por outro aplicativo. Feche-o e tente novamente.', 'error');
+        } else {
+          showStatus('Não foi possível abrir a câmera. Tente novamente.', 'error');
+        }
+      }
+    }
+
+    async function copyCurrentCode() {
+      const code = invoiceSearch.value.trim();
+
+      if (!code) return;
+
+      try {
+        await navigator.clipboard.writeText(code);
+      } catch (_) {
+        invoiceSearch.focus();
+        invoiceSearch.select();
+        document.execCommand('copy');
+      }
+
+      addScannedCode(code);
+      showStatus('Código copiado.', 'success');
+      openNfeSiteBtn.classList.remove('hidden');
+    }
+
+
+    scanBtn.addEventListener('click', startCameraScanner);
+    closeCameraBtn.addEventListener('click', stopCamera);
+    takePhotoBtn.addEventListener('click', captureAndDecodePhoto);
+    copyCodeBtn.addEventListener('click', copyCurrentCode);
+
+    invoiceSearch.addEventListener('input', updateCodeButtons);
+
+    cameraModal.addEventListener('click', event => {
+      if (event.target === cameraModal) stopCamera();
+    });
+
+    window.addEventListener('pagehide', stopCamera);
+
+  </script>
+  <script src="https://unpkg.com/@zxing/browser@0.1.5"></script>
+</body>
+</html>
