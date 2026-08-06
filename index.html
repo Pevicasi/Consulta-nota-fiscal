@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Consulta de ICMS-ST por XML</title>
+  <title>NF-e Fácil</title>
   <style>
     :root {
       --bg: #f4f7fb;
@@ -824,6 +824,23 @@
     }
     .camera-actions button { width: 100%; }
 
+
+    .camera-photo-status {
+      margin-top: 10px;
+      color: var(--muted);
+      font-size: 13px;
+      text-align: center;
+      min-height: 18px;
+    }
+
+    .camera-actions {
+      flex-wrap: wrap;
+    }
+
+    .camera-actions button {
+      flex: 1 1 160px;
+    }
+
     @media print {
       body { background: #fff; }
       .upload-card, .actions { display: none !important; }
@@ -839,8 +856,8 @@
 <body>
   <main class="container">
     <header class="header">
-      <h1>Consulta de ICMS-ST por XML</h1>
-      <p>Carregue vários XMLs de uma vez e depois digite ou passe o código da DANFE no leitor. A página encontra a nota e mostra a substituição tributária por item.</p>
+      <h1>NF-e Fácil</h1>
+      <p>Leia a chave de acesso, importe vários XMLs e analise todas as informações da nota fiscal em um único lugar.</p>
     </header>
 
     <section class="card upload-card">
@@ -1135,7 +1152,11 @@
           <div class="camera-guide"></div>
         </div>
         <p class="camera-help">Pode segurar o celular em pé ou deitado. Centralize o código dentro da faixa.</p>
+        <div id="photoStatus" class="camera-photo-status" aria-live="polite">
+          Tentando reconhecer o código automaticamente…
+        </div>
         <div class="camera-actions">
+          <button class="btn-primary hidden" id="takePhotoBtn" type="button">📸 Tirar foto</button>
           <button class="btn-secondary" id="closeCameraBtn" type="button">Fechar câmera</button>
         </div>
       </div>
@@ -1981,12 +2002,15 @@
     const cameraModal = document.getElementById('cameraModal');
     const cameraVideo = document.getElementById('cameraVideo');
     const closeCameraBtn = document.getElementById('closeCameraBtn');
+    const takePhotoBtn = document.getElementById('takePhotoBtn');
+    const photoStatus = document.getElementById('photoStatus');
     const copyCodeBtn = document.getElementById('copyCodeBtn');
     const openNfeSiteBtn = document.getElementById('openNfeSiteBtn');
 
     let cameraStream = null;
     let cameraReader = null;
     let scannerTimer = null;
+    let photoButtonTimer = null;
     let scannerBusy = false;
 
     function isMobileDevice() {
@@ -2006,6 +2030,15 @@
         scannerTimer = null;
       }
 
+      if (photoButtonTimer) {
+        clearTimeout(photoButtonTimer);
+        photoButtonTimer = null;
+      }
+
+      takePhotoBtn.classList.add('hidden');
+      takePhotoBtn.disabled = false;
+      takePhotoBtn.textContent = '📸 Tirar foto';
+      photoStatus.textContent = 'Tentando reconhecer o código automaticamente…';
       scannerBusy = false;
 
       if (cameraStream) {
@@ -2050,6 +2083,124 @@
       );
 
       return canvas;
+    }
+
+
+    function enhanceCanvas(sourceCanvas, mode) {
+      const canvas = document.createElement('canvas');
+      canvas.width = sourceCanvas.width;
+      canvas.height = sourceCanvas.height;
+
+      const ctx = canvas.getContext('2d', { willReadFrequently: true });
+      ctx.drawImage(sourceCanvas, 0, 0);
+
+      const image = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const data = image.data;
+
+      for (let i = 0; i < data.length; i += 4) {
+        const gray = Math.round(
+          data[i] * 0.299 +
+          data[i + 1] * 0.587 +
+          data[i + 2] * 0.114
+        );
+
+        let value = gray;
+
+        if (mode === 'contrast') {
+          value = Math.max(0, Math.min(255, (gray - 128) * 1.9 + 128));
+        } else if (mode === 'threshold') {
+          value = gray > 155 ? 255 : 0;
+        } else if (mode === 'dark-threshold') {
+          value = gray > 125 ? 255 : 0;
+        }
+
+        data[i] = value;
+        data[i + 1] = value;
+        data[i + 2] = value;
+      }
+
+      ctx.putImageData(image, 0, 0);
+      return canvas;
+    }
+
+    async function decodeCanvasAttempts(baseCanvas) {
+      const modes = ['original', 'contrast', 'threshold', 'dark-threshold'];
+      const rotations = [0, 90, 270, 180];
+
+      for (const mode of modes) {
+        const processed = mode === 'original'
+          ? baseCanvas
+          : enhanceCanvas(baseCanvas, mode);
+
+        for (const rotation of rotations) {
+          const rotated = document.createElement('canvas');
+          const swap = rotation === 90 || rotation === 270;
+
+          rotated.width = swap ? processed.height : processed.width;
+          rotated.height = swap ? processed.width : processed.height;
+
+          const ctx = rotated.getContext('2d', { willReadFrequently: true });
+          ctx.translate(rotated.width / 2, rotated.height / 2);
+          ctx.rotate(rotation * Math.PI / 180);
+          ctx.drawImage(
+            processed,
+            -processed.width / 2,
+            -processed.height / 2
+          );
+
+          try {
+            const result = await cameraReader.decodeFromCanvas(rotated);
+            if (result) return result;
+          } catch (_) {}
+        }
+      }
+
+      return null;
+    }
+
+    async function captureAndDecodePhoto() {
+      if (!cameraStream || scannerBusy || cameraVideo.readyState < 2) return;
+
+      scannerBusy = true;
+      takePhotoBtn.disabled = true;
+      takePhotoBtn.textContent = 'Analisando…';
+      photoStatus.textContent = 'Analisando a foto com contraste e rotações…';
+
+      if (scannerTimer) {
+        clearTimeout(scannerTimer);
+        scannerTimer = null;
+      }
+
+      try {
+        const fullFrame = makeRotatedCanvas(cameraVideo, 0, false);
+        const centerFrame = makeRotatedCanvas(cameraVideo, 0, true);
+
+        let result = await decodeCanvasAttempts(centerFrame);
+
+        if (!result) {
+          result = await decodeCanvasAttempts(fullFrame);
+        }
+
+        if (result) {
+          const code = result.getText ? result.getText() : result.text;
+          addScannedCode(code);
+          stopCamera();
+          showStatus('Código capturado pela foto e adicionado à lista.', 'success');
+          return;
+        }
+
+        photoStatus.textContent = 'Não foi possível reconhecer. Aproxime, alinhe e tente outra foto.';
+        takePhotoBtn.disabled = false;
+        takePhotoBtn.textContent = '📸 Tirar outra foto';
+        scannerBusy = false;
+        scanLoop();
+      } catch (_) {
+        photoStatus.textContent = 'Não foi possível analisar a foto. Tente novamente.';
+        takePhotoBtn.disabled = false;
+        takePhotoBtn.textContent = '📸 Tirar outra foto';
+        scannerBusy = false;
+        scanLoop();
+      }
     }
 
     async function tryDecodeCurrentFrame() {
@@ -2105,6 +2256,15 @@
       stopCamera();
       cameraModal.classList.remove('hidden');
       cameraModal.setAttribute('aria-hidden', 'false');
+      takePhotoBtn.classList.add('hidden');
+      photoStatus.textContent = 'Tentando reconhecer o código automaticamente…';
+
+      photoButtonTimer = setTimeout(() => {
+        if (cameraStream && !scannerBusy) {
+          takePhotoBtn.classList.remove('hidden');
+          photoStatus.textContent = 'Está demorando? Tire uma foto para uma análise mais detalhada.';
+        }
+      }, 5000);
 
       try {
         cameraReader = new ZXingBrowser.BrowserMultiFormatReader();
@@ -2158,6 +2318,7 @@
 
     scanBtn.addEventListener('click', startCameraScanner);
     closeCameraBtn.addEventListener('click', stopCamera);
+    takePhotoBtn.addEventListener('click', captureAndDecodePhoto);
     copyCodeBtn.addEventListener('click', copyCurrentCode);
 
     invoiceSearch.addEventListener('input', updateCodeButtons);
