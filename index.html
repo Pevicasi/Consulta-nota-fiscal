@@ -1151,7 +1151,7 @@
           <video id="cameraVideo" class="camera-video" muted playsinline></video>
           <div class="camera-guide"></div>
         </div>
-        <p class="camera-help">Pode segurar o celular em pé ou deitado. Centralize o código dentro da faixa.</p>
+        <p class="camera-help">Pode segurar o celular em pé ou deitado. Centralize o código dentro da faixa. Se as barras falharem, a foto tentará ler os 44 números.</p>
         <div id="photoStatus" class="camera-photo-status" aria-live="polite">
           Tentando reconhecer o código automaticamente…
         </div>
@@ -2158,6 +2158,124 @@
       return null;
     }
 
+
+    function isValidNfeKey(key) {
+      if (!/^\d{44}$/.test(key)) return false;
+
+      const digits = key.split('').map(Number);
+      const providedDigit = digits[43];
+      const base = digits.slice(0, 43);
+
+      let weight = 2;
+      let sum = 0;
+
+      for (let i = base.length - 1; i >= 0; i--) {
+        sum += base[i] * weight;
+        weight++;
+        if (weight > 9) weight = 2;
+      }
+
+      const remainder = sum % 11;
+      const calculatedDigit = remainder === 0 || remainder === 1
+        ? 0
+        : 11 - remainder;
+
+      return calculatedDigit === providedDigit;
+    }
+
+    function extractNfeKeyFromOcrText(text) {
+      const raw = String(text || '');
+
+      // Primeiro tenta blocos formados apenas por números e separadores.
+      const possibleBlocks = raw.match(/(?:\d[\s.\-:]*){44,60}/g) || [];
+
+      for (const block of possibleBlocks) {
+        const digits = block.replace(/\D/g, '');
+
+        for (let start = 0; start <= digits.length - 44; start++) {
+          const candidate = digits.slice(start, start + 44);
+          if (isValidNfeKey(candidate)) return candidate;
+        }
+      }
+
+      // Tentativa mais flexível para OCR que confundiu caracteres.
+      const normalized = raw
+        .toUpperCase()
+        .replace(/[OQ]/g, '0')
+        .replace(/[IL|]/g, '1')
+        .replace(/[ZS]/g, match => match === 'Z' ? '2' : '5')
+        .replace(/[B]/g, '8');
+
+      const digits = normalized.replace(/\D/g, '');
+
+      for (let start = 0; start <= digits.length - 44; start++) {
+        const candidate = digits.slice(start, start + 44);
+        if (isValidNfeKey(candidate)) return candidate;
+      }
+
+      return '';
+    }
+
+    function cropCanvasRegion(sourceCanvas, topRatio, heightRatio) {
+      const canvas = document.createElement('canvas');
+      const sx = 0;
+      const sy = Math.max(0, Math.round(sourceCanvas.height * topRatio));
+      const sw = sourceCanvas.width;
+      const sh = Math.min(
+        sourceCanvas.height - sy,
+        Math.round(sourceCanvas.height * heightRatio)
+      );
+
+      canvas.width = sw;
+      canvas.height = sh;
+
+      const ctx = canvas.getContext('2d', { willReadFrequently: true });
+      ctx.drawImage(sourceCanvas, sx, sy, sw, sh, 0, 0, sw, sh);
+
+      return canvas;
+    }
+
+    async function recognizeNfeKeyWithOcr(fullFrame, centerFrame) {
+      if (!window.Tesseract) return '';
+
+      photoStatus.textContent = 'Código de barras não reconhecido. Lendo os 44 números da chave…';
+
+      const candidates = [
+        enhanceCanvas(centerFrame, 'contrast'),
+        enhanceCanvas(centerFrame, 'threshold'),
+        enhanceCanvas(cropCanvasRegion(fullFrame, 0.35, 0.45), 'contrast'),
+        enhanceCanvas(fullFrame, 'contrast')
+      ];
+
+      for (let index = 0; index < candidates.length; index++) {
+        photoStatus.textContent =
+          `Lendo os números da chave… tentativa ${index + 1}/${candidates.length}`;
+
+        try {
+          const result = await Tesseract.recognize(
+            candidates[index],
+            'eng',
+            {
+              logger: progress => {
+                if (progress.status === 'recognizing text') {
+                  const percent = Math.round((progress.progress || 0) * 100);
+                  photoStatus.textContent =
+                    `Lendo os números da chave… ${percent}%`;
+                }
+              }
+            }
+          );
+
+          const key = extractNfeKeyFromOcrText(result?.data?.text);
+          if (key) return key;
+        } catch (_) {
+          // Continua para a próxima área/tratamento.
+        }
+      }
+
+      return '';
+    }
+
     async function captureAndDecodePhoto() {
       if (!cameraStream || scannerBusy || cameraVideo.readyState < 2) return;
 
@@ -2189,13 +2307,24 @@
           return;
         }
 
-        photoStatus.textContent = 'Não foi possível reconhecer. Aproxime, alinhe e tente outra foto.';
+        const ocrKey = await recognizeNfeKeyWithOcr(fullFrame, centerFrame);
+
+        if (ocrKey) {
+          addScannedCode(ocrKey);
+          stopCamera();
+          showStatus('Chave de acesso reconhecida pelos números e adicionada à lista.', 'success');
+          return;
+        }
+
+        photoStatus.textContent =
+          'Não foi possível reconhecer. Aproxime a chave impressa, alinhe e tente outra foto.';
         takePhotoBtn.disabled = false;
         takePhotoBtn.textContent = '📸 Tirar outra foto';
         scannerBusy = false;
         scanLoop();
       } catch (_) {
-        photoStatus.textContent = 'Não foi possível analisar a foto. Tente novamente.';
+        photoStatus.textContent =
+          'Não foi possível analisar a foto. Tente novamente.';
         takePhotoBtn.disabled = false;
         takePhotoBtn.textContent = '📸 Tirar outra foto';
         scannerBusy = false;
@@ -2331,5 +2460,6 @@
 
   </script>
   <script src="https://unpkg.com/@zxing/browser@0.1.5"></script>
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js"></script>
 </body>
 </html>
