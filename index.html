@@ -568,21 +568,53 @@
 
     .column-selector {
       margin: 16px 0 12px;
-      padding: 12px;
+      padding: 0;
       border: 1px solid var(--border);
       border-radius: 12px;
       background: #f8fafc;
+      overflow: hidden;
     }
 
-    .column-selector > strong {
-      display: block;
-      margin-bottom: 10px;
+    .column-selector summary {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 12px;
+      cursor: pointer;
+      font-weight: 700;
+      list-style: none;
+    }
+
+    .column-selector summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .column-selector summary::before {
+      content: "▶";
+      margin-right: 8px;
+      font-size: 12px;
+    }
+
+    .column-selector[open] summary::before {
+      content: "▼";
+    }
+
+    .column-selector summary span {
+      flex: 1;
+    }
+
+    .column-selector summary strong {
+      color: var(--muted);
+      font-size: 13px;
     }
 
     .column-selector-list {
       display: flex;
       gap: 10px 14px;
       flex-wrap: wrap;
+      padding: 12px;
+      border-top: 1px solid var(--border);
     }
 
     .column-selector-list label {
@@ -942,8 +974,11 @@
         </div>
 
 
-        <div class="column-selector">
-          <strong>Informações da tabela:</strong>
+        <details class="column-selector" id="columnSelectorDetails">
+          <summary>
+            <span>Informações da tabela</span>
+            <strong id="columnCounter">16/16</strong>
+          </summary>
           <div class="column-selector-list">
             <label data-column-key="0">
               <input type="checkbox" class="column-checkbox" data-column-key="0" checked>
@@ -1010,7 +1045,7 @@
               <span>Código do produto</span>
             </label>
           </div>
-        </div>
+        </details>
 
         <div class="table-wrap">
           <table>
@@ -1132,6 +1167,7 @@
     const clearScansBtn = document.getElementById('clearScansBtn');
     const notesTabs = document.getElementById('notesTabs');
     const notesSummary = document.getElementById('notesSummary');
+    const columnCounter = document.getElementById('columnCounter');
 
     let currentItems = [];
     let loadedXmls = [];
@@ -1301,10 +1337,17 @@
       });
     }
 
+    function updateColumnCounter() {
+      const checkboxes = Array.from(document.querySelectorAll('.column-checkbox'));
+      const visible = checkboxes.filter(checkbox => checkbox.checked).length;
+      columnCounter.textContent = `${visible}/${checkboxes.length}`;
+    }
+
     function applyAllColumnPreferences() {
       document.querySelectorAll('.column-checkbox').forEach(checkbox => {
         applyColumnVisibility(checkbox.dataset.columnKey, checkbox.checked);
       });
+      updateColumnCounter();
     }
 
     function reorderRowCells(row, orderKeys) {
@@ -1472,6 +1515,7 @@
       if (!scannedCodes.includes(code)) {
         scannedCodes.push(code);
         renderScannedCodes();
+    updateColumnCounter();
       }
 
       invoiceSearch.value = code;
@@ -1888,6 +1932,7 @@
           checkbox.dataset.columnKey,
           checkbox.checked
         );
+        updateColumnCounter();
       });
     });
     restoreSavedColumnOrder();
