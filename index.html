@@ -852,6 +852,59 @@
       flex: 1 1 160px;
     }
 
+
+    @media (max-width: 520px) {
+      .camera-modal {
+        align-items: flex-start;
+        padding: 8px;
+        overflow-y: auto;
+      }
+
+      .camera-box {
+        width: 100%;
+        max-height: calc(100dvh - 16px);
+        overflow-y: auto;
+        margin: 0;
+        padding: 14px;
+        border-radius: 18px;
+      }
+
+      .camera-box h2 {
+        font-size: 22px;
+        line-height: 1.15;
+        margin: 0 0 8px;
+      }
+
+      .ocr-badge {
+        margin-bottom: 8px;
+      }
+
+      .camera-view {
+        height: min(48dvh, 430px);
+        min-height: 280px;
+      }
+
+      .camera-help {
+        font-size: 13px;
+        line-height: 1.35;
+        margin: 10px 0 6px;
+      }
+
+      .camera-photo-status {
+        margin-top: 6px;
+        font-size: 12px;
+      }
+
+      .camera-actions {
+        position: sticky;
+        bottom: 0;
+        z-index: 3;
+        padding-top: 8px;
+        padding-bottom: 2px;
+        background: #fff;
+      }
+    }
+
     @media print {
       body { background: #fff; }
       .upload-card, .actions { display: none !important; }
@@ -1544,6 +1597,11 @@
       const code = normalizeNfeKey(value);
       if (!code) return false;
 
+      if (code.length === 44 && !isValidNfeKey(code)) {
+        showStatus('A chave lida possui 44 dígitos, mas é inválida. Tente novamente.', 'error');
+        return false;
+      }
+
       if (!scannedCodes.includes(code)) {
         scannedCodes.push(code);
         renderScannedCodes();
@@ -2191,6 +2249,26 @@
     }
 
 
+
+    function normalizeCandidateKey(value) {
+      return String(value || '').replace(/\D/g, '');
+    }
+
+    function extractValidNfeKey(value) {
+      const digits = normalizeCandidateKey(value);
+
+      if (digits.length === 44 && isValidNfeKey(digits)) {
+        return digits;
+      }
+
+      for (let start = 0; start <= digits.length - 44; start++) {
+        const candidate = digits.slice(start, start + 44);
+        if (isValidNfeKey(candidate)) return candidate;
+      }
+
+      return '';
+    }
+
     function isValidNfeKey(key) {
       if (!/^\d{44}$/.test(key)) return false;
 
@@ -2246,6 +2324,24 @@
       }
 
       return '';
+    }
+
+
+    function cropAccessKeyLine(sourceCanvas) {
+      // The guide is centered. The printed 44-digit line is usually
+      // immediately below the barcode, around the lower-middle area.
+      const sx = Math.round(sourceCanvas.width * 0.10);
+      const sy = Math.round(sourceCanvas.height * 0.43);
+      const sw = Math.round(sourceCanvas.width * 0.80);
+      const sh = Math.round(sourceCanvas.height * 0.24);
+
+      const canvas = document.createElement('canvas');
+      canvas.width = sw;
+      canvas.height = sh;
+
+      const ctx = canvas.getContext('2d', { willReadFrequently: true });
+      ctx.drawImage(sourceCanvas, sx, sy, sw, sh, 0, 0, sw, sh);
+      return canvas;
     }
 
     function cropCanvasRegion(sourceCanvas, topRatio, heightRatio) {
@@ -2342,39 +2438,35 @@
       const worker = await getOcrWorker();
       if (!worker) return '';
 
-      photoStatus.textContent = 'Código de barras não reconhecido. Iniciando OCR dos 44 números…';
+      photoStatus.textContent = 'Barras não reconhecidas. OCR lendo somente a linha da chave…';
 
-      const baseFrames = [
-        centerFrame,
-        cropCanvasRegion(fullFrame, 0.20, 0.60),
-        fullFrame
-      ];
+      const accessLine = cropAccessKeyLine(fullFrame);
+      const centerLower = cropCanvasRegion(centerFrame, 0.42, 0.32);
 
+      const sourceRegions = [accessLine, centerLower];
       const candidates = [];
 
-      for (const frame of baseFrames) {
-        for (const rotation of [0, 90, 270, 180]) {
-          const rotated = rotateCanvas(frame, rotation);
-          candidates.push(scaleCanvasForOcr(enhanceCanvas(rotated, 'contrast')));
-          candidates.push(scaleCanvasForOcr(enhanceCanvas(rotated, 'threshold')));
+      for (const region of sourceRegions) {
+        for (const rotation of [0, 90, 270]) {
+          const rotated = rotateCanvas(region, rotation);
+          candidates.push(scaleCanvasForOcr(enhanceCanvas(rotated, 'contrast'), 2200));
+          candidates.push(scaleCanvasForOcr(enhanceCanvas(rotated, 'threshold'), 2200));
         }
       }
 
       for (let index = 0; index < candidates.length; index++) {
         photoStatus.textContent =
-          `OCR lendo a chave… tentativa ${index + 1}/${candidates.length}`;
+          `OCR lendo a linha da chave… tentativa ${index + 1}/${candidates.length}`;
 
         try {
           const result = await worker.recognize(candidates[index]);
           const key = extractNfeKeyFromOcrText(result?.data?.text);
 
           if (key) {
-            photoStatus.textContent = '✓ Chave reconhecida pelo OCR.';
+            photoStatus.textContent = '✓ Chave de 44 dígitos validada pelo OCR.';
             return key;
           }
-        } catch (_) {
-          // Continua para a próxima imagem tratada.
-        }
+        } catch (_) {}
       }
 
       return '';
@@ -2404,14 +2496,20 @@
         }
 
         if (result) {
-          const code = result.getText ? result.getText() : result.text;
-          addScannedCode(code);
-          stopCamera();
-          showStatus('Código capturado pela foto e adicionado à lista.', 'success');
-          return;
-        }
+          const rawCode = result.getText ? result.getText() : result.text;
+          const validKey = extractValidNfeKey(rawCode);
 
-        photoStatus.textContent = 'Barras não reconhecidas. Agora tentando OCR dos 44 números…';
+          if (validKey) {
+            addScannedCode(validKey);
+            stopCamera();
+            showStatus('✓ Chave válida capturada pelo código de barras.', 'success');
+            return;
+          }
+
+          photoStatus.textContent = 'As barras retornaram um código inválido. Tentando OCR dos 44 números…';
+        } else {
+          photoStatus.textContent = 'Barras não reconhecidas. Tentando OCR dos 44 números…';
+        }
         const ocrKey = await recognizeNfeKeyWithOcr(fullFrame, centerFrame);
 
         if (ocrKey) {
@@ -2452,10 +2550,17 @@
 
           if (result) {
             scannerBusy = true;
-            const code = result.getText ? result.getText() : result.text;
-            addScannedCode(code);
+            const rawCode = result.getText ? result.getText() : result.text;
+            const validKey = extractValidNfeKey(rawCode);
+
+            if (!validKey) {
+              photoStatus.textContent = 'Leitura detectada, mas a chave não passou na validação. Continuando…';
+              return false;
+            }
+
+            addScannedCode(validKey);
             stopCamera();
-            showStatus('Código adicionado à lista de notas escaneadas.', 'success');
+            showStatus('✓ Chave válida adicionada à lista.', 'success');
             return true;
           }
         } catch (_) {
