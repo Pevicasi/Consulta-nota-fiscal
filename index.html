@@ -1597,7 +1597,12 @@
       const code = normalizeNfeKey(value);
       if (!code) return false;
 
-      if (code.length === 44 && !isValidNfeKey(code)) {
+      if (code.length !== 44) {
+        showStatus('A leitura não retornou os 44 dígitos completos. Tente novamente.', 'error');
+        return false;
+      }
+
+      if (!isValidNfeKey(code)) {
         showStatus('A chave lida possui 44 dígitos, mas é inválida. Tente novamente.', 'error');
         return false;
       }
@@ -2293,34 +2298,42 @@
       return calculatedDigit === providedDigit;
     }
 
-    function extractNfeKeyFromOcrText(text) {
-      const raw = String(text || '');
-
-      // Primeiro tenta blocos formados apenas por números e separadores.
-      const possibleBlocks = raw.match(/(?:\d[\s.\-:]*){44,60}/g) || [];
-
-      for (const block of possibleBlocks) {
-        const digits = block.replace(/\D/g, '');
-
-        for (let start = 0; start <= digits.length - 44; start++) {
-          const candidate = digits.slice(start, start + 44);
-          if (isValidNfeKey(candidate)) return candidate;
-        }
-      }
-
-      // Tentativa mais flexível para OCR que confundiu caracteres.
-      const normalized = raw
+    function normalizeOcrDigits(text) {
+      return String(text || '')
         .toUpperCase()
         .replace(/[OQ]/g, '0')
         .replace(/[IL|]/g, '1')
-        .replace(/[ZS]/g, match => match === 'Z' ? '2' : '5')
-        .replace(/[B]/g, '8');
+        .replace(/Z/g, '2')
+        .replace(/S/g, '5')
+        .replace(/B/g, '8');
+    }
 
-      const digits = normalized.replace(/\D/g, '');
+    function extractNfeKeyFromOcrText(text) {
+      const raw = String(text || '');
 
-      for (let start = 0; start <= digits.length - 44; start++) {
-        const candidate = digits.slice(start, start + 44);
-        if (isValidNfeKey(candidate)) return candidate;
+      // Cada linha é analisada separadamente.
+      // Nunca juntamos chave, protocolo, CNPJ ou outros números.
+      const lines = raw
+        .split(/\r?\n/)
+        .map(line => line.trim())
+        .filter(Boolean);
+
+      for (const line of lines) {
+        const normalized = normalizeOcrDigits(line);
+        const digits = normalized.replace(/\D/g, '');
+
+        if (digits.length === 44 && isValidNfeKey(digits)) {
+          return digits;
+        }
+
+        if (digits.length > 44 && digits.length <= 52) {
+          for (let start = 0; start <= digits.length - 44; start++) {
+            const candidate = digits.slice(start, start + 44);
+            if (isValidNfeKey(candidate)) {
+              return candidate;
+            }
+          }
+        }
       }
 
       return '';
@@ -2328,12 +2341,10 @@
 
 
     function cropAccessKeyLine(sourceCanvas) {
-      // The guide is centered. The printed 44-digit line is usually
-      // immediately below the barcode, around the lower-middle area.
-      const sx = Math.round(sourceCanvas.width * 0.10);
-      const sy = Math.round(sourceCanvas.height * 0.43);
-      const sw = Math.round(sourceCanvas.width * 0.80);
-      const sh = Math.round(sourceCanvas.height * 0.24);
+      const sx = Math.round(sourceCanvas.width * 0.07);
+      const sy = Math.round(sourceCanvas.height * 0.50);
+      const sw = Math.round(sourceCanvas.width * 0.86);
+      const sh = Math.round(sourceCanvas.height * 0.12);
 
       const canvas = document.createElement('canvas');
       canvas.width = sw;
@@ -2343,6 +2354,7 @@
       ctx.drawImage(sourceCanvas, sx, sy, sw, sh, 0, 0, sw, sh);
       return canvas;
     }
+
 
     function cropCanvasRegion(sourceCanvas, topRatio, heightRatio) {
       const canvas = document.createElement('canvas');
@@ -2423,7 +2435,8 @@
 
       await ocrWorker.setParameters({
         tessedit_char_whitelist: '0123456789',
-        preserve_interword_spaces: '1'
+        preserve_interword_spaces: '1',
+        tessedit_pageseg_mode: '7'
       });
 
       return ocrWorker;
@@ -2438,12 +2451,10 @@
       const worker = await getOcrWorker();
       if (!worker) return '';
 
-      photoStatus.textContent = 'Barras não reconhecidas. OCR lendo somente a linha da chave…';
+      photoStatus.textContent = 'Barras não reconhecidas. OCR lendo somente a linha dos 44 dígitos…';
 
       const accessLine = cropAccessKeyLine(fullFrame);
-      const centerLower = cropCanvasRegion(centerFrame, 0.42, 0.32);
-
-      const sourceRegions = [accessLine, centerLower];
+      const sourceRegions = [accessLine];
       const candidates = [];
 
       for (const region of sourceRegions) {
@@ -2520,7 +2531,7 @@
         }
 
         photoStatus.textContent =
-          'Não foi possível reconhecer. Aproxime a chave impressa, alinhe e tente outra foto.';
+          'OCR não encontrou uma chave válida de 44 dígitos. Nenhum número foi aceito. Aproxime apenas a linha CHAVE DE ACESSO e tente novamente.';
         takePhotoBtn.disabled = false;
         takePhotoBtn.textContent = '📸 Tirar outra foto / OCR';
         scannerBusy = false;
