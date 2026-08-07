@@ -825,6 +825,17 @@
     .camera-actions button { width: 100%; }
 
 
+    .ocr-badge {
+      display: inline-block;
+      margin: 0 0 8px;
+      padding: 5px 9px;
+      border-radius: 999px;
+      background: #eef4ff;
+      color: #2457c5;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
     .camera-photo-status {
       margin-top: 10px;
       color: var(--muted);
@@ -1146,7 +1157,7 @@
 
     <div id="cameraModal" class="camera-modal hidden" aria-hidden="true">
       <div class="camera-box">
-        <h2>Aponte para o código de barras</h2>
+        <h2>Aponte para o código de barras</h2><div class="ocr-badge">OCR de 44 dígitos disponível na foto</div>
         <div class="camera-frame">
           <video id="cameraVideo" class="camera-video" muted playsinline></video>
           <div class="camera-guide"></div>
@@ -1156,7 +1167,7 @@
           Tentando reconhecer o código automaticamente…
         </div>
         <div class="camera-actions">
-          <button class="btn-primary hidden" id="takePhotoBtn" type="button">📸 Tirar foto</button>
+          <button class="btn-primary hidden" id="takePhotoBtn" type="button">📸 Tirar foto / OCR</button>
           <button class="btn-secondary" id="closeCameraBtn" type="button">Fechar câmera</button>
         </div>
       </div>
@@ -1578,12 +1589,17 @@
       }
     }
 
-    async function copyScannedCode(index) {
+    async function copyScannedCode(index, button = null) {
       const code = scannedCodes[index];
       if (!code) return;
 
       await copyText(code);
-      showStatus('Código copiado.', 'success');
+
+      if (button) {
+        markCopyButtonCopied(button);
+      }
+
+      showStatus('✓ Código copiado.', 'success');
     }
 
     function removeScannedCode(index) {
@@ -1935,7 +1951,7 @@
       const removeButton = event.target.closest('.scan-remove-btn');
 
       if (copyButton) {
-        copyScannedCode(Number(copyButton.dataset.index));
+        copyScannedCode(Number(copyButton.dataset.index), copyButton);
       }
 
       if (removeButton) {
@@ -2021,7 +2037,23 @@
     function updateCodeButtons() {
       const hasCode = invoiceSearch.value.trim().length > 0;
       copyCodeBtn.classList.toggle('hidden', !hasCode);
-      if (!hasCode) openNfeSiteBtn.classList.add('hidden');
+
+      if (!hasCode) {
+        openNfeSiteBtn.classList.add('hidden');
+        copyCodeBtn.textContent = 'Copiar código';
+        copyCodeBtn.dataset.copied = 'false';
+      }
+    }
+
+    function markCopyButtonCopied(button, repeatLabel = 'Copiar novamente') {
+      button.textContent = '✓ Copiado!';
+      button.dataset.copied = 'true';
+
+      setTimeout(() => {
+        if (button.isConnected && button.dataset.copied === 'true') {
+          button.textContent = repeatLabel;
+        }
+      }, 1200);
     }
 
     function stopCamera() {
@@ -2037,8 +2069,8 @@
 
       takePhotoBtn.classList.add('hidden');
       takePhotoBtn.disabled = false;
-      takePhotoBtn.textContent = '📸 Tirar foto';
-      photoStatus.textContent = 'Tentando reconhecer o código automaticamente…';
+      takePhotoBtn.textContent = '📸 Tirar foto / OCR';
+      photoStatus.textContent = window.Tesseract ? 'Leitura automática ativa. OCR disponível.' : 'Leitura automática ativa. Preparando OCR…';
       scannerBusy = false;
 
       if (cameraStream) {
@@ -2235,41 +2267,113 @@
       return canvas;
     }
 
+    let ocrWorker = null;
+
+    function rotateCanvas(sourceCanvas, rotation) {
+      const angle = ((rotation % 360) + 360) % 360;
+      if (angle === 0) return sourceCanvas;
+
+      const canvas = document.createElement('canvas');
+      const swap = angle === 90 || angle === 270;
+
+      canvas.width = swap ? sourceCanvas.height : sourceCanvas.width;
+      canvas.height = swap ? sourceCanvas.width : sourceCanvas.height;
+
+      const ctx = canvas.getContext('2d', { willReadFrequently: true });
+      ctx.translate(canvas.width / 2, canvas.height / 2);
+      ctx.rotate(angle * Math.PI / 180);
+      ctx.drawImage(
+        sourceCanvas,
+        -sourceCanvas.width / 2,
+        -sourceCanvas.height / 2
+      );
+
+      return canvas;
+    }
+
+    function scaleCanvasForOcr(sourceCanvas, maxWidth = 1800) {
+      if (sourceCanvas.width <= maxWidth) return sourceCanvas;
+
+      const ratio = maxWidth / sourceCanvas.width;
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.round(sourceCanvas.width * ratio);
+      canvas.height = Math.round(sourceCanvas.height * ratio);
+
+      const ctx = canvas.getContext('2d', { willReadFrequently: true });
+      ctx.drawImage(sourceCanvas, 0, 0, canvas.width, canvas.height);
+      return canvas;
+    }
+
+    async function getOcrWorker() {
+      if (ocrWorker) return ocrWorker;
+      if (!window.Tesseract) return null;
+
+      photoStatus.textContent = 'Preparando OCR pela primeira vez…';
+
+      ocrWorker = await Tesseract.createWorker('eng', 1, {
+        logger: progress => {
+          if (progress.status === 'loading tesseract core') {
+            photoStatus.textContent = 'Carregando OCR…';
+          } else if (progress.status === 'loading language traineddata') {
+            photoStatus.textContent = 'Carregando dados do OCR…';
+          } else if (progress.status === 'initializing api') {
+            photoStatus.textContent = 'Inicializando OCR…';
+          } else if (progress.status === 'recognizing text') {
+            const percent = Math.round((progress.progress || 0) * 100);
+            photoStatus.textContent = `OCR lendo os números… ${percent}%`;
+          }
+        }
+      });
+
+      await ocrWorker.setParameters({
+        tessedit_char_whitelist: '0123456789',
+        preserve_interword_spaces: '1'
+      });
+
+      return ocrWorker;
+    }
+
     async function recognizeNfeKeyWithOcr(fullFrame, centerFrame) {
-      if (!window.Tesseract) return '';
+      if (!window.Tesseract) {
+        photoStatus.textContent = 'OCR não carregou. Verifique a internet e tente novamente.';
+        return '';
+      }
 
-      photoStatus.textContent = 'Código de barras não reconhecido. Lendo os 44 números da chave…';
+      const worker = await getOcrWorker();
+      if (!worker) return '';
 
-      const candidates = [
-        enhanceCanvas(centerFrame, 'contrast'),
-        enhanceCanvas(centerFrame, 'threshold'),
-        enhanceCanvas(cropCanvasRegion(fullFrame, 0.35, 0.45), 'contrast'),
-        enhanceCanvas(fullFrame, 'contrast')
+      photoStatus.textContent = 'Código de barras não reconhecido. Iniciando OCR dos 44 números…';
+
+      const baseFrames = [
+        centerFrame,
+        cropCanvasRegion(fullFrame, 0.20, 0.60),
+        fullFrame
       ];
+
+      const candidates = [];
+
+      for (const frame of baseFrames) {
+        for (const rotation of [0, 90, 270, 180]) {
+          const rotated = rotateCanvas(frame, rotation);
+          candidates.push(scaleCanvasForOcr(enhanceCanvas(rotated, 'contrast')));
+          candidates.push(scaleCanvasForOcr(enhanceCanvas(rotated, 'threshold')));
+        }
+      }
 
       for (let index = 0; index < candidates.length; index++) {
         photoStatus.textContent =
-          `Lendo os números da chave… tentativa ${index + 1}/${candidates.length}`;
+          `OCR lendo a chave… tentativa ${index + 1}/${candidates.length}`;
 
         try {
-          const result = await Tesseract.recognize(
-            candidates[index],
-            'eng',
-            {
-              logger: progress => {
-                if (progress.status === 'recognizing text') {
-                  const percent = Math.round((progress.progress || 0) * 100);
-                  photoStatus.textContent =
-                    `Lendo os números da chave… ${percent}%`;
-                }
-              }
-            }
-          );
-
+          const result = await worker.recognize(candidates[index]);
           const key = extractNfeKeyFromOcrText(result?.data?.text);
-          if (key) return key;
+
+          if (key) {
+            photoStatus.textContent = '✓ Chave reconhecida pelo OCR.';
+            return key;
+          }
         } catch (_) {
-          // Continua para a próxima área/tratamento.
+          // Continua para a próxima imagem tratada.
         }
       }
 
@@ -2307,6 +2411,7 @@
           return;
         }
 
+        photoStatus.textContent = 'Barras não reconhecidas. Agora tentando OCR dos 44 números…';
         const ocrKey = await recognizeNfeKeyWithOcr(fullFrame, centerFrame);
 
         if (ocrKey) {
@@ -2319,14 +2424,14 @@
         photoStatus.textContent =
           'Não foi possível reconhecer. Aproxime a chave impressa, alinhe e tente outra foto.';
         takePhotoBtn.disabled = false;
-        takePhotoBtn.textContent = '📸 Tirar outra foto';
+        takePhotoBtn.textContent = '📸 Tirar outra foto / OCR';
         scannerBusy = false;
         scanLoop();
       } catch (_) {
         photoStatus.textContent =
           'Não foi possível analisar a foto. Tente novamente.';
         takePhotoBtn.disabled = false;
-        takePhotoBtn.textContent = '📸 Tirar outra foto';
+        takePhotoBtn.textContent = '📸 Tirar outra foto / OCR';
         scannerBusy = false;
         scanLoop();
       }
@@ -2386,14 +2491,14 @@
       cameraModal.classList.remove('hidden');
       cameraModal.setAttribute('aria-hidden', 'false');
       takePhotoBtn.classList.add('hidden');
-      photoStatus.textContent = 'Tentando reconhecer o código automaticamente…';
+      photoStatus.textContent = window.Tesseract ? 'Leitura automática ativa. OCR disponível.' : 'Leitura automática ativa. Preparando OCR…';
 
       photoButtonTimer = setTimeout(() => {
         if (cameraStream && !scannerBusy) {
           takePhotoBtn.classList.remove('hidden');
-          photoStatus.textContent = 'Está demorando? Tire uma foto para uma análise mais detalhada.';
+          photoStatus.textContent = 'Está demorando? Use Tirar foto / OCR para tentar ler também os 44 números.';
         }
-      }, 5000);
+      }, 3500);
 
       try {
         cameraReader = new ZXingBrowser.BrowserMultiFormatReader();
@@ -2440,7 +2545,8 @@
       }
 
       addScannedCode(code);
-      showStatus('Código copiado.', 'success');
+      markCopyButtonCopied(copyCodeBtn);
+      showStatus('✓ Código copiado.', 'success');
       openNfeSiteBtn.classList.remove('hidden');
     }
 
