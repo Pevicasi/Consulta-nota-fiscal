@@ -1261,6 +1261,94 @@
     let activeNoteIndex = 0;
     let scannedCodes = [];
 
+    const APP_SESSION_KEY = 'nfeFacilSessionV1';
+
+    function saveAppSession() {
+      try {
+        const entries = loadedNotes.map(entry => ({
+          fileName: entry.file?.name || entry.fileName || '',
+          data: entry.data
+        }));
+
+        const state = {
+          entries,
+          activeNoteIndex,
+          scannedCodes,
+          markupPercent: markupPercentInput ? markupPercentInput.value : '20',
+          savedAt: Date.now()
+        };
+
+        localStorage.setItem(APP_SESSION_KEY, JSON.stringify(state));
+      } catch (_) {
+        // Se o armazenamento estiver cheio, o site continua funcionando normalmente.
+      }
+    }
+
+    function clearSavedAppSession() {
+      try {
+        localStorage.removeItem(APP_SESSION_KEY);
+      } catch (_) {}
+    }
+
+    function restoreAppSession() {
+      try {
+        const raw = localStorage.getItem(APP_SESSION_KEY);
+        if (!raw) return false;
+
+        const state = JSON.parse(raw);
+        if (!state || !Array.isArray(state.entries) || !state.entries.length) {
+          return false;
+        }
+
+        const restored = state.entries
+          .filter(entry => entry && entry.data)
+          .map(entry => ({
+            file: { name: entry.fileName || `NF-e-${entry.data.nfeNumber || 'restaurada'}.xml` },
+            fileName: entry.fileName || '',
+            content: '',
+            normalizedContent: '',
+            data: entry.data
+          }));
+
+        if (!restored.length) return false;
+
+        loadedNotes = restored;
+        loadedXmls = restored;
+        activeNoteIndex = Math.max(
+          0,
+          Math.min(Number(state.activeNoteIndex) || 0, restored.length - 1)
+        );
+
+        scannedCodes = Array.isArray(state.scannedCodes)
+          ? state.scannedCodes
+          : [];
+
+        if (state.markupPercent !== undefined && markupPercentInput) {
+          markupPercentInput.value = state.markupPercent;
+        }
+
+        loadedCount.textContent = `${restored.length} XML(s) restaurado(s)`;
+        renderScannedCodes();
+
+        result.classList.remove('hidden');
+        uploadCard.classList.add('hidden');
+        clearBtn.classList.remove('hidden');
+        renderNotesTabs();
+        showNote(activeNoteIndex);
+
+        showStatus(
+          restored.length === 1
+            ? '✅ A nota anterior foi restaurada automaticamente.'
+            : `✅ ${restored.length} notas anteriores foram restauradas automaticamente.`,
+          'success'
+        );
+
+        return true;
+      } catch (_) {
+        return false;
+      }
+    }
+
     const brl = new Intl.NumberFormat('pt-BR', {
       style: 'currency',
       currency: 'BRL'
@@ -1668,9 +1756,11 @@
     function removeScannedCode(index) {
       scannedCodes.splice(index, 1);
       renderScannedCodes();
+      saveAppSession();
     }
 
     function startNewConsultation() {
+      clearSavedAppSession();
       result.classList.add('hidden');
       uploadCard.classList.remove('hidden');
       loadedNotes = [];
@@ -1731,6 +1821,7 @@
       activeNoteIndex = Math.max(0, Math.min(index, loadedNotes.length - 1));
       renderNotesTabs();
       renderNoteData(loadedNotes[activeNoteIndex].data);
+      saveAppSession();
     }
 
     function openLoadedNotes(entries) {
@@ -1755,6 +1846,7 @@
         'success'
       );
 
+      saveAppSession();
       result.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
 
@@ -1850,6 +1942,7 @@
     }
 
     function clearAll() {
+      clearSavedAppSession();
       fileInput.value = '';
       itemsBody.innerHTML = '';
       currentItems = [];
@@ -2025,6 +2118,7 @@
     clearScansBtn.addEventListener('click', () => {
       scannedCodes = [];
       renderScannedCodes();
+      saveAppSession();
     });
     document.querySelectorAll('.column-checkbox').forEach(checkbox => {
       checkbox.addEventListener('change', () => {
@@ -2038,6 +2132,7 @@
     restoreSavedColumnOrder();
     setupColumnDragging();
     renderScannedCodes();
+    restoreAppSession();
     invoiceSearch.addEventListener('keydown', event => {
       if (event.key === 'Enter') {
         event.preventDefault();
@@ -2053,6 +2148,7 @@
     markupPercentInput.addEventListener('input', () => {
       if (loadedNotes.length) {
         renderNoteData(loadedNotes[activeNoteIndex].data);
+        saveAppSession();
       } else if (currentItems.length) {
         renderItems();
       }
@@ -2678,7 +2774,16 @@
       if (event.target === cameraModal) stopCamera();
     });
 
-    window.addEventListener('pagehide', stopCamera);
+    window.addEventListener('pagehide', () => {
+      saveAppSession();
+      stopCamera();
+    });
+
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'hidden') {
+        saveAppSession();
+      }
+    });
 
   </script>
   <script src="https://unpkg.com/@zxing/browser@0.1.5"></script>
