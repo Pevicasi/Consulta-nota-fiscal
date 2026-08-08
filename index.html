@@ -836,6 +836,105 @@
       font-weight: 700;
     }
 
+
+    .crop-panel {
+      margin-top: 4px;
+    }
+
+    .crop-instruction {
+      margin: 0 0 10px;
+      padding: 10px 12px;
+      border-radius: 12px;
+      background: #fff7e6;
+      color: #754c00;
+      font-size: 13px;
+      line-height: 1.4;
+    }
+
+    .crop-stage {
+      position: relative;
+      width: 100%;
+      max-height: 58dvh;
+      overflow: hidden;
+      border-radius: 14px;
+      background: #111;
+      touch-action: none;
+      user-select: none;
+    }
+
+    .crop-stage canvas {
+      display: block;
+      width: 100%;
+      height: auto;
+      max-height: 58dvh;
+      object-fit: contain;
+    }
+
+    .crop-selection {
+      position: absolute;
+      left: 8%;
+      top: 47%;
+      width: 84%;
+      height: 16%;
+      border: 3px solid #2b6cff;
+      border-radius: 10px;
+      background: rgba(43,108,255,.08);
+      box-shadow: 0 0 0 200vmax rgba(0,0,0,.42);
+      cursor: move;
+      touch-action: none;
+    }
+
+    .crop-selection::after {
+      content: "CHAVE DE ACESSO";
+      position: absolute;
+      left: 6px;
+      top: 5px;
+      padding: 2px 6px;
+      border-radius: 999px;
+      background: rgba(43,108,255,.92);
+      color: #fff;
+      font-size: 10px;
+      font-weight: 800;
+      pointer-events: none;
+    }
+
+    .crop-handle {
+      position: absolute;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: #fff;
+      border: 3px solid #2b6cff;
+      touch-action: none;
+    }
+
+    .crop-handle-nw { left: -12px; top: -12px; cursor: nwse-resize; }
+    .crop-handle-ne { right: -12px; top: -12px; cursor: nesw-resize; }
+    .crop-handle-sw { left: -12px; bottom: -12px; cursor: nesw-resize; }
+    .crop-handle-se { right: -12px; bottom: -12px; cursor: nwse-resize; }
+
+    .crop-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 10px;
+      flex-wrap: wrap;
+    }
+
+    .crop-actions button {
+      flex: 1 1 180px;
+    }
+
+    @media (max-width: 520px) {
+      .crop-stage,
+      .crop-stage canvas {
+        max-height: 52dvh;
+      }
+
+      .crop-instruction {
+        font-size: 12px;
+      }
+    }
+
     .camera-photo-status {
       margin-top: 10px;
       color: var(--muted);
@@ -1211,15 +1310,37 @@
     <div id="cameraModal" class="camera-modal hidden" aria-hidden="true">
       <div class="camera-box">
         <h2>Aponte para o código de barras</h2><div class="ocr-badge">OCR de 44 dígitos disponível na foto</div>
-        <div class="camera-frame">
-          <video id="cameraVideo" class="camera-video" muted playsinline></video>
-          <div class="camera-guide"></div>
+        <div id="liveCameraPanel">
+          <div class="camera-frame">
+            <video id="cameraVideo" class="camera-video" muted playsinline></video>
+            <div class="camera-guide"></div>
+          </div>
+          <p class="camera-help">Pode segurar o celular em pé ou deitado. Centralize o código dentro da faixa. Se as barras falharem, use a foto e selecione somente a linha da chave.</p>
         </div>
-        <p class="camera-help">Pode segurar o celular em pé ou deitado. Centralize o código dentro da faixa. Se as barras falharem, a foto tentará ler os 44 números.</p>
+
+        <div id="cropPanel" class="crop-panel hidden">
+          <div class="crop-instruction">
+            Arraste e ajuste o retângulo para deixar <strong>somente os 44 números da CHAVE DE ACESSO</strong> dentro dele.
+          </div>
+          <div id="cropStage" class="crop-stage">
+            <canvas id="cropPreview"></canvas>
+            <div id="cropSelection" class="crop-selection">
+              <div class="crop-handle crop-handle-nw" data-handle="nw"></div>
+              <div class="crop-handle crop-handle-ne" data-handle="ne"></div>
+              <div class="crop-handle crop-handle-sw" data-handle="sw"></div>
+              <div class="crop-handle crop-handle-se" data-handle="se"></div>
+            </div>
+          </div>
+          <div class="crop-actions">
+            <button class="btn-primary" id="readCropBtn" type="button">🔎 Ler área selecionada</button>
+            <button class="btn-secondary" id="retakePhotoBtn" type="button">↩ Voltar à câmera</button>
+          </div>
+        </div>
+
         <div id="photoStatus" class="camera-photo-status" aria-live="polite">
           Tentando reconhecer o código automaticamente…
         </div>
-        <div class="camera-actions">
+        <div class="camera-actions" id="liveCameraActions">
           <button class="btn-primary hidden" id="takePhotoBtn" type="button">📸 Tirar foto / OCR</button>
           <button class="btn-secondary" id="closeCameraBtn" type="button">Fechar câmera</button>
         </div>
@@ -2179,6 +2300,14 @@
     const closeCameraBtn = document.getElementById('closeCameraBtn');
     const takePhotoBtn = document.getElementById('takePhotoBtn');
     const photoStatus = document.getElementById('photoStatus');
+    const liveCameraPanel = document.getElementById('liveCameraPanel');
+    const liveCameraActions = document.getElementById('liveCameraActions');
+    const cropPanel = document.getElementById('cropPanel');
+    const cropStage = document.getElementById('cropStage');
+    const cropPreview = document.getElementById('cropPreview');
+    const cropSelection = document.getElementById('cropSelection');
+    const readCropBtn = document.getElementById('readCropBtn');
+    const retakePhotoBtn = document.getElementById('retakePhotoBtn');
     const copyCodeBtn = document.getElementById('copyCodeBtn');
     const openNfeSiteBtn = document.getElementById('openNfeSiteBtn');
 
@@ -2187,6 +2316,8 @@
     let scannerTimer = null;
     let photoButtonTimer = null;
     let scannerBusy = false;
+    let capturedPhotoCanvas = null;
+    let cropPointerState = null;
 
     function isMobileDevice() {
       return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) ||
@@ -2229,6 +2360,10 @@
       takePhotoBtn.classList.add('hidden');
       takePhotoBtn.disabled = false;
       takePhotoBtn.textContent = '📸 Tirar foto / OCR';
+      cropPanel.classList.add('hidden');
+      liveCameraPanel.classList.remove('hidden');
+      liveCameraActions.classList.remove('hidden');
+      capturedPhotoCanvas = null;
       photoStatus.textContent = window.Tesseract ? 'Leitura automática ativa. OCR disponível.' : 'Leitura automática ativa. Preparando OCR…';
       scannerBusy = false;
 
@@ -2579,13 +2714,230 @@
       return '';
     }
 
+
+    function showCropEditor(sourceCanvas) {
+      capturedPhotoCanvas = sourceCanvas;
+
+      cropPreview.width = sourceCanvas.width;
+      cropPreview.height = sourceCanvas.height;
+      const ctx = cropPreview.getContext('2d');
+      ctx.drawImage(sourceCanvas, 0, 0);
+
+      liveCameraPanel.classList.add('hidden');
+      liveCameraActions.classList.add('hidden');
+      cropPanel.classList.remove('hidden');
+
+      // Posição inicial ampla e horizontal.
+      cropSelection.style.left = '7%';
+      cropSelection.style.top = '47%';
+      cropSelection.style.width = '86%';
+      cropSelection.style.height = '16%';
+
+      photoStatus.textContent = 'Ajuste o retângulo sobre os 44 números e toque em Ler área selecionada.';
+    }
+
+    function getCropSelectionPixels() {
+      if (!capturedPhotoCanvas) return null;
+
+      const stageRect = cropStage.getBoundingClientRect();
+      const canvasRect = cropPreview.getBoundingClientRect();
+      const selRect = cropSelection.getBoundingClientRect();
+
+      // A imagem pode ter margem vertical/horizontal por causa do object-fit.
+      const scaleX = capturedPhotoCanvas.width / canvasRect.width;
+      const scaleY = capturedPhotoCanvas.height / canvasRect.height;
+
+      const x = Math.max(0, (selRect.left - canvasRect.left) * scaleX);
+      const y = Math.max(0, (selRect.top - canvasRect.top) * scaleY);
+      const w = Math.min(
+        capturedPhotoCanvas.width - x,
+        selRect.width * scaleX
+      );
+      const h = Math.min(
+        capturedPhotoCanvas.height - y,
+        selRect.height * scaleY
+      );
+
+      if (w < 20 || h < 20) return null;
+
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.max(1, Math.round(w));
+      canvas.height = Math.max(1, Math.round(h));
+
+      const ctx = canvas.getContext('2d', { willReadFrequently: true });
+      ctx.drawImage(
+        capturedPhotoCanvas,
+        Math.round(x), Math.round(y), Math.round(w), Math.round(h),
+        0, 0, canvas.width, canvas.height
+      );
+
+      return canvas;
+    }
+
+    function clampCropBox(left, top, width, height) {
+      const stage = cropStage.getBoundingClientRect();
+      const minW = 90;
+      const minH = 42;
+
+      width = Math.max(minW, Math.min(width, stage.width));
+      height = Math.max(minH, Math.min(height, stage.height));
+      left = Math.max(0, Math.min(left, stage.width - width));
+      top = Math.max(0, Math.min(top, stage.height - height));
+
+      cropSelection.style.left = `${left}px`;
+      cropSelection.style.top = `${top}px`;
+      cropSelection.style.width = `${width}px`;
+      cropSelection.style.height = `${height}px`;
+    }
+
+    function beginCropPointer(event) {
+      if (cropPanel.classList.contains('hidden')) return;
+
+      const stageRect = cropStage.getBoundingClientRect();
+      const selRect = cropSelection.getBoundingClientRect();
+      const handle = event.target.closest('.crop-handle');
+
+      cropPointerState = {
+        pointerId: event.pointerId,
+        mode: handle ? 'resize' : 'move',
+        handle: handle?.dataset.handle || '',
+        startX: event.clientX,
+        startY: event.clientY,
+        left: selRect.left - stageRect.left,
+        top: selRect.top - stageRect.top,
+        width: selRect.width,
+        height: selRect.height
+      };
+
+      cropSelection.setPointerCapture?.(event.pointerId);
+      event.preventDefault();
+    }
+
+    function moveCropPointer(event) {
+      if (!cropPointerState || event.pointerId !== cropPointerState.pointerId) return;
+
+      const dx = event.clientX - cropPointerState.startX;
+      const dy = event.clientY - cropPointerState.startY;
+
+      let { left, top, width, height } = cropPointerState;
+
+      if (cropPointerState.mode === 'move') {
+        left += dx;
+        top += dy;
+      } else {
+        const h = cropPointerState.handle;
+
+        if (h.includes('w')) {
+          left += dx;
+          width -= dx;
+        }
+        if (h.includes('e')) {
+          width += dx;
+        }
+        if (h.includes('n')) {
+          top += dy;
+          height -= dy;
+        }
+        if (h.includes('s')) {
+          height += dy;
+        }
+      }
+
+      clampCropBox(left, top, width, height);
+      event.preventDefault();
+    }
+
+    function endCropPointer(event) {
+      if (!cropPointerState || event.pointerId !== cropPointerState.pointerId) return;
+      cropPointerState = null;
+    }
+
+    async function readSelectedCrop() {
+      const selected = getCropSelectionPixels();
+      if (!selected) {
+        photoStatus.textContent = 'A área selecionada está muito pequena. Ajuste o retângulo.';
+        return;
+      }
+
+      readCropBtn.disabled = true;
+      retakePhotoBtn.disabled = true;
+      readCropBtn.textContent = 'Lendo…';
+      photoStatus.textContent = 'Tentando ler somente a área selecionada…';
+
+      try {
+        // Primeiro tenta as barras apenas dentro do recorte.
+        let barcodeResult = await decodeCanvasAttempts(selected);
+
+        if (barcodeResult) {
+          const raw = barcodeResult.getText ? barcodeResult.getText() : barcodeResult.text;
+          const validKey = extractValidNfeKey(raw);
+
+          if (validKey) {
+            addScannedCode(validKey);
+            stopCamera();
+            showStatus('✓ Chave válida reconhecida na área selecionada.', 'success');
+            return;
+          }
+        }
+
+        // Se não houver barras válidas, OCR somente no recorte manual.
+        const worker = await getOcrWorker();
+
+        if (!worker) {
+          photoStatus.textContent = 'OCR não carregou. Verifique a internet.';
+          return;
+        }
+
+        const candidates = [];
+        for (const rotation of [0, 90, 270, 180]) {
+          const rotated = rotateCanvas(selected, rotation);
+          candidates.push(scaleCanvasForOcr(enhanceCanvas(rotated, 'contrast'), 2400));
+          candidates.push(scaleCanvasForOcr(enhanceCanvas(rotated, 'threshold'), 2400));
+          candidates.push(scaleCanvasForOcr(enhanceCanvas(rotated, 'dark-threshold'), 2400));
+        }
+
+        for (let i = 0; i < candidates.length; i++) {
+          photoStatus.textContent = `OCR na área selecionada… ${i + 1}/${candidates.length}`;
+
+          try {
+            const result = await worker.recognize(candidates[i]);
+            const key = extractNfeKeyFromOcrText(result?.data?.text);
+
+            if (key) {
+              addScannedCode(key);
+              stopCamera();
+              showStatus('✓ Chave reconhecida pelo OCR no recorte selecionado.', 'success');
+              return;
+            }
+          } catch (_) {}
+        }
+
+        photoStatus.textContent = 'Não encontrei uma chave válida nesse recorte. Ajuste o retângulo mais perto dos 44 números e tente novamente.';
+      } finally {
+        if (!cameraModal.classList.contains('hidden')) {
+          readCropBtn.disabled = false;
+          retakePhotoBtn.disabled = false;
+          readCropBtn.textContent = '🔎 Ler área selecionada';
+        }
+      }
+    }
+
+    function returnToLiveCamera() {
+      cropPanel.classList.add('hidden');
+      liveCameraPanel.classList.remove('hidden');
+      liveCameraActions.classList.remove('hidden');
+      capturedPhotoCanvas = null;
+      scannerBusy = false;
+      takePhotoBtn.disabled = false;
+      takePhotoBtn.textContent = '📸 Tirar foto / OCR';
+      photoStatus.textContent = 'Câmera reativada. Tente novamente ou tire outra foto.';
+      scanLoop();
+    }
+
     async function captureAndDecodePhoto() {
       if (!cameraStream || scannerBusy || cameraVideo.readyState < 2) return;
 
       scannerBusy = true;
-      takePhotoBtn.disabled = true;
-      takePhotoBtn.textContent = 'Analisando…';
-      photoStatus.textContent = 'Analisando a foto com contraste e rotações…';
 
       if (scannerTimer) {
         clearTimeout(scannerTimer);
@@ -2594,51 +2946,13 @@
 
       try {
         const fullFrame = makeRotatedCanvas(cameraVideo, 0, false);
-        const centerFrame = makeRotatedCanvas(cameraVideo, 0, true);
 
-        let result = await decodeCanvasAttempts(centerFrame);
-
-        if (!result) {
-          result = await decodeCanvasAttempts(fullFrame);
-        }
-
-        if (result) {
-          const rawCode = result.getText ? result.getText() : result.text;
-          const validKey = extractValidNfeKey(rawCode);
-
-          if (validKey) {
-            addScannedCode(validKey);
-            stopCamera();
-            showStatus('✓ Chave válida capturada pelo código de barras.', 'success');
-            return;
-          }
-
-          photoStatus.textContent = 'As barras retornaram um código inválido. Tentando OCR dos 44 números…';
-        } else {
-          photoStatus.textContent = 'Barras não reconhecidas. Tentando OCR dos 44 números…';
-        }
-        const ocrKey = await recognizeNfeKeyWithOcr(fullFrame, centerFrame);
-
-        if (ocrKey) {
-          addScannedCode(ocrKey);
-          stopCamera();
-          showStatus('Chave de acesso reconhecida pelos números e adicionada à lista.', 'success');
-          return;
-        }
-
-        photoStatus.textContent =
-          'OCR não encontrou uma chave válida de 44 dígitos. Nenhum número foi aceito. Aproxime apenas a linha CHAVE DE ACESSO e tente novamente.';
-        takePhotoBtn.disabled = false;
-        takePhotoBtn.textContent = '📸 Tirar outra foto / OCR';
-        scannerBusy = false;
-        scanLoop();
+        // Pausa o vídeo, mas mantém o stream aberto para permitir voltar rapidamente.
+        cameraVideo.pause();
+        showCropEditor(fullFrame);
       } catch (_) {
-        photoStatus.textContent =
-          'Não foi possível analisar a foto. Tente novamente.';
-        takePhotoBtn.disabled = false;
-        takePhotoBtn.textContent = '📸 Tirar outra foto / OCR';
         scannerBusy = false;
-        scanLoop();
+        photoStatus.textContent = 'Não foi possível capturar a foto. Tente novamente.';
       }
     }
 
@@ -2702,6 +3016,9 @@
       stopCamera();
       cameraModal.classList.remove('hidden');
       cameraModal.setAttribute('aria-hidden', 'false');
+      cropPanel.classList.add('hidden');
+      liveCameraPanel.classList.remove('hidden');
+      liveCameraActions.classList.remove('hidden');
       takePhotoBtn.classList.add('hidden');
       photoStatus.textContent = window.Tesseract ? 'Leitura automática ativa. OCR disponível.' : 'Leitura automática ativa. Preparando OCR…';
 
@@ -2766,6 +3083,19 @@
     scanBtn.addEventListener('click', startCameraScanner);
     closeCameraBtn.addEventListener('click', stopCamera);
     takePhotoBtn.addEventListener('click', captureAndDecodePhoto);
+    readCropBtn.addEventListener('click', readSelectedCrop);
+    retakePhotoBtn.addEventListener('click', async () => {
+      try {
+        await cameraVideo.play();
+      } catch (_) {}
+      returnToLiveCamera();
+    });
+
+    cropSelection.addEventListener('pointerdown', beginCropPointer);
+    cropSelection.addEventListener('pointermove', moveCropPointer);
+    cropSelection.addEventListener('pointerup', endCropPointer);
+    cropSelection.addEventListener('pointercancel', endCropPointer);
+
     copyCodeBtn.addEventListener('click', copyCurrentCode);
 
     invoiceSearch.addEventListener('input', updateCodeButtons);
