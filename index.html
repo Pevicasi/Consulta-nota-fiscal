@@ -910,6 +910,161 @@
       }
     }
 
+
+    .scanapp-reader-wrap {
+      position: relative;
+      width: 100%;
+      min-height: 340px;
+      overflow: hidden;
+      border-radius: 18px;
+      background: #111;
+    }
+
+    .html5-reader {
+      width: 100%;
+      height: 100%;
+      min-height: 340px;
+      background: #111;
+    }
+
+    .html5-reader video {
+      display: block !important;
+      width: 100% !important;
+      height: 56dvh !important;
+      max-height: 520px !important;
+      min-height: 340px !important;
+      object-fit: cover !important;
+      border-radius: 18px !important;
+    }
+
+    .html5-reader canvas {
+      display: none !important;
+    }
+
+    .scanapp-overlay {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 5;
+    }
+
+    .scanapp-overlay::before {
+      content: "";
+      position: absolute;
+      left: 8%;
+      right: 8%;
+      top: 29%;
+      height: 42%;
+      border-radius: 18px;
+      box-shadow: 0 0 0 200vmax rgba(0,0,0,.38);
+    }
+
+    .scanapp-corner {
+      position: absolute;
+      width: 52px;
+      height: 52px;
+      border-color: #23d78f;
+      border-style: solid;
+      border-width: 0;
+    }
+
+    .scanapp-corner.tl {
+      left: 8%; top: 29%;
+      border-left-width: 6px;
+      border-top-width: 6px;
+      border-top-left-radius: 18px;
+    }
+
+    .scanapp-corner.tr {
+      right: 8%; top: 29%;
+      border-right-width: 6px;
+      border-top-width: 6px;
+      border-top-right-radius: 18px;
+    }
+
+    .scanapp-corner.bl {
+      left: 8%; bottom: 29%;
+      border-left-width: 6px;
+      border-bottom-width: 6px;
+      border-bottom-left-radius: 18px;
+    }
+
+    .scanapp-corner.br {
+      right: 8%; bottom: 29%;
+      border-right-width: 6px;
+      border-bottom-width: 6px;
+      border-bottom-right-radius: 18px;
+    }
+
+    .scanapp-line {
+      position: absolute;
+      left: 11%;
+      right: 11%;
+      top: 50%;
+      height: 2px;
+      background: rgba(35,215,143,.8);
+      box-shadow: 0 0 10px rgba(35,215,143,.9);
+    }
+
+    .scanapp-tools {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    .scanapp-tool {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 3px;
+      min-width: 82px;
+      min-height: 58px;
+      padding: 8px 10px;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      background: #f3f6fa;
+      color: #172033;
+      font-size: 21px;
+      font-weight: 700;
+    }
+
+    .scanapp-tool span {
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .scanapp-tool.active {
+      background: #e7fff4;
+      color: #087d54;
+      border-color: #9be6c9;
+    }
+
+    .scanapp-tool:disabled {
+      opacity: .45;
+    }
+
+    @media (max-width: 520px) {
+      .scanapp-reader-wrap,
+      .html5-reader {
+        min-height: 330px;
+      }
+
+      .html5-reader video {
+        height: 51dvh !important;
+        min-height: 330px !important;
+      }
+
+      .scanapp-tools {
+        gap: 7px;
+      }
+
+      .scanapp-tool {
+        min-width: 74px;
+      }
+    }
+
     .crop-panel {
       margin-top: 4px;
     }
@@ -1382,19 +1537,28 @@
 
     <div id="cameraModal" class="camera-modal hidden" aria-hidden="true">
       <div class="camera-box">
-        <h2>Aponte para o código de barras</h2><div class="ocr-badge">Leitor otimizado para CODE 128</div>
+        <h2>Aponte para o código de barras</h2><div class="ocr-badge">Leitor CODE 128</div>
         <div id="liveCameraPanel">
-          <div id="html5Reader" class="html5-reader"></div>
-
-          <div class="legacy-camera-hidden" aria-hidden="true">
-            <div class="camera-frame">
-              <video id="cameraVideo" class="camera-video" muted playsinline></video>
-              <div class="camera-guide"></div>
+          <div class="scanapp-reader-wrap">
+            <div id="html5Reader" class="html5-reader"></div>
+            <div class="scanapp-overlay" aria-hidden="true">
+              <div class="scanapp-corner tl"></div>
+              <div class="scanapp-corner tr"></div>
+              <div class="scanapp-corner bl"></div>
+              <div class="scanapp-corner br"></div>
+              <div class="scanapp-line"></div>
             </div>
           </div>
 
+          <div class="scanapp-tools">
+            <button class="scanapp-tool" id="torchBtn" type="button" title="Lanterna">⚡<span>Lanterna</span></button>
+            <button class="scanapp-tool" id="switchCameraBtn" type="button" title="Trocar câmera">🔄<span>Câmera</span></button>
+            <button class="scanapp-tool" id="galleryBtn" type="button" title="Ler imagem">🖼️<span>Imagem</span></button>
+            <input id="barcodeImageInput" type="file" accept="image/*" hidden>
+          </div>
+
           <p class="camera-help">
-            Centralize o código de barras na área de leitura. Você também pode usar a opção de imagem do próprio leitor.
+            Centralize o código de barras dentro da moldura. Pode segurar o celular em pé ou deitado.
           </p>
         </div>
 
@@ -2378,6 +2542,10 @@
     const cameraModal = document.getElementById('cameraModal');
     const cameraVideo = document.getElementById('cameraVideo');
     const html5ReaderElement = document.getElementById('html5Reader');
+    const torchBtn = document.getElementById('torchBtn');
+    const switchCameraBtn = document.getElementById('switchCameraBtn');
+    const galleryBtn = document.getElementById('galleryBtn');
+    const barcodeImageInput = document.getElementById('barcodeImageInput');
     const closeCameraBtn = document.getElementById('closeCameraBtn');
     const takePhotoBtn = document.getElementById('takePhotoBtn');
     const photoStatus = document.getElementById('photoStatus');
@@ -2396,6 +2564,10 @@
     let cameraReader = null;
     let html5Scanner = null;
     let html5ScannerRunning = false;
+    let html5Cameras = [];
+    let html5CameraIndex = 0;
+    let torchOn = false;
+    let betterScanLocked = false;
     let scannerTimer = null;
     let photoButtonTimer = null;
     let scannerBusy = false;
@@ -3087,17 +3259,27 @@
 
 
     async function stopHtml5Scanner() {
-      if (!html5Scanner) {
-        html5ScannerRunning = false;
-        return;
-      }
+      if (html5Scanner) {
+        try {
+          if (html5ScannerRunning) {
+            await html5Scanner.stop();
+          }
+        } catch (_) {}
 
-      try {
-        await html5Scanner.clear();
-      } catch (_) {}
+        try {
+          html5Scanner.clear();
+        } catch (_) {}
+      }
 
       html5Scanner = null;
       html5ScannerRunning = false;
+      torchOn = false;
+      betterScanLocked = false;
+
+      if (torchBtn) {
+        torchBtn.classList.remove('active');
+        torchBtn.disabled = true;
+      }
 
       if (html5ReaderElement) {
         html5ReaderElement.innerHTML = '';
@@ -3109,16 +3291,52 @@
       stopCamera();
     }
 
-    async function handleBetterScan(decodedText, decodedResult) {
+    function chooseBestBackCamera(cameras) {
+      if (!Array.isArray(cameras) || !cameras.length) return 0;
+
+      const terms = [
+        'back', 'rear', 'environment', 'traseira', 'traseiro',
+        'principal', 'main', 'wide'
+      ];
+
+      const scored = cameras.map((camera, index) => {
+        const label = String(camera.label || '').toLowerCase();
+        let score = 0;
+
+        for (const term of terms) {
+          if (label.includes(term)) score += 10;
+        }
+
+        if (label.includes('front') || label.includes('user') || label.includes('frontal')) {
+          score -= 20;
+        }
+
+        // Em muitos Androids a câmera traseira principal aparece mais ao fim.
+        score += index * 0.15;
+        return { index, score };
+      });
+
+      scored.sort((a, b) => b.score - a.score);
+      return scored[0].index;
+    }
+
+    async function handleBetterScan(decodedText) {
+      if (betterScanLocked) return;
+
       const validKey = extractValidNfeKey(decodedText);
 
       if (!validKey) {
-        photoStatus.textContent = 'Código detectado, mas não é uma chave NF-e válida de 44 dígitos.';
+        photoStatus.textContent = 'Código detectado, mas não corresponde a uma chave NF-e válida.';
         return;
       }
 
+      betterScanLocked = true;
+
       const added = addScannedCode(validKey);
-      if (!added) return;
+      if (!added) {
+        betterScanLocked = false;
+        return;
+      }
 
       invoiceSearch.value = validKey;
       updateCodeButtons();
@@ -3130,9 +3348,84 @@
       showStatus('✓ Chave da NF-e lida com sucesso.', 'success');
     }
 
+    async function updateTorchAvailability() {
+      if (!html5Scanner || !html5ScannerRunning) return;
+
+      try {
+        const capabilities = html5Scanner.getRunningTrackCameraCapabilities
+          ? html5Scanner.getRunningTrackCameraCapabilities()
+          : html5Scanner.getRunningTrackCapabilities();
+
+        const torchSupported =
+          !!capabilities?.torchFeature?.isSupported?.() ||
+          capabilities?.torch === true ||
+          Array.isArray(capabilities?.torch);
+
+        torchBtn.disabled = !torchSupported;
+      } catch (_) {
+        torchBtn.disabled = true;
+      }
+    }
+
+    async function startHtml5Camera(cameraIndex = 0) {
+      if (!html5Cameras.length) {
+        throw new Error('Nenhuma câmera encontrada.');
+      }
+
+      html5CameraIndex = Math.max(0, Math.min(cameraIndex, html5Cameras.length - 1));
+      const camera = html5Cameras[html5CameraIndex];
+
+      html5Scanner = new Html5Qrcode(
+        'html5Reader',
+        {
+          formatsToSupport: [Html5QrcodeSupportedFormats.CODE_128],
+          useBarCodeDetectorIfSupported: true,
+          verbose: false
+        }
+      );
+
+      const scanConfig = {
+        fps: 15,
+        qrbox: (viewfinderWidth, viewfinderHeight) => {
+          const width = Math.max(260, Math.floor(viewfinderWidth * 0.84));
+          const height = Math.max(100, Math.min(180, Math.floor(viewfinderHeight * 0.28)));
+          return {
+            width: Math.min(width, viewfinderWidth - 20),
+            height: Math.min(height, viewfinderHeight - 20)
+          };
+        },
+        aspectRatio: 1.7777778,
+        disableFlip: false
+      };
+
+      await html5Scanner.start(
+        camera.id,
+        scanConfig,
+        handleBetterScan,
+        () => {}
+      );
+
+      html5ScannerRunning = true;
+      betterScanLocked = false;
+      photoStatus.textContent = 'Leitor CODE 128 ativo. Aponte para o código de barras da NF-e.';
+
+      switchCameraBtn.disabled = html5Cameras.length < 2;
+
+      // Tenta foco contínuo e uma resolução boa, mas sem falhar se o aparelho não aceitar.
+      try {
+        await html5Scanner.applyVideoConstraints({
+          width: { ideal: 1920 },
+          height: { ideal: 1080 },
+          focusMode: { ideal: 'continuous' }
+        });
+      } catch (_) {}
+
+      await updateTorchAvailability();
+    }
+
     async function startBetterScanner() {
-      if (!window.Html5QrcodeScanner || !window.Html5QrcodeSupportedFormats) {
-        showStatus('Não foi possível carregar o novo leitor. Verifique a internet e tente novamente.', 'error');
+      if (!window.Html5Qrcode || !window.Html5QrcodeSupportedFormats) {
+        showStatus('Não foi possível carregar o leitor. Verifique a internet e tente novamente.', 'error');
         return;
       }
 
@@ -3146,40 +3439,119 @@
       liveCameraActions.classList.remove('hidden');
       takePhotoBtn.classList.add('hidden');
 
-      photoStatus.textContent = 'Leitor CODE 128 ativo. Aponte para o código de barras da NF-e.';
+      torchBtn.disabled = true;
+      switchCameraBtn.disabled = true;
+      photoStatus.textContent = 'Abrindo a câmera traseira…';
 
-      const qrbox = (viewfinderWidth, viewfinderHeight) => {
-        const width = Math.floor(Math.min(viewfinderWidth * 0.92, 620));
-        const height = Math.floor(Math.max(90, Math.min(viewfinderHeight * 0.32, 180)));
-        return { width, height };
-      };
+      try {
+        html5Cameras = await Html5Qrcode.getCameras();
 
-      html5Scanner = new Html5QrcodeScanner(
-        'html5Reader',
-        {
-          fps: 12,
-          qrbox,
-          aspectRatio: 1.7777778,
-          formatsToSupport: [
-            Html5QrcodeSupportedFormats.CODE_128
-          ],
-          rememberLastUsedCamera: true,
-          showTorchButtonIfSupported: true,
-          showZoomSliderIfSupported: true,
-          defaultZoomValueIfSupported: 1.5,
-          useBarCodeDetectorIfSupported: true
-        },
-        false
-      );
-
-      html5ScannerRunning = true;
-
-      html5Scanner.render(
-        handleBetterScan,
-        () => {
-          // Falhas de quadro são normais enquanto a câmera procura o código.
+        if (!html5Cameras.length) {
+          throw new Error('Nenhuma câmera encontrada.');
         }
-      );
+
+        const bestIndex = chooseBestBackCamera(html5Cameras);
+        await startHtml5Camera(bestIndex);
+      } catch (error) {
+        await stopHtml5Scanner();
+
+        cameraModal.classList.add('hidden');
+        cameraModal.setAttribute('aria-hidden', 'true');
+
+        if (error && String(error).toLowerCase().includes('permission')) {
+          showStatus('Permissão da câmera negada. Libere a câmera no navegador e tente novamente.', 'error');
+        } else {
+          showStatus('Não foi possível abrir o leitor da câmera. Tente novamente.', 'error');
+        }
+      }
+    }
+
+    async function toggleBetterTorch() {
+      if (!html5Scanner || !html5ScannerRunning || torchBtn.disabled) return;
+
+      torchOn = !torchOn;
+
+      try {
+        await html5Scanner.applyVideoConstraints({
+          advanced: [{ torch: torchOn }]
+        });
+        torchBtn.classList.toggle('active', torchOn);
+      } catch (_) {
+        torchOn = false;
+        torchBtn.classList.remove('active');
+        torchBtn.disabled = true;
+        photoStatus.textContent = 'A lanterna não está disponível nesta câmera.';
+      }
+    }
+
+    async function switchBetterCamera() {
+      if (html5Cameras.length < 2) return;
+
+      switchCameraBtn.disabled = true;
+      photoStatus.textContent = 'Trocando câmera…';
+
+      try {
+        if (html5Scanner && html5ScannerRunning) {
+          await html5Scanner.stop();
+        }
+      } catch (_) {}
+
+      try {
+        if (html5Scanner) html5Scanner.clear();
+      } catch (_) {}
+
+      html5Scanner = null;
+      html5ScannerRunning = false;
+      torchOn = false;
+      torchBtn.classList.remove('active');
+
+      html5CameraIndex = (html5CameraIndex + 1) % html5Cameras.length;
+
+      try {
+        await startHtml5Camera(html5CameraIndex);
+      } catch (_) {
+        photoStatus.textContent = 'Não foi possível abrir essa câmera.';
+        switchCameraBtn.disabled = false;
+      }
+    }
+
+    async function scanBarcodeImage(file) {
+      if (!file || !window.Html5Qrcode) return;
+
+      photoStatus.textContent = 'Lendo o código na imagem…';
+
+      try {
+        await stopHtml5Scanner();
+
+        html5Scanner = new Html5Qrcode(
+          'html5Reader',
+          {
+            formatsToSupport: [Html5QrcodeSupportedFormats.CODE_128],
+            useBarCodeDetectorIfSupported: true,
+            verbose: false
+          }
+        );
+
+        const decodedText = await html5Scanner.scanFile(file, true);
+        const validKey = extractValidNfeKey(decodedText);
+
+        if (!validKey) {
+          photoStatus.textContent = 'A imagem foi lida, mas não contém uma chave NF-e válida de 44 dígitos.';
+          return;
+        }
+
+        addScannedCode(validKey);
+        invoiceSearch.value = validKey;
+        updateCodeButtons();
+
+        await stopHtml5Scanner();
+        cameraModal.classList.add('hidden');
+        cameraModal.setAttribute('aria-hidden', 'true');
+
+        showStatus('✓ Chave da NF-e lida pela imagem.', 'success');
+      } catch (_) {
+        photoStatus.textContent = 'Não foi possível ler um CODE 128 válido nessa imagem.';
+      }
     }
 
     async function startCameraScanner() {
@@ -3262,6 +3634,14 @@
 
     scanBtn.addEventListener('click', startBetterScanner);
     closeCameraBtn.addEventListener('click', closeBetterScanner);
+    torchBtn.addEventListener('click', toggleBetterTorch);
+    switchCameraBtn.addEventListener('click', switchBetterCamera);
+    galleryBtn.addEventListener('click', () => barcodeImageInput.click());
+    barcodeImageInput.addEventListener('change', () => {
+      const file = barcodeImageInput.files && barcodeImageInput.files[0];
+      if (file) scanBarcodeImage(file);
+      barcodeImageInput.value = '';
+    });
     takePhotoBtn.addEventListener('click', captureAndDecodePhoto);
     readCropBtn.addEventListener('click', readSelectedCrop);
     retakePhotoBtn.addEventListener('click', async () => {
