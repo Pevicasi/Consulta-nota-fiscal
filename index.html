@@ -1233,6 +1233,14 @@
       }
     }
 
+
+    .external-scan-help {
+      margin-top: 10px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.4;
+    }
+
     @media print {
       body { background: #fff; }
       .upload-card, .actions { display: none !important; }
@@ -1275,10 +1283,14 @@
         <div class="code-actions">
           <button class="btn-primary" id="scanBtn" type="button">📷 Ler código</button>
           <button class="btn-secondary" id="scanAppBtn" type="button">Abrir ScanApp</button>
+          <button class="btn-secondary" id="pasteScannedBtn" type="button">📋 Colar código</button>
           <button class="btn-secondary hidden" id="copyCodeBtn" type="button">Copiar código</button>
           <a class="btn-link hidden" id="openNfeSiteBtn"
              href="https://www.nfe.fazenda.gov.br/portal/consultaRecaptcha.aspx?tipoConsulta=resumo&amp;tipoConteudo=7PhJ+gAVw2g="
              target="_blank" rel="noopener noreferrer">Ir ao site da NF-e</a>
+        </div>
+        <div class="external-scan-help">
+          No ScanApp, toque em <strong>Copy</strong>, volte aqui e toque em <strong>Colar código</strong>.
         </div>
       </div>
 
@@ -2039,19 +2051,19 @@
       if (!code) return false;
 
       if (code.length !== 44) {
-        showStatus('A leitura não retornou os 44 dígitos completos. Tente novamente.', 'error');
+        showStatus('O código precisa ter 44 dígitos.', 'error');
         return false;
       }
 
       if (!isValidNfeKey(code)) {
-        showStatus('A chave lida possui 44 dígitos, mas é inválida. Tente novamente.', 'error');
+        showStatus('A chave possui 44 dígitos, mas não passou na validação da NF-e.', 'error');
         return false;
       }
 
       if (!scannedCodes.includes(code)) {
         scannedCodes.push(code);
         renderScannedCodes();
-    updateColumnCounter();
+        saveAppSession();
       }
 
       invoiceSearch.value = code;
@@ -2076,6 +2088,49 @@
           </div>
         </div>
       `).join('');
+    }
+
+    async function pasteScannedCodeFromClipboard() {
+      let text = '';
+
+      try {
+        text = await navigator.clipboard.readText();
+      } catch (_) {
+        showStatus('O navegador não permitiu ler a área de transferência. Toque no campo da chave e use Colar.', 'error');
+        invoiceSearch.focus();
+        return;
+      }
+
+      const digits = String(text || '').replace(/\D/g, '');
+
+      if (!digits) {
+        showStatus('Não encontrei nenhum número copiado.', 'error');
+        return;
+      }
+
+      let key = '';
+
+      if (digits.length === 44) {
+        key = digits;
+      } else if (digits.length > 44) {
+        key = extractValidNfeKey(digits);
+      }
+
+      if (!key) {
+        showStatus('O conteúdo copiado não contém uma chave NF-e válida de 44 dígitos.', 'error');
+        return;
+      }
+
+      const added = addScannedCode(key);
+
+      if (added) {
+        pasteScannedBtn.textContent = '✓ Adicionado!';
+        showStatus('✓ Código do ScanApp adicionado em Notas escaneadas.', 'success');
+
+        setTimeout(() => {
+          pasteScannedBtn.textContent = '📋 Colar código';
+        }, 1400);
+      }
     }
 
     async function copyText(value) {
@@ -2528,6 +2583,7 @@
 
     const scanBtn = document.getElementById('scanBtn');
     const scanAppBtn = document.getElementById('scanAppBtn');
+    const pasteScannedBtn = document.getElementById('pasteScannedBtn');
     const cameraModal = document.getElementById('cameraModal');
     const cameraVideo = document.getElementById('cameraVideo');
     const html5ReaderElement = document.getElementById('html5Reader');
@@ -3632,6 +3688,7 @@
     scanAppBtn.addEventListener('click', () => {
       window.open('https://scanapp.org/code128/', '_blank', 'noopener');
     });
+    pasteScannedBtn.addEventListener('click', pasteScannedCodeFromClipboard);
     closeCameraBtn.addEventListener('click', stopCamera);
     torchBtn.addEventListener('click', toggleBetterTorch);
     switchCameraBtn.addEventListener('click', switchBetterCamera);
