@@ -3214,15 +3214,18 @@
           const result = await cameraReader.decodeFromCanvas(canvas);
 
           if (result) {
-            scannerBusy = true;
             const rawCode = result.getText ? result.getText() : result.text;
             const validKey = extractValidNfeKey(rawCode);
 
             if (!validKey) {
-              photoStatus.textContent = 'Leitura detectada, mas a chave não passou na validação. Continuando…';
-              return false;
+              // Não trava mais o leitor quando ele detecta uma leitura parcial
+              // ou um código que não seja uma chave válida de NF-e.
+              scannerBusy = false;
+              photoStatus.textContent = 'Leitura parcial detectada. Continuando a procurar a chave completa…';
+              continue;
             }
 
+            scannerBusy = true;
             addScannedCode(validKey);
             stopCamera();
             showStatus('✓ Chave válida adicionada à lista.', 'success');
@@ -3239,10 +3242,14 @@
     async function scanLoop() {
       if (!cameraStream) return;
 
-      await tryDecodeCurrentFrame();
+      try {
+        await tryDecodeCurrentFrame();
+      } catch (_) {
+        scannerBusy = false;
+      }
 
       if (cameraStream && !scannerBusy) {
-        scannerTimer = setTimeout(scanLoop, 280);
+        scannerTimer = setTimeout(scanLoop, 220);
       }
     }
 
@@ -3668,7 +3675,6 @@
     });
 
   </script>
-  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   <script src="https://unpkg.com/@zxing/browser@0.1.5"></script>
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js"></script>
 </body>
