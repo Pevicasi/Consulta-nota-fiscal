@@ -838,10 +838,6 @@
 
 
 
-    .legacy-camera-hidden {
-      display: none !important;
-    }
-
     .html5-reader {
       width: 100%;
       overflow: hidden;
@@ -1065,6 +1061,11 @@
       }
     }
 
+
+    #html5Reader {
+      display: none !important;
+    }
+
     .crop-panel {
       margin-top: 4px;
     }
@@ -1273,6 +1274,7 @@
         </div>
         <div class="code-actions">
           <button class="btn-primary" id="scanBtn" type="button">📷 Ler código</button>
+          <button class="btn-secondary" id="scanAppBtn" type="button">Abrir ScanApp</button>
           <button class="btn-secondary hidden" id="copyCodeBtn" type="button">Copiar código</button>
           <a class="btn-link hidden" id="openNfeSiteBtn"
              href="https://www.nfe.fazenda.gov.br/portal/consultaRecaptcha.aspx?tipoConsulta=resumo&amp;tipoConteudo=7PhJ+gAVw2g="
@@ -1537,28 +1539,14 @@
 
     <div id="cameraModal" class="camera-modal hidden" aria-hidden="true">
       <div class="camera-box">
-        <h2>Aponte para o código de barras</h2><div class="ocr-badge">Leitor CODE 128</div>
+        <h2>Aponte para o código de barras</h2><div class="ocr-badge">Leitor interno</div>
         <div id="liveCameraPanel">
-          <div class="scanapp-reader-wrap">
-            <div id="html5Reader" class="html5-reader"></div>
-            <div class="scanapp-overlay" aria-hidden="true">
-              <div class="scanapp-corner tl"></div>
-              <div class="scanapp-corner tr"></div>
-              <div class="scanapp-corner bl"></div>
-              <div class="scanapp-corner br"></div>
-              <div class="scanapp-line"></div>
-            </div>
+          <div class="camera-frame">
+            <video id="cameraVideo" class="camera-video" muted playsinline></video>
+            <div class="camera-guide"></div>
           </div>
-
-          <div class="scanapp-tools">
-            <button class="scanapp-tool" id="torchBtn" type="button" title="Lanterna">⚡<span>Lanterna</span></button>
-            <button class="scanapp-tool" id="switchCameraBtn" type="button" title="Trocar câmera">🔄<span>Câmera</span></button>
-            <button class="scanapp-tool" id="galleryBtn" type="button" title="Ler imagem">🖼️<span>Imagem</span></button>
-            <input id="barcodeImageInput" type="file" accept="image/*" hidden>
-          </div>
-
           <p class="camera-help">
-            Centralize o código de barras dentro da moldura. Pode segurar o celular em pé ou deitado.
+            Pode segurar o celular em pé ou deitado. Centralize o código dentro da faixa.
           </p>
         </div>
 
@@ -2539,6 +2527,7 @@
 
 
     const scanBtn = document.getElementById('scanBtn');
+    const scanAppBtn = document.getElementById('scanAppBtn');
     const cameraModal = document.getElementById('cameraModal');
     const cameraVideo = document.getElementById('cameraVideo');
     const html5ReaderElement = document.getElementById('html5Reader');
@@ -3632,8 +3621,11 @@
     }
 
 
-    scanBtn.addEventListener('click', startBetterScanner);
-    closeCameraBtn.addEventListener('click', closeBetterScanner);
+    scanBtn.addEventListener('click', startCameraScanner);
+    scanAppBtn.addEventListener('click', () => {
+      window.open('https://scanapp.org/code128/', '_blank', 'noopener');
+    });
+    closeCameraBtn.addEventListener('click', stopCamera);
     torchBtn.addEventListener('click', toggleBetterTorch);
     switchCameraBtn.addEventListener('click', switchBetterCamera);
     galleryBtn.addEventListener('click', () => barcodeImageInput.click());
@@ -3661,12 +3653,11 @@
     invoiceSearch.addEventListener('input', updateCodeButtons);
 
     cameraModal.addEventListener('click', event => {
-      if (event.target === cameraModal) closeBetterScanner();
+      if (event.target === cameraModal) stopCamera();
     });
 
     window.addEventListener('pagehide', () => {
       saveAppSession();
-      stopHtml5Scanner();
       stopCamera();
     });
 
