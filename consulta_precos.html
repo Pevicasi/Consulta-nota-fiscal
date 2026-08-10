@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Consulta de Preços</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;background:#f4f6f8;color:#202124}
+header{background:#1769aa;color:#fff;padding:18px;text-align:center;font-size:22px;font-weight:700}
+.wrap{max-width:760px;margin:auto;padding:16px}.tabs{display:flex;gap:8px;margin-bottom:14px}
+.tab{flex:1;padding:13px;border:0;border-radius:10px;background:#ddd;font-weight:700;font-size:16px}
+.tab.on{background:#1769aa;color:#fff}.card{background:#fff;padding:16px;border-radius:14px;box-shadow:0 2px 10px #0001}
+label{display:block;font-size:13px;font-weight:700;margin:12px 0 5px}
+input,select,button{width:100%;padding:12px;border:1px solid #ccd1d6;border-radius:9px;font-size:16px}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}.go{margin-top:14px;background:#1769aa;color:#fff;border:0;font-weight:700}
+.loc{margin-top:8px;background:#eef5fb;color:#1769aa;border:1px solid #b9d5eb}.status{margin-top:14px;padding:10px;border-radius:8px;background:#f2f2f2;white-space:pre-wrap;overflow-wrap:anywhere}
+.result{margin-top:12px}.item{background:#fff;border:1px solid #ddd;border-radius:10px;padding:12px;margin:8px 0}
+.price{font-size:22px;font-weight:700;color:#16733b}.small{font-size:12px;color:#666}.hide{display:none}
+</style>
+</head>
+<body>
+<header>Consulta de Preços</header>
+<div class="wrap">
+ <div class="tabs"><button id="t1" class="tab on" onclick="setTab(1)">Consulta 1</button><button id="t2" class="tab" onclick="setTab(2)">Consulta 2</button></div>
+ <div class="card">
+  <label>Produto ou código de barras</label><input id="q" placeholder="Ex.: arroz ou 789...">
+  <div class="row"><div><label>Latitude</label><input id="lat" inputmode="decimal"></div><div><label>Longitude</label><input id="lon" inputmode="decimal"></div></div>
+  <button class="loc" onclick="loc()">Usar minha localização</button>
+  <div class="row"><div><label>Raio</label><select id="raio"><option>5</option><option>10</option><option selected>20</option><option>30</option></select></div><div><label>Período (dias)</label><select id="dias"><option>1</option><option>3</option><option>7</option><option selected>30</option></select></div></div>
+  <div id="tokenBox" class="hide"><label>Token da Consulta 2</label><input id="token" placeholder="Bearer token do Menor Preço Brasil"></div>
+  <button class="go" onclick="consultar()">Pesquisar</button>
+  <div id="status" class="status">Pronto para testar.</div><div id="result" class="result"></div>
+ </div>
+</div>
+<script>
+let tab=1;
+function setTab(n){tab=n;t1.classList.toggle('on',n===1);t2.classList.toggle('on',n===2);tokenBox.classList.toggle('hide',n!==2);status.textContent=n===1?'Consulta 1: Menor Preço (Celepar)':'Consulta 2: Menor Preço Brasil (PROCERGS)';result.innerHTML=''}
+function loc(){status.textContent='Obtendo localização...';navigator.geolocation.getCurrentPosition(p=>{lat.value=p.coords.latitude;lon.value=p.coords.longitude;status.textContent='Localização obtida.'},e=>status.textContent='Erro de localização: '+e.message,{enableHighAccuracy:true})}
+function geohash(latitude,longitude,precision=12){const base32='0123456789bcdefghjkmnpqrstuvwxyz';let idx=0,bit=0,even=true,hash='',latR=[-90,90],lonR=[-180,180];while(hash.length<precision){let r=even?lonR:latR,v=even?longitude:latitude,mid=(r[0]+r[1])/2;if(v>=mid){idx=idx*2+1;r[0]=mid}else{idx=idx*2;r[1]=mid}even=!even;if(++bit===5){hash+=base32[idx];bit=0;idx=0}}return hash}
+function show(data){let a=Array.isArray(data)?data:(data.produtos||data.itens||data.items||data.resultado||data.results||[]);if(!Array.isArray(a)){result.innerHTML='<div class="item"><pre>'+esc(JSON.stringify(data,null,2))+'</pre></div>';return}result.innerHTML=a.length?a.slice(0,50).map(x=>{let p=x.valor||x.preco||x.vlrItem||x.valorUnitario||'';let e=x.estabelecimento||{};let nome=x.descricao||x.nome||x.descItem||x.dscProduto||'Produto';let loja=e.nomeFant||e.nomeContrib||x.nomeEstabelecimento||x.estabelecimento||'';return `<div class="item"><b>${esc(nome)}</b><div class="price">${p!==''?'R$ '+Number(p).toLocaleString('pt-BR',{minimumFractionDigits:2}):''}</div><div>${esc(typeof loja==='string'?loja:JSON.stringify(loja))}</div></div>`}).join(''):'<div class="item">Nenhum resultado.</div>'}
+function esc(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+async function consultar(){result.innerHTML='';let query=q.value.trim(),la=parseFloat(lat.value),lo=parseFloat(lon.value);if(!query||!Number.isFinite(la)||!Number.isFinite(lo)){status.textContent='Informe produto e localização.';return}
+ let url,opt={headers:{'Accept':'application/json'}};
+ if(tab===1){let params=new URLSearchParams({local:geohash(la,lo),raio:raio.value,data:dias.value,ordem:'0'});if(/^\d{8,14}$/.test(query))params.set('gtin',query);else params.set('termo',query);url='https://menorpreco.notaparana.pr.gov.br/api/v1/produtos?'+params}
+ else{let tok=token.value.trim();if(!tok){status.textContent='A Consulta 2 exige autenticação. Cole o token para testar.';return}let params=new URLSearchParams({'pesquisa.latitude':la,'pesquisa.longitude':lo,'pesquisa.nroKmDistancia':raio.value,'pesquisa.nroDiaPrz':dias.value});let endpoint;if(/^\d{8,14}$/.test(query)){endpoint='PorGtin';params.set('pesquisa.gtin',query)}else{endpoint='PorDescricao';params.set('pesquisa.descricao',query)}url='https://mprs.sefaz.rs.gov.br/API/ConsultaMenorPrecoBrasil/api/v1/Item/'+endpoint+'?'+params;opt.headers.Authorization=tok.toLowerCase().startsWith('bearer ')?tok:'Bearer '+tok}
+ status.textContent='Consultando...';
+ try{let r=await fetch(url,opt);let text=await r.text();if(!r.ok)throw new Error('HTTP '+r.status+' — '+text.slice(0,300));let data;try{data=JSON.parse(text)}catch{data=text}status.textContent='Consulta concluída.';show(data)}
+ catch(e){status.textContent='Falhou: '+e.message+'\n\nSe aparecer CORS/bloqueio do navegador, a próxima versão será HTML + PHP.'}
+}
+</script>
+</body></html>
