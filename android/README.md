@@ -31,4 +31,4 @@ A origem local HTTPS usa WebViewAssetLoader; a ponte nativa aceita mensagens som
 
 Permissão negada/câmera ausente: galeria continua disponível. Sem flash: lanterna desativada. A câmera e a lanterna são liberadas ao sair. Use um Android System WebView atualizado. Dados da sessão ficam no armazenamento local do aplicativo e são apagados ao limpar dados/desinstalar. O comportamento de retenção do site foi preservado.
 
-Consulte [auditoria](../docs/AUDITORIA.md) e [registro de mudanças](../CHANGELOG.md). Testes automatizados não substituem a validação de foco, lanterna, qualidade do OCR e impressão em dispositivos físicos.
+Consulte [resultado do build e APK verificado](../docs/VALIDACAO.md), [auditoria](../docs/AUDITORIA.md) e [registro de mudanças](../CHANGELOG.md). Testes automatizados não substituem a validação de foco, lanterna, qualidade do OCR e impressão em dispositivos físicos.

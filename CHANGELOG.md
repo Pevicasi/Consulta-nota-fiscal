@@ -16,3 +16,5 @@
 - Corrigido o provisionamento de CI para não solicitar o pacote SDK `tools`, removido do catálogo Android.
 - Limitadas as resoluções de captura/análise e o tamanho de imagens da galeria para reduzir memória sem depender de desativação de recursos.
 - Garantido que uma chave lida a partir da tela de preços volte à tela de notas, aguardando a ponte local ficar pronta. Adicionados testes desse retorno e das coordenadas/limites do editor de recorte.
+- Declarados câmera/localização como recursos opcionais para preservar o uso de XMLs/galeria em aparelhos sem esses recursos; preservados os callbacks do WebView na rotação da tela.
+- Registrada na auditoria uma falha pré-existente de apresentação de erros da Consulta 2, reproduzida com rede simulada nas três versões de preços.

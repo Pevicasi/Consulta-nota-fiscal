@@ -41,6 +41,7 @@ A correção usa encadeamento opcional nos quatro registros de controles ausente
 
 ## Limites observados
 
+- Defeito pré-existente confirmado nas três páginas de preços: na Consulta 2, o `catch` de erro de rede escreve em `status.textContent` (a propriedade global do navegador) em vez de usar `statusBox`/`setStatus`. Em uma execução isolada com fetch rejeitado e token sintético, as três mantiveram “Consultando...” e nenhum resultado. A API real não foi chamada nesse teste. Esse defeito foi registrado, sem alterar as páginas de preços durante a implementação Android.
 - O site não baixa XML a partir da chave. O aplicativo mantém essa regra, sem prometer consulta fiscal automática.
 - Os cálculos de preço incluem ST por unidade e margem; frete, desconto e outros tributos não são rateados, conforme a observação já exibida pelo site.
 - Localização, APIs públicas, captcha, permissões de clipboard/câmera, impressão e hardware são dependências externas. Testes com respostas simuladas cobrem a interface e não comprovam disponibilidade desses serviços.
