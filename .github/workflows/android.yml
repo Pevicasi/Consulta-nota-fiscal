@@ -43,6 +43,8 @@ jobs:
       - name: Test, lint and build installable APK
         working-directory: android
         run: ./gradlew --no-daemon testDebugUnitTest lintDebug assembleDebug assembleDebugAndroidTest
+      - name: Report completed QA unit tests
+        run: python3 android/tools/report-tests.py android/app/build/reports/tests/testDebugUnitTest/index.html 8 'QA unit'
       - name: Verify QA package, signature, site and checksum
         env:
           EXPECTED_VERSION_CODE: '3'
@@ -98,6 +100,8 @@ jobs:
             adb shell svc wifi disable
             adb shell svc data disable
             ./gradlew --no-daemon connectedDebugAndroidTest
+      - name: Report completed QA instrumented tests
+        run: python3 android/tools/report-tests.py android/app/build/reports/androidTests/connected/debug/index.html 19 'QA instrumented'
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: always()
         with:
@@ -164,6 +168,10 @@ jobs:
             ./gradlew --no-daemon -PdistributionInstrumentation connectedReleaseAndroidTest
             adb install -r app/build/outputs/apk/release/app-release.apk
             adb install -r app/build/outputs/apk/release/app-release.apk
+      - name: Report completed release tests
+        run: |
+          python3 android/tools/report-tests.py android/app/build/reports/tests/testReleaseUnitTest/index.html 8 'Release unit'
+          python3 android/tools/report-tests.py android/app/build/reports/androidTests/connected/release/index.html 19 'Release instrumented'
       - name: Verify distribution identity, signature and checksum
         env:
           ANDROID_SIGNING_CERT_SHA256: ${{ vars.ANDROID_SIGNING_CERT_SHA256 }}
