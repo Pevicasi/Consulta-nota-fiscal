@@ -106,6 +106,11 @@ public class ScannerActivity extends ComponentActivity {
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) startCamera();
         else permission.launch(Manifest.permission.CAMERA);
     }
+    private static androidx.camera.core.resolutionselector.ResolutionSelector resolution(int width, int height) {
+        return new androidx.camera.core.resolutionselector.ResolutionSelector.Builder().setResolutionStrategy(
+            new androidx.camera.core.resolutionselector.ResolutionStrategy(new android.util.Size(width, height),
+                androidx.camera.core.resolutionselector.ResolutionStrategy.FALLBACK_RULE_CLOSEST_LOWER_THEN_HIGHER)).build();
+    }
     private void startCamera() {
         ListenableFuture<ProcessCameraProvider> future = ProcessCameraProvider.getInstance(this);
         future.addListener(() -> {
@@ -120,8 +125,8 @@ public class ScannerActivity extends ComponentActivity {
         CameraSelector selector = new CameraSelector.Builder().requireLensFacing(lens).build();
         if (!provider.hasCamera(selector)) { lens = lens == CameraSelector.LENS_FACING_BACK ? CameraSelector.LENS_FACING_FRONT : CameraSelector.LENS_FACING_BACK; selector = new CameraSelector.Builder().requireLensFacing(lens).build(); }
         Preview live = new Preview.Builder().build(); live.setSurfaceProvider(preview.getSurfaceProvider());
-        imageCapture = new ImageCapture.Builder().setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY).build();
-        analysis = new ImageAnalysis.Builder().setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST).build();
+        imageCapture = new ImageCapture.Builder().setResolutionSelector(resolution(1920, 1080)).setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY).build();
+        analysis = new ImageAnalysis.Builder().setResolutionSelector(resolution(1280, 720)).setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST).build();
         analysis.setAnalyzer(executor, this::analyze);
         camera = provider.bindToLifecycle(this, selector, live, imageCapture, analysis);
         torchOn = false; torch.setText("Lanterna"); torch.setEnabled(camera.getCameraInfo().hasFlashUnit()); capture.setEnabled(true); zoom.setEnabled(true);
@@ -188,7 +193,9 @@ public class ScannerActivity extends ComponentActivity {
             try {
                 BitmapFactory.Options options = new BitmapFactory.Options(); options.inJustDecodeBounds = true;
                 try (InputStream in = getContentResolver().openInputStream(uri)) { BitmapFactory.decodeStream(in, null, options); }
-                options.inSampleSize = Math.max(1, Math.max(options.outWidth, options.outHeight) / 2600); options.inJustDecodeBounds = false;
+                options.inSampleSize = 1;
+                while (Math.max(options.outWidth, options.outHeight) / options.inSampleSize > 2600) options.inSampleSize *= 2;
+                options.inJustDecodeBounds = false;
                 Bitmap bitmap;
                 try (InputStream in = getContentResolver().openInputStream(uri)) { bitmap = BitmapFactory.decodeStream(in, null, options); }
                 if (bitmap == null) throw new java.io.IOException("Imagem inválida");
