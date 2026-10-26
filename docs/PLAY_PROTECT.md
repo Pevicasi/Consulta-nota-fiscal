@@ -25,6 +25,8 @@ Registre o texto exato e a classificação do alerta, versão do app, origem do 
 
 Não desative nem contorne o Play Protect. Para uma detecção de app nocivo, mantenha o bloqueio até a análise do alerta e do APK correspondente. Alertas sobre apps desconhecidos/verificação e detecções de comportamento nocivo exigem diagnósticos diferentes; nenhuma foi presumida neste relatório.
 
+Assinar o APK comprova continuidade da identidade criptográfica; não equivale à verificação da identidade civil/organizacional do desenvolvedor pela Google. Eventual cadastro e verificação oficial na Android Developer Console ou Play Console exigem ação do responsável e observância das regras vigentes da plataforma/região; não foram efetuados pelo build. Consulte também https://developer.android.com/developer-verification .
+
 Para distribuição ampla, avalie publicação e verificações oficiais pela Play Console e o fluxo oficial de recurso quando uma detecção for considerada incorreta. Cadastro, políticas, titularidade, taxas e publicação dependem do responsável; não foram realizados nesta tarefa. Publicação oficial também não garante ausência de alertas.
 
 Referências oficiais:
