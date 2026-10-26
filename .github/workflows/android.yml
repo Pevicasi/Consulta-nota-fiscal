@@ -101,6 +101,7 @@ jobs:
             adb shell svc data disable
             ./gradlew --no-daemon connectedDebugAndroidTest
       - name: Report completed QA instrumented tests
+        if: always()
         run: python3 android/tools/report-tests.py android/app/build/reports/androidTests/connected/debug/index.html 19 'QA instrumented'
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: always()
@@ -169,6 +170,7 @@ jobs:
             adb install -r app/build/outputs/apk/release/app-release.apk
             adb install -r app/build/outputs/apk/release/app-release.apk
       - name: Report completed release tests
+        if: always()
         run: |
           python3 android/tools/report-tests.py android/app/build/reports/tests/testReleaseUnitTest/index.html 8 'Release unit'
           python3 android/tools/report-tests.py android/app/build/reports/androidTests/connected/release/index.html 19 'Release instrumented'
