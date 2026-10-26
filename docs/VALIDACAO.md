@@ -1,4 +1,32 @@
-# Resultado verificado — issue #1
+# Resultados verificados
+
+## 1.0.1 — issue #2
+
+Código aprovado: [`d068e38d165d27ea5cd253d3c495c46c10d3722e`](https://github.com/Pevicasi/Consulta-nota-fiscal/commit/d068e38d165d27ea5cd253d3c495c46c10d3722e). [GitHub Actions concluído com sucesso](https://github.com/Pevicasi/Consulta-nota-fiscal/actions/runs/40376397656). O commit posterior que registra este resultado altera somente documentação.
+
+[**Baixar APK aprovado 1.0.1**](https://github.com/Pevicasi/Consulta-nota-fiscal/actions/runs/40376397656/artifacts/12674272860) — extraia o ZIP, confira `SHA256SUMS` e instale `app-debug.apk`. O pacote é `br.com.pevicasi.nfefacil`, versão `1.0.1`, código `2`, Android mínimo 8.0/API 26. A assinatura é de desenvolvimento; permanecem válidas as orientações sobre atualização entre assinaturas diferentes em `android/README.md`.
+
+| Verificação | Resultado observado |
+|---|---|
+| Regressão web | 8 testes passaram; 0 falhas; 0 ignorados |
+| Validação unitária da chave | 5 testes passaram; 0 falhas; 0 ignorados |
+| Integração Android | 12 testes passaram no emulador Android 15/API 35 x86_64; 0 falhas; 0 ignorados |
+| Scanner embarcado | CODE 128 e OCR leram imagens sintéticas com rede desligada; caixas de código retornadas pelo detector conferidas |
+| Moldura | Testada renderização na região detectada, limpeza do estado e transformação de coordenadas com recorte, quatro rotações e espelhamento |
+| Confirmação | Botão explícito retorna a chave; duplicação bloqueada; nova leitura e restauração dos 44 dígitos após recriação da Activity verificadas |
+| Lint do Actions | 0 erros, 37 avisos; nenhuma assertion desativada ou erro suprimido |
+| Build | `testDebugUnitTest lintDebug assembleDebug assembleDebugAndroidTest` passaram localmente e no Actions; `connectedDebugAndroidTest` passou no Actions |
+| APK baixado do Actions | SHA-256 conferido contra `SHA256SUMS`, assinatura APK v2 validada novamente com `apksigner` e versão conferida |
+| Site preservado | Os quatro HTMLs permanecem sem alteração e são idênticos aos assets do APK baixado |
+| Limpeza | Excluídos três artefatos APK anteriores, incluindo o candidato reprovado; mantido somente o APK aprovado deste workflow. Relatórios e commits preservados |
+
+SHA-256 do **APK baixado do Actions**: `25239dacce4976abd6ce5d82a7d4b8d88cdb27ae80a08ec028902cc04cbdc6b8`.
+
+Relatórios `validation-reports` e `device-test-reports` foram baixados e conferidos. A primeira execução da issue #2 identificou falha real na restauração do diálogo: `onPostResume` antecedia o estado `RESUMED` do Lifecycle. A restauração foi transferida ao observador desse evento, e o mesmo teste passou na execução aprovada, junto com os demais testes.
+
+Não houve teste em aparelho físico. Alinhamento e suavidade sobre câmera real, diferentes fabricantes, iluminação, foco e flash ainda exigem conferência em hardware. A geometria foi validada por transformações sintéticas e a recriação da Activity por teste instrumentado. Consultas governamentais reais, captcha, impressão física e geolocalização real não foram exercitados.
+
+## 1.0.0 — issue #1 (histórico)
 
 Código compilado e testado na `main`: [`ad026e37a3fc1a2a0c1e9b078a36c2072a973a39`](https://github.com/Pevicasi/Consulta-nota-fiscal/commit/ad026e37a3fc1a2a0c1e9b078a36c2072a973a39).
 
@@ -19,7 +47,9 @@ Código compilado e testado na `main`: [`ad026e37a3fc1a2a0c1e9b078a36c2072a973a3
 
 Os avisos de lint incluem versões de dependências/SDK, suporte necessário a JavaScript no WebView, acessibilidade do gesto da câmera e textos fixos em português. Eles estão disponíveis no relatório completo; não foram ocultados para tornar o build verde.
 
-## Obter e instalar
+### Obter e instalar — versão histórica
+
+Os artefatos APK desta versão foram removidos após a aprovação da 1.0.1. Os links e checksums abaixo ficam como registro histórico; use o download atual no início deste documento. Relatórios e histórico Git foram preservados.
 
 [Baixar o artefato do APK](https://github.com/Pevicasi/Consulta-nota-fiscal/actions/runs/40360759163/artifacts/12667849827) — `nfe-facil-debug-ad026e37a3fc1a2a0c1e9b078a36c2072a973a39`.
 
@@ -39,7 +69,7 @@ adb install -r app-debug.apk
 
 Relatórios da mesma execução: `validation-reports` (testes web, capturas, testes unitários e lint) e `device-test-reports` (7 testes de integração).
 
-## Limites da validação
+### Limites da validação histórica
 
 Nenhum aparelho físico foi conectado. Foco, zoom, flash e qualidade de leitura em papel real variam por hardware e iluminação; a automação confirma execução dos modelos e fluxos, não desempenho em todas as câmeras. Impressão física, geolocalização real, captcha e consultas governamentais autenticadas não foram exercitados. As páginas de preços preservam as dependências e a falha de mensagem de erro pré-existente detalhadas em [AUDITORIA.md](AUDITORIA.md).
 
