@@ -28,7 +28,7 @@ keytool -genkeypair -keystore /caminho/privado/nfe-distribution.p12 \
 keytool -list -v -keystore /caminho/privado/nfe-distribution.p12 -alias nfe-distribution
 ```
 
-Use senha forte e, para PKCS12 criado por keytool, a mesma senha para armazenamento/chave. Mantenha ao menos duas cópias de segurança cifradas, fora do repositório/runner, e as senhas em um gerenciador seguro. Perder a chave pode impedir atualizações futuras. O certificado SHA-256 é público; registre e aprove sua impressão digital por um canal confiável.
+Os dados do certificado são públicos; evite incluir dados pessoais desnecessários. Use senha forte e, para PKCS12 criado por keytool, a mesma senha para armazenamento/chave. Mantenha ao menos duas cópias de segurança cifradas, fora do repositório/runner, e as senhas em um gerenciador seguro. Perder a chave pode impedir atualizações futuras. O certificado SHA-256 é público; registre e aprove sua impressão digital por um canal confiável.
 
 No GitHub, configure preferencialmente o environment **`android-distribution`**, com aprovação de responsável e restrição à branch main. Também são aceitos Secrets do repositório. É necessário provisionar:
 
@@ -64,3 +64,5 @@ Os testes automatizados da política geram somente fixtures isoladas de dois dia
 O QA pode ser usado ao lado do app antigo enquanto a migração/assinatura não forem aprovadas. Seus dados não migram automaticamente entre os dois pacotes.
 
 Referência oficial: https://developer.android.com/studio/publish/app-signing
+
+Se futuramente adotar Play App Signing, diferencie a chave de envio da chave que efetivamente assina os APKs instalados. Compatibilidade entre APKs externos e a Play Store exige planejamento da identidade de assinatura pelo responsável; não se presume que as duas chaves sejam iguais.

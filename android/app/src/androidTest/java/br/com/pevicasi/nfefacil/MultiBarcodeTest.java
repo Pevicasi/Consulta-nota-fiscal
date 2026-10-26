@@ -42,10 +42,16 @@ public class MultiBarcodeTest {
         for(int row=0;row<height;row++)for(int col=0;col<width;col++)stamp.setPixel(col,row,bits.get(col,row)?Color.BLACK:Color.WHITE);
         new Canvas(sheet).drawBitmap(stamp,50,y,null);stamp.recycle();
     }
-    private static List<Barcode> decode(Bitmap sheet) throws Exception {
-        BarcodeScanner scanner=BarcodeScanning.getClient(new BarcodeScannerOptions.Builder().setBarcodeFormats(Barcode.FORMAT_ALL_FORMATS).build());
+    private static List<Barcode> decode(Bitmap sheet) throws Exception { return decode(sheet, Barcode.FORMAT_ALL_FORMATS); }
+    private static List<Barcode> decode(Bitmap sheet, int format) throws Exception {
+        BarcodeScanner scanner=BarcodeScanning.getClient(new BarcodeScannerOptions.Builder().setBarcodeFormats(format).build());
         try {return new ArrayList<>(Tasks.await(scanner.process(InputImage.fromBitmap(sheet,0)),30,TimeUnit.SECONDS));}
         finally {scanner.close();}
+    }
+    private static String describe(List<Barcode> codes) {
+        StringBuilder description=new StringBuilder();
+        for(Barcode code:codes) description.append("[format=").append(code.getFormat()).append(", raw=").append(code.getRawValue()).append(", fiscal=").append(NfeKey.barcode(code.getRawValue())).append(", box=").append(code.getBoundingBox()).append("] ");
+        return description.toString();
     }
     @Test public void paymentAndQrBeforeTheInvoiceNeverBecomeTheCandidate() throws Exception {
         Bitmap sheet=Bitmap.createBitmap(2200,1500,Bitmap.Config.ARGB_8888);sheet.eraseColor(Color.WHITE);
@@ -58,7 +64,7 @@ public class MultiBarcodeTest {
             List<Barcode> results=decode(sheet);
             assertTrue("Synthetic image must really decode multiple codes",results.size()>=4);
             DetectedKeys found=DetectedKeys.barcodes(results);
-            assertEquals(Collections.singleton(invoice),found.keys());
+            assertEquals("All formats: "+describe(results)+"; production CODE128: "+describe(decode(sheet,Barcode.FORMAT_CODE_128))+"; expected valid="+NfeKey.isValid(invoice),Collections.singleton(invoice),found.keys());
             assertNotNull(found.bounds(null));assertTrue(found.bounds(null).top>1000);
             Collections.reverse(results);assertEquals(found.keys(),DetectedKeys.barcodes(results).keys());
         } finally {sheet.recycle();}
@@ -73,7 +79,7 @@ public class MultiBarcodeTest {
             draw(sheet,first,BarcodeFormat.CODE_128,660);
             draw(sheet,second,BarcodeFormat.CODE_128,970);
             List<Barcode> results=decode(sheet);
-            assertTrue("Must decode all four physical codes, including duplicate and bad DV",results.size()>=4);
+            assertTrue("Must decode all four physical codes, including duplicate and bad DV. All formats: "+describe(results)+"; production CODE128: "+describe(decode(sheet,Barcode.FORMAT_CODE_128)),results.size()>=4);
             DetectedKeys found=DetectedKeys.barcodes(results);
             assertEquals(new HashSet<>(Arrays.asList(first,second)),found.keys());
             assertNull(found.bounds(null));assertNull(found.bounds("unselected"));

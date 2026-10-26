@@ -298,7 +298,7 @@ public class ScannerActivity extends ComponentActivity {
         });
     }
     private void showPhoto(Bitmap bitmap) {
-        photoGeneration++; photoMode = true; overlay.clear(); overlay.setVisibility(View.GONE); if (camera != null) camera.getCameraControl().enableTorch(false);
+        cameraGeneration++; photoGeneration++; photoMode = true; overlay.clear(); overlay.setVisibility(View.GONE); if (camera != null) camera.getCameraControl().enableTorch(false);
         torchOn = false; torch.setEnabled(false); zoom.setEnabled(false);
         photo.setBitmap(bitmap); photo.setVisibility(View.VISIBLE); preview.setVisibility(View.INVISIBLE);
         capture.setVisibility(View.GONE); readCrop.setVisibility(View.VISIBLE); resume.setVisibility(View.VISIBLE);
@@ -327,7 +327,7 @@ public class ScannerActivity extends ComponentActivity {
         }).addOnFailureListener(e -> { busy.set(false); readCrop.setEnabled(true); status.setText("Falha na leitura. Tente outra imagem."); });
     }
     private void resumeCamera() {
-        photoGeneration++; overlay.clear(); overlay.setVisibility(View.VISIBLE); photoMode = false; photo.setVisibility(View.GONE); preview.setVisibility(View.VISIBLE);
+        cameraGeneration++; photoGeneration++; overlay.clear(); overlay.setVisibility(View.VISIBLE); photoMode = false; photo.setVisibility(View.GONE); preview.setVisibility(View.VISIBLE);
         capture.setVisibility(View.VISIBLE); capture.setEnabled(camera != null); readCrop.setVisibility(View.GONE); resume.setVisibility(View.GONE);
         zoom.setEnabled(camera != null); torch.setEnabled(camera != null && camera.getCameraInfo().hasFlashUnit()); torch.setText("Lanterna");
         status.setText("Centralize a chave. Toque para focar e use pinça para ampliar.");
