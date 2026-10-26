@@ -36,6 +36,7 @@ public class AppIntegrationTest {
         try {
             java.util.List<com.google.mlkit.vision.barcode.common.Barcode> results = Tasks.await(scanner.process(InputImage.fromBitmap(bitmap,0)),30,TimeUnit.SECONDS);
             assertFalse(results.isEmpty()); assertEquals(key(),NfeKey.barcode(results.get(0).getRawValue()));
+            assertNotNull(results.get(0).getBoundingBox()); assertFalse(results.get(0).getBoundingBox().isEmpty());
         } finally {scanner.close();bitmap.recycle();}
     }
     @Test public void bundledOcrReadsPrinted44DigitKey() throws Exception {

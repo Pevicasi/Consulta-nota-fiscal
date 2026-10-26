@@ -18,6 +18,12 @@ O APK assinado com chave de desenvolvimento fica em `app/build/outputs/apk/debug
 
 No GitHub, abra **Actions → Android APK → execução concluída → Artifacts → nfe-facil-debug-…**. Extraia o ZIP e instale `app-debug.apk`; o arquivo `SHA256SUMS` permite conferir a integridade. Os artefatos expiram após 30 dias; execute novamente por **Run workflow** se necessário. Não é criada uma release automaticamente.
 
+## Scanner 1.0.1
+
+A moldura acompanha as caixas reais do detector, com suavização e indicação verde para chave válida. A guia cinza é apenas orientativa quando não há detecção; caixas antigas expiram. As coordenadas usam o viewport compartilhado do CameraX, rotação do frame e transformação da prévia, incluindo câmera frontal. Para reduzir movimento, desative as animações nas configurações de acessibilidade do Android. O zoom permanece manual, por pinça ou barra.
+
+No diálogo **Chave encontrada**, confira os 44 dígitos selecionáveis e toque em **Confirmar chave**. **Ler novamente** retorna à câmera sem enviar uma chave. Se houver várias chaves, escolha uma no seletor antes de confirmar. A confirmação é restaurada na recriação da tela.
+
 ## Uso e paridade
 
 - **Notas:** importar um ou vários XMLs pelo seletor do Android; mesmos cálculos de ST, margem, abas, busca, seleção/ordem de colunas e sessão local do site.

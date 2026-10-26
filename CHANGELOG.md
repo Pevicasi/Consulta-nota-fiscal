@@ -1,5 +1,12 @@
 # Registro de alterações
 
+## 1.0.1 — Android / issue #2
+
+- Adicionada moldura de cantos arredondados com interpolação sobre a geometria real do ML Kit, transformação CameraX de rotação, viewport/recorte e espelhamento da prévia. Sem detecção, usa somente guia estática; geometria antiga expira. Animação respeita a desativação de animações do sistema.
+- Mantidos os modelos embarcados CODE 128/OCR, foco, pinça, zoom manual, lanterna e recorte. Sem zoom automático para evitar interferência nos controles manuais.
+- Chaves válidas exibidas em texto selecionável, com botões explícitos “Confirmar chave” e “Ler novamente”, bloqueio de confirmações duplicadas e restauração do diálogo na recriação da tela.
+- Adicionados testes instrumentados de confirmação/retorno, nova leitura, recriação e transformação de coordenadas em quatro rotações com recorte e espelhamento. Site preservado.
+
 ## 1.0.0 — Android / issue #1
 
 - Auditado o site atual, suas quatro páginas, interface móvel/desktop, dependências e limitações em `docs/AUDITORIA.md`.
