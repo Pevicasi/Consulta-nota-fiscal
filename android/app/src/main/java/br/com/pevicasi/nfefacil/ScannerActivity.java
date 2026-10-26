@@ -111,6 +111,12 @@ public class ScannerActivity extends ComponentActivity {
         getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
             @Override public void handleOnBackPressed() { if (photoMode) resumeCamera(); else finish(); }
         });
+        getLifecycle().addObserver(new androidx.lifecycle.DefaultLifecycleObserver() {
+            @Override public void onResume(androidx.lifecycle.LifecycleOwner owner) {
+                // Activity.onPostResume can precede Lifecycle's RESUMED event.
+                if (pendingKeys != null && !choosing) offerKeys(new LinkedHashSet<>(Arrays.asList(pendingKeys)));
+            }
+        });
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) startCamera();
         else permission.launch(Manifest.permission.CAMERA);
     }
@@ -311,10 +317,6 @@ public class ScannerActivity extends ComponentActivity {
     private Button button(LinearLayout row, String title, Runnable action) {
         Button result = new Button(this); result.setText(title); result.setTextSize(11); result.setOnClickListener(v -> action.run());
         row.addView(result, new LinearLayout.LayoutParams(0, -2, 1)); return result;
-    }
-    @Override protected void onPostResume() {
-        super.onPostResume();
-        if (pendingKeys != null && !choosing) offerKeys(new LinkedHashSet<>(Arrays.asList(pendingKeys)));
     }
     @Override protected void onSaveInstanceState(Bundle state) {
         if (choosing && pendingKeys != null) { state.putStringArray("pendingKeys", pendingKeys); state.putInt("selectedKeyIndex", selectedKeyIndex); }

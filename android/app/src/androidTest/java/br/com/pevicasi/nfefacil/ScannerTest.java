@@ -37,7 +37,7 @@ public class ScannerTest {
             scenario.onActivity(activity->{
                 activity.offerKeys(new LinkedHashSet<>(Arrays.asList("invalid",key())));
                 AlertDialog first=dialog(activity); assertNotNull(first); assertTrue(first.isShowing());
-                assertNotNull(findSelectable(first.getWindow().getDecorView()));
+                assertEquals(key(),findSelectable(first.getWindow().getDecorView()).getText().toString());
                 activity.offerKeys(Collections.singleton(key())); assertSame(first,dialog(activity));
                 assertFalse(activity.isFinishing());
                 first.getButton(AlertDialog.BUTTON_POSITIVE).performClick();
@@ -64,7 +64,7 @@ public class ScannerTest {
         try(ActivityScenario<ScannerActivity> scenario=ActivityScenario.launch(ScannerActivity.class)) {
             scenario.onActivity(activity->activity.offerKeys(Collections.singleton(key())));
             scenario.recreate();
-            scenario.onActivity(activity->{ assertNotNull(dialog(activity)); assertTrue(dialog(activity).isShowing()); assertNotNull(findSelectable(dialog(activity).getWindow().getDecorView())); });
+            scenario.onActivity(activity->{ assertNotNull(dialog(activity)); assertTrue(dialog(activity).isShowing()); assertEquals(key(),findSelectable(dialog(activity).getWindow().getDecorView()).getText().toString()); });
         }
     }
     @Test public void overlayUsesDetectedBoundsAndClearsStaleSuccess() {
