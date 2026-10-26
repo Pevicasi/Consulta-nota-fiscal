@@ -10,3 +10,9 @@
 - Corrigida a exceção `torchBtn` no site com guardas para quatro elementos opcionais, sem alterar cálculos, estilos ou páginas de preços.
 - Adicionados testes de regressão web, testes unitários de validação de chaves e integração Android com modelos embarcados.
 - Configurado GitHub Actions para testes, lint, build, verificação de assinatura, APK instalável com SHA-256, relatórios e testes em emulador. Instruções de instalação e limitações em `android/README.md`.
+
+### Ajustes após validação
+
+- Corrigido o provisionamento de CI para não solicitar o pacote SDK `tools`, removido do catálogo Android.
+- Limitadas as resoluções de captura/análise e o tamanho de imagens da galeria para reduzir memória sem depender de desativação de recursos.
+- Garantido que uma chave lida a partir da tela de preços volte à tela de notas, aguardando a ponte local ficar pronta. Adicionados testes desse retorno e das coordenadas/limites do editor de recorte.

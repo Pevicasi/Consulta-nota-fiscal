@@ -66,6 +66,28 @@ public class AppIntegrationTest {
             assertEquals("true",js(scenario,"typeof window.print === 'function' && window.__nfeNative === true"));
         }
     }
+    @Test public void scannerResultFromPricesNavigatesToNotes() throws Exception {
+        try(ActivityScenario<MainActivity> scenario=ActivityScenario.launch(MainActivity.class)) {
+            waitForJs(scenario,"typeof window.acceptNativeKey === 'function'");
+            scenario.onActivity(activity->findWebView(activity.getWindow().getDecorView()).loadUrl(MainActivity.ORIGIN+"/assets/site/consulta_precos_v17.html"));
+            waitForJs(scenario,"typeof consultar === 'function'");
+            scenario.onActivity(activity->activity.acceptScannerKey(key()));
+            waitForJs(scenario,"document.getElementById('invoiceSearch')?.value === "+org.json.JSONObject.quote(key()));
+        }
+    }
+    @Test public void cropEditorMapsImageCoordinatesAndClampsMovement() {
+        InstrumentationRegistry.getInstrumentation().runOnMainSync(()->{
+            CropImageView view=new CropImageView(InstrumentationRegistry.getInstrumentation().getTargetContext());
+            Bitmap bitmap=Bitmap.createBitmap(1000,500,Bitmap.Config.ARGB_8888);bitmap.eraseColor(Color.WHITE);
+            view.layout(0,0,1000,500);view.setBitmap(bitmap);view.draw(new Canvas(Bitmap.createBitmap(1000,500,Bitmap.Config.ARGB_8888)));
+            Bitmap crop=view.crop();assertEquals(940,crop.getWidth());assertEquals(470,crop.getHeight());
+            long now=android.os.SystemClock.uptimeMillis();
+            android.view.MotionEvent down=android.view.MotionEvent.obtain(now,now,0,300,250,0);
+            android.view.MotionEvent move=android.view.MotionEvent.obtain(now,now+10,2,3000,3000,0);
+            view.onTouchEvent(down);view.onTouchEvent(move);down.recycle();move.recycle();
+            Bitmap moved=view.crop();assertEquals(940,moved.getWidth());assertEquals(470,moved.getHeight());
+        });
+    }
     @Test public void scannerOpensAndClosesWithCameraPermission() {
         try(ActivityScenario<ScannerActivity> scenario=ActivityScenario.launch(ScannerActivity.class)) {
             scenario.onActivity(activity->assertFalse(activity.isFinishing()));

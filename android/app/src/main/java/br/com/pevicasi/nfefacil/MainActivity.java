@@ -26,6 +26,7 @@ public class MainActivity extends ComponentActivity {
     private WebView web;
     private ValueCallback<Uri[]> fileCallback;
     private byte[] pendingExport;
+    private String pendingNativeKey;
     private GeolocationPermissions.Callback locationCallback;
     private String locationOrigin;
     private final ActivityResultLauncher<Intent> filePicker = registerForActivityResult(
@@ -46,7 +47,7 @@ public class MainActivity extends ComponentActivity {
         new ActivityResultContracts.StartActivityForResult(), result -> {
             if (result.getResultCode() == RESULT_OK && result.getData() != null) {
                 String key = result.getData().getStringExtra("key");
-                if (NfeKey.isValid(key)) web.evaluateJavascript("window.acceptNativeKey?.(" + JSONObject.quote(key) + ")", null);
+                acceptScannerKey(key);
             }
         });
     private final ActivityResultLauncher<String[]> locationPermission = registerForActivityResult(
@@ -92,7 +93,11 @@ public class MainActivity extends ComponentActivity {
             @Override public void onPageFinished(WebView view, String url) {
                 if (url.startsWith(ORIGIN + "/assets/site/")) {
                     try (InputStream in = getAssets().open("android-bridge.js")) {
-                        view.evaluateJavascript(readUtf8(in), null);
+                        view.evaluateJavascript(readUtf8(in), ignored -> {
+                            if (url.endsWith("/site/index.html") && pendingNativeKey != null) {
+                                deliverPendingKey();
+                            }
+                        });
                     } catch (IOException e) { toast("Não foi possível iniciar os controles Android."); }
                 }
             }
@@ -126,7 +131,22 @@ public class MainActivity extends ComponentActivity {
         getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
             @Override public void handleOnBackPressed() { if (web.canGoBack()) web.goBack(); else finish(); }
         });
+        if (state != null) pendingNativeKey = state.getString("pendingNativeKey");
         if (state == null || web.restoreState(state) == null) web.loadUrl(ORIGIN + "/assets/site/index.html");
+    }
+    void acceptScannerKey(String key) {
+        if (!NfeKey.isValid(key)) return;
+        String notesUrl = ORIGIN + "/assets/site/index.html";
+        pendingNativeKey = key;
+        if (notesUrl.equals(web.getUrl())) web.evaluateJavascript("typeof window.acceptNativeKey === 'function'", ready -> {
+            if ("true".equals(ready)) deliverPendingKey();
+        });
+        else web.loadUrl(notesUrl);
+    }
+    private void deliverPendingKey() {
+        if (pendingNativeKey == null || !(ORIGIN + "/assets/site/index.html").equals(web.getUrl())) return;
+        String key = pendingNativeKey; pendingNativeKey = null;
+        web.evaluateJavascript("window.acceptNativeKey?.(" + JSONObject.quote(key) + ")", null);
     }
     private static String readUtf8(InputStream in) throws IOException {
         ByteArrayOutputStream out = new ByteArrayOutputStream(); byte[] buffer = new byte[4096]; int n;
@@ -166,7 +186,7 @@ public class MainActivity extends ComponentActivity {
         try { startActivity(new Intent(Intent.ACTION_VIEW, uri)); } catch (ActivityNotFoundException e) { toast("Nenhum aplicativo pode abrir este link."); }
     }
     private void toast(String message) { Toast.makeText(this, message, Toast.LENGTH_LONG).show(); }
-    @Override protected void onSaveInstanceState(Bundle out) { super.onSaveInstanceState(out); web.saveState(out); }
+    @Override protected void onSaveInstanceState(Bundle out) { super.onSaveInstanceState(out); web.saveState(out); out.putString("pendingNativeKey", pendingNativeKey); }
     @Override protected void onPause() { web.onPause(); super.onPause(); }
     @Override protected void onResume() { super.onResume(); if (web != null) web.onResume(); }
     @Override protected void onDestroy() { if (fileCallback != null) fileCallback.onReceiveValue(null); web.destroy(); super.onDestroy(); }
