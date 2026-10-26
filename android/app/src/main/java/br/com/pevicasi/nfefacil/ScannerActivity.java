@@ -38,6 +38,7 @@ public class ScannerActivity extends ComponentActivity {
     private long retryAfter;
     private String[] pendingKeys;
     private int selectedKeyIndex = -1;
+    private int photoGeneration;
     private Button torch, capture, readCrop, resume;
     private SeekBar zoom;
     private CropImageView photo;
@@ -175,6 +176,8 @@ public class ScannerActivity extends ComponentActivity {
     }
     @androidx.annotation.OptIn(markerClass = androidx.camera.view.TransformExperimental.class)
     private void showDetections(DetectedKeys detected, androidx.camera.view.transform.OutputTransform source, long duration) {
+        // A task already in flight when the dialog was dismissed must not reopen it.
+        if (android.os.SystemClock.uptimeMillis() < retryAfter) return;
         String selected = choosing && pendingKeys != null && selectedKeyIndex >= 0 ? pendingKeys[selectedKeyIndex] : null;
         Rect bounds = detected.bounds(selected);
         if (choosing && selected == null) overlay.clear();
@@ -239,6 +242,7 @@ public class ScannerActivity extends ComponentActivity {
         confirmation.getButton(android.app.AlertDialog.BUTTON_POSITIVE).setEnabled(selectedKeyIndex >= 0);
     }
     private void retryReading() {
+        cameraGeneration++; // Discard results started before the explicit retry.
         pendingKeys = null; selectedKeyIndex = -1; choosing = false; retryAfter = android.os.SystemClock.uptimeMillis() + 1000;
         overlay.clear();
         if (photoMode) resumeCamera();
@@ -294,7 +298,7 @@ public class ScannerActivity extends ComponentActivity {
         });
     }
     private void showPhoto(Bitmap bitmap) {
-        photoMode = true; overlay.clear(); overlay.setVisibility(View.GONE); if (camera != null) camera.getCameraControl().enableTorch(false);
+        photoGeneration++; photoMode = true; overlay.clear(); overlay.setVisibility(View.GONE); if (camera != null) camera.getCameraControl().enableTorch(false);
         torchOn = false; torch.setEnabled(false); zoom.setEnabled(false);
         photo.setBitmap(bitmap); photo.setVisibility(View.VISIBLE); preview.setVisibility(View.INVISIBLE);
         capture.setVisibility(View.GONE); readCrop.setVisibility(View.VISIBLE); resume.setVisibility(View.VISIBLE);
@@ -303,15 +307,19 @@ public class ScannerActivity extends ComponentActivity {
     private void readCrop() {
         if (!busy.compareAndSet(false, true)) return;
         Bitmap crop = photo.crop(); if (crop == null) { busy.set(false); return; }
+        final int generation = photoGeneration;
         readCrop.setEnabled(false); status.setText("Lendo código e texto localmente…");
         InputImage image = InputImage.fromBitmap(crop, 0);
         barcode.process(image).addOnSuccessListener(results -> {
+            if (destroyed || !photoMode || generation != photoGeneration) { busy.set(false); if (!destroyed) readCrop.setEnabled(true); return; }
             Set<String> keys = DetectedKeys.barcodes(results).keys();
             ocr.process(image).addOnSuccessListener(text -> {
+                if (destroyed || !photoMode || generation != photoGeneration) return;
                 keys.addAll(NfeKey.fromOcr(text.getText()));
                 if (keys.isEmpty()) status.setText("Nenhuma chave válida encontrada. Ajuste o recorte, foco ou iluminação e tente novamente.");
                 else offerKeys(keys);
             }).addOnFailureListener(e -> {
+                if (destroyed || !photoMode || generation != photoGeneration) return;
                 if (!keys.isEmpty()) offerKeys(keys);
                 else status.setText("OCR indisponível nesta imagem. Tente outra foto.");
             })
@@ -319,7 +327,7 @@ public class ScannerActivity extends ComponentActivity {
         }).addOnFailureListener(e -> { busy.set(false); readCrop.setEnabled(true); status.setText("Falha na leitura. Tente outra imagem."); });
     }
     private void resumeCamera() {
-        overlay.clear(); overlay.setVisibility(View.VISIBLE); photoMode = false; photo.setVisibility(View.GONE); preview.setVisibility(View.VISIBLE);
+        photoGeneration++; overlay.clear(); overlay.setVisibility(View.VISIBLE); photoMode = false; photo.setVisibility(View.GONE); preview.setVisibility(View.VISIBLE);
         capture.setVisibility(View.VISIBLE); capture.setEnabled(camera != null); readCrop.setVisibility(View.GONE); resume.setVisibility(View.GONE);
         zoom.setEnabled(camera != null); torch.setEnabled(camera != null && camera.getCameraInfo().hasFlashUnit()); torch.setText("Lanterna");
         status.setText("Centralize a chave. Toque para focar e use pinça para ampliar.");
