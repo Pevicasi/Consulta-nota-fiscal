@@ -122,7 +122,7 @@ public class MainActivity extends ComponentActivity {
                 return true;
             }
             @Override public void onGeolocationPermissionsShowPrompt(String origin, GeolocationPermissions.Callback callback) {
-                if (!origin.startsWith(ORIGIN)) { callback.invoke(origin, false, false); return; }
+                if (!ORIGIN.equals(origin)) { callback.invoke(origin, false, false); return; }
                 if (locationCallback != null) locationCallback.invoke(locationOrigin, false, false);
                 locationCallback = callback; locationOrigin = origin;
                 locationPermission.launch(new String[]{Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION});

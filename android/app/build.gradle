@@ -6,10 +6,34 @@ android {
         applicationId 'br.com.pevicasi.nfefacil'
         minSdk 26
         targetSdk 36
-        versionCode 2
-        versionName '1.0.1'
+        versionCode 3
+        versionName '1.1.0'
         testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
     }
+    def signingNames = ['ANDROID_KEYSTORE_PATH', 'ANDROID_KEYSTORE_PASSWORD', 'ANDROID_KEY_ALIAS', 'ANDROID_KEY_PASSWORD']
+    if (signingNames.every { System.getenv(it) }) {
+        signingConfigs {
+            distribution {
+                storeFile file(System.getenv('ANDROID_KEYSTORE_PATH'))
+                storePassword System.getenv('ANDROID_KEYSTORE_PASSWORD')
+                keyAlias System.getenv('ANDROID_KEY_ALIAS')
+                keyPassword System.getenv('ANDROID_KEY_PASSWORD')
+            }
+        }
+    }
+    defaultConfig { resValue 'string', 'app_name', 'NF-e Fácil' }
+    buildTypes {
+        debug {
+            applicationIdSuffix '.qa'
+            versionNameSuffix '-qa'
+            resValue 'string', 'app_name', 'NF-e Fácil (teste)'
+        }
+        release {
+            debuggable false
+            signingConfig signingConfigs.findByName('distribution')
+        }
+    }
+    testBuildType project.hasProperty('distributionInstrumentation') ? 'release' : 'debug'
     compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
     sourceSets.main.assets.srcDir(layout.buildDirectory.dir('generated/siteAssets'))
     testOptions { unitTests.returnDefaultValues = true }
@@ -35,3 +59,23 @@ dependencies {
     androidTestImplementation 'androidx.test:rules:1.6.1'
     androidTestImplementation 'androidx.test.ext:junit:1.2.1'
 }
+
+// Distribution must fail closed; unsigned or debug-signed fallback APKs are never released.
+tasks.register('requireDistributionSigning') {
+    doLast {
+        if (!['ANDROID_KEYSTORE_PATH', 'ANDROID_KEYSTORE_PASSWORD', 'ANDROID_KEY_ALIAS', 'ANDROID_KEY_PASSWORD', 'ANDROID_SIGNING_CERT_SHA256'].every { System.getenv(it) })
+            throw new GradleException('Distribution signing is not provisioned. See android/ASSINATURA.md; no fallback key is generated.')
+        def certificate = new ByteArrayOutputStream()
+        def result = project.exec {
+            commandLine new File(System.getProperty('java.home'), 'bin/keytool'), '-exportcert', '-keystore', System.getenv('ANDROID_KEYSTORE_PATH'), '-alias', System.getenv('ANDROID_KEY_ALIAS'), '-storepass:env', 'ANDROID_KEYSTORE_PASSWORD'
+            standardOutput certificate
+            errorOutput new ByteArrayOutputStream()
+            ignoreExitValue true
+        }
+        def expected = System.getenv('ANDROID_SIGNING_CERT_SHA256').replace(':', '').toLowerCase(java.util.Locale.ROOT)
+        def actual = java.security.MessageDigest.getInstance('SHA-256').digest(certificate.toByteArray()).encodeHex().toString()
+        if (result.exitValue != 0 || !(expected ==~ /[0-9a-f]{64}/) || actual != expected)
+            throw new GradleException('Distribution signing certificate does not match the approved SHA-256 fingerprint.')
+    }
+}
+tasks.configureEach { if (name == 'preReleaseBuild') dependsOn 'requireDistributionSigning' }

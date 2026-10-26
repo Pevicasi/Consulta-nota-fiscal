@@ -5,3 +5,11 @@ android/**/build/
 android/local.properties
 *.jks
 *.keystore
+
+*.p12
+*.pfx
+keystore.properties
+.signing/
+
+__pycache__/
+*.pyc

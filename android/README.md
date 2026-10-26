@@ -16,7 +16,13 @@ cd android
 
 O APK assinado com chave de desenvolvimento fica em `app/build/outputs/apk/debug/app-debug.apk`. Instale por `adb install -r app/build/outputs/apk/debug/app-debug.apk` ou abra o arquivo no telefone e permita a instalação por essa origem. Esta assinatura serve para instalação e testes; publicação na Play Store exige uma chave de produção guardada pelo responsável. Builds de CI podem usar chaves de debug diferentes; para atualizar um APK com assinatura diferente é necessário desinstalar a versão anterior (apagando seus dados).
 
-No GitHub, abra **Actions → Android APK → execução concluída → Artifacts → nfe-facil-debug-…**. Extraia o ZIP e instale `app-debug.apk`; o arquivo `SHA256SUMS` permite conferir a integridade. Os artefatos expiram após 30 dias; execute novamente por **Run workflow** se necessário. Não é criada uma release automaticamente.
+No GitHub, abra **Actions → Android APK → execução concluída → Artifacts → nfe-facil-qa-… (teste) ou nfe-facil-release-… (distribuição aprovada)**. Extraia o ZIP e instale `app-debug.apk`; o arquivo `SHA256SUMS` permite conferir a integridade. Os artefatos expiram após 30 dias; execute novamente por **Run workflow** se necessário. Não é criada uma release automaticamente.
+
+## Assinatura, instalação e Play Protect — 1.1.0
+
+O CI normal gera **NF-e Fácil (teste)** no pacote separado `br.com.pevicasi.nfefacil.qa`, para não conflitar com o app instalado. O release de distribuição mantém o pacote original e só é gerado pelo workflow manual com `distribution=true`, após provisionar uma chave permanente e a impressão de certificado aprovada. Consulte [assinatura, configuração segura e migração](ASSINATURA.md) e [investigação de Play Protect](../docs/PLAY_PROTECT.md). Um APK QA não comprova que a distribuição permanente foi provisionada.
+
+O leitor considera todos os CODE 128 válidos, valida a estrutura fiscal além do DV e aplica a mesma política ao OCR. Havendo várias chaves, escolha explicitamente a nota no seletor antes de confirmar; nenhum primeiro código é assumido. A moldura acompanha exclusivamente essa escolha. Validação estrutural não comprova autorização da NF-e na SEFAZ. Testes sintéticos não substituem amostra física da nota com vários códigos.
 
 ## Scanner 1.0.1
 

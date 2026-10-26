@@ -1,5 +1,14 @@
 # Registro de alterações
 
+## 1.1.0 — Continuação da issue #1
+
+- Investigado o conflito de instalação: APKs 1.0.1 com mesmo pacote/versão tinham certificados Android Debug diferentes. Documentadas impressões SHA-256, impossibilidade de atualização entre assinaturas incompatíveis e migração manual com backup verificado, sem limpeza automática de dados.
+- Separados QA (`br.com.pevicasi.nfefacil.qa`) e distribuição (pacote original, release não depurável). Preparado workflow de distribuição manual com Secrets de chave persistente, impressão de certificado aprovada, verificação antes/depois do build e remoção de material temporário. Distribuição bloqueia sem a configuração do responsável; não gera fallback de chave. Actions fixadas por SHA e cache desativado no job de assinatura.
+- Registrada investigação de Play Protect, permissões, dependências, práticas de segurança e limites de APK externo. Corrigida comparação exata da origem de geolocalização. Não foi desativada proteção nem prometida remoção de alerta.
+- Adicionada validação estrutural compartilhada de chaves: UF, mês, CNPJ/CPF, modelo NF-e/NFC-e 55/65, número, tipo de emissão e DV. CODE 128 aceita somente dígitos/espaços; outros formatos, URLs e números de pagamento não são normalizados em chaves.
+- Todos os resultados do detector são examinados e deduplicados. Havendo várias chaves válidas, confirmação começa desabilitada e exige seleção explícita. A moldura acompanha somente o candidato selecionado, inclusive durante a confirmação. OCR segue a mesma política e permanece disponível; falha de OCR não descarta código válido do recorte.
+- Adicionados testes unitários estruturais, imagens sintéticas com múltiplos códigos/formatos, chaves inválidas e ambíguas, OCR com múltiplas chaves, escolha/restauração e testes de proteção da assinatura. ML Kit, animação, foco, zoom, lanterna e site preservados.
+
 ## 1.0.1 — Android / issue #2
 
 - Adicionada moldura de cantos arredondados com interpolação sobre a geometria real do ML Kit, transformação CameraX de rotação, viewport/recorte e espelhamento da prévia. Sem detecção, usa somente guia estática; geometria antiga expira. Animação respeita a desativação de animações do sistema.

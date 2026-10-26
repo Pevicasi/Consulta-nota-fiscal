@@ -28,4 +28,33 @@ public class NfeKeyTest {
     @Test public void deduplicatesAndKeepsMultipleCandidatesForConfirmation() {
         assertEquals(1,NfeKey.fromOcr(key()+"\n"+key()).size());
     }
+
+    private static String replaceField(int start, int end, String value) {
+        String base = key().substring(0,43);
+        base = base.substring(0,start) + value + base.substring(end);
+        int sum=0,w=2;for(int n=42;n>=0;n--){sum+=(base.charAt(n)-'0')*w;w=w==9?2:w+1;}
+        return base+(sum%11<2?0:11-sum%11);
+    }
+    @Test public void rejectsStructurallyWrongKeysEvenWithCorrectAccessDigit() {
+        assertFalse(NfeKey.isValid(replaceField(0,2,"99")));
+        assertFalse(NfeKey.isValid(replaceField(4,6,"00")));
+        assertFalse(NfeKey.isValid(replaceField(4,6,"13")));
+        assertFalse(NfeKey.isValid(replaceField(20,22,"47")));
+        assertFalse(NfeKey.isValid(replaceField(6,20,"12345678000194")));
+        assertFalse(NfeKey.isValid(replaceField(25,34,"000000000")));
+        assertFalse(NfeKey.isValid(replaceField(34,35,"0")));
+        assertFalse(NfeKey.isValid(replaceField(34,35,"8")));
+        assertFalse(NfeKey.isValid(replaceField(34,35,"9"))); // NFC-e only
+    }
+    @Test public void acceptsNfceAndCpfIssuerWithoutWeakeningStructure() {
+        assertTrue(NfeKey.isValid(replaceField(20,22,"65")));
+        assertTrue(NfeKey.isValid(replaceField(6,20,"00012345678909")));
+    }
+    @Test public void rejectsUrlsLettersAndOtherBarcodeWrappers() {
+        assertEquals("",NfeKey.barcode("https://example.com/"+key()));
+        assertEquals("",NfeKey.barcode("ABC"+key()));
+        assertEquals("",NfeKey.barcode("(01)"+key()));
+        assertTrue(NfeKey.fromOcr(replaceField(20,22,"47")).isEmpty());
+        assertTrue(NfeKey.fromOcr(replaceField(0,2,"99")).isEmpty());
+    }
 }

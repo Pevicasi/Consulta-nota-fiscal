@@ -37,7 +37,7 @@ public class ScannerActivity extends ComponentActivity {
     private volatile int cameraGeneration;
     private long retryAfter;
     private String[] pendingKeys;
-    private int selectedKeyIndex;
+    private int selectedKeyIndex = -1;
     private Button torch, capture, readCrop, resume;
     private SeekBar zoom;
     private CropImageView photo;
@@ -61,7 +61,7 @@ public class ScannerActivity extends ComponentActivity {
 
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
-        if (state != null) { pendingKeys = state.getStringArray("pendingKeys"); selectedKeyIndex = state.getInt("selectedKeyIndex"); }
+        if (state != null) { pendingKeys = state.getStringArray("pendingKeys"); selectedKeyIndex = state.getInt("selectedKeyIndex", -1); }
         LinearLayout root = new LinearLayout(this); root.setOrientation(LinearLayout.VERTICAL); root.setPadding(12, 12, 12, 12);
         root.setOnApplyWindowInsetsListener((v, insets) -> {
             v.setPadding(12 + insets.getSystemWindowInsetLeft(), 12 + insets.getSystemWindowInsetTop(),
@@ -153,37 +153,39 @@ public class ScannerActivity extends ComponentActivity {
     }
     @androidx.annotation.OptIn(markerClass = {androidx.camera.core.ExperimentalGetImage.class, androidx.camera.view.TransformExperimental.class})
     private void analyze(ImageProxy frame) {
-        if (destroyed || photoMode || choosing || android.os.SystemClock.uptimeMillis() < retryAfter || !busy.compareAndSet(false, true)) { frame.close(); return; }
+        if (destroyed || photoMode || android.os.SystemClock.uptimeMillis() < retryAfter || !busy.compareAndSet(false, true)) { frame.close(); return; }
         android.media.Image media = frame.getImage();
         if (media == null) { frame.close(); busy.set(false); return; }
         final int generation = cameraGeneration;
         final androidx.camera.view.transform.OutputTransform source = sourceTransform(frame);
         InputImage image = InputImage.fromMediaImage(media, frame.getImageInfo().getRotationDegrees());
         barcode.process(image).addOnSuccessListener(results -> {
-            if (destroyed || generation != cameraGeneration || photoMode || choosing) { frame.close(); busy.set(false); return; }
-            Set<String> keys = new LinkedHashSet<>();
-            Rect bounds = null;
-            for (com.google.mlkit.vision.barcode.common.Barcode result : results) {
-                String key = NfeKey.barcode(result.getRawValue());
-                if (!key.isEmpty()) { keys.add(key); bounds = result.getBoundingBox(); }
-                else if (bounds == null) bounds = result.getBoundingBox();
-            }
-            trackBounds(bounds, source, !keys.isEmpty(), 900);
-            if (!keys.isEmpty()) { if (!photoMode) offerKeys(keys); frame.close(); busy.set(false); }
+            if (destroyed || generation != cameraGeneration || photoMode) { frame.close(); busy.set(false); return; }
+            DetectedKeys detected = DetectedKeys.barcodes(results);
+            showDetections(detected, source, 900);
+            if (!detected.keys().isEmpty()) { frame.close(); busy.set(false); }
             else if (!destroyed && !photoMode && System.currentTimeMillis() - lastOcr > 1500) {
                 lastOcr = System.currentTimeMillis();
-                ocr.process(image).addOnSuccessListener(text -> { if (!destroyed && generation == cameraGeneration && !photoMode && !choosing) {
-                        Set<String> found = NfeKey.fromOcr(text.getText());
-                        Rect boundsText = null;
-                        for (Text.TextBlock block : text.getTextBlocks()) for (Text.Line line : block.getLines()) {
-                            if (!NfeKey.fromOcr(line.getText()).isEmpty()) { boundsText = line.getBoundingBox(); break; }
-                        }
-                        trackBounds(boundsText, source, !found.isEmpty(), 1800);
-                        offerKeys(found);
-                    } })
-                    .addOnCompleteListener(task -> { frame.close(); busy.set(false); });
+                ocr.process(image).addOnSuccessListener(text -> {
+                    if (!destroyed && generation == cameraGeneration && !photoMode)
+                        showDetections(DetectedKeys.text(text), source, 1800);
+                }).addOnCompleteListener(task -> { frame.close(); busy.set(false); });
             } else { frame.close(); busy.set(false); }
         }).addOnFailureListener(error -> { frame.close(); busy.set(false); });
+    }
+    @androidx.annotation.OptIn(markerClass = androidx.camera.view.TransformExperimental.class)
+    private void showDetections(DetectedKeys detected, androidx.camera.view.transform.OutputTransform source, long duration) {
+        String selected = choosing && pendingKeys != null && selectedKeyIndex >= 0 ? pendingKeys[selectedKeyIndex] : null;
+        Rect bounds = detected.bounds(selected);
+        if (choosing && selected == null) overlay.clear();
+        else if (bounds != null) trackBounds(bounds, source, true, duration);
+        else if (!choosing) overlay.clear();
+        if (!choosing && !detected.keys().isEmpty()) {
+            if (detected.keys().size() > 1) {
+                overlay.clear(); status.setText("Várias chaves válidas encontradas. Escolha explicitamente a nota desejada.");
+            }
+            offerKeys(detected.keys());
+        }
     }
     @androidx.annotation.OptIn(markerClass = androidx.camera.view.TransformExperimental.class)
     static androidx.camera.view.transform.OutputTransform sourceTransform(ImageProxy frame) {
@@ -194,7 +196,7 @@ public class ScannerActivity extends ComponentActivity {
     }
     @androidx.annotation.OptIn(markerClass = androidx.camera.view.TransformExperimental.class)
     private void trackBounds(Rect bounds, androidx.camera.view.transform.OutputTransform source, boolean valid, long duration) {
-        if (bounds == null || destroyed || photoMode || choosing) return;
+        if (bounds == null || destroyed || photoMode) return;
         androidx.camera.view.transform.OutputTransform destination = preview.getOutputTransform();
         if (destination == null) return;
         RectF mapped = new RectF(bounds);
@@ -206,32 +208,38 @@ public class ScannerActivity extends ComponentActivity {
         String[] values = keys.stream().map(NfeKey::barcode).filter(k -> !k.isEmpty()).distinct().toArray(String[]::new);
         if (values.length == 0) return;
         choosing = true; pendingKeys = values;
-        selectedKeyIndex = Math.max(0, Math.min(selectedKeyIndex, values.length - 1));
+        selectedKeyIndex = values.length == 1 ? 0 : Math.max(-1, Math.min(selectedKeyIndex, values.length - 1));
         LinearLayout content = new LinearLayout(this); content.setOrientation(LinearLayout.VERTICAL);
         int padding = Math.round(20 * getResources().getDisplayMetrics().density); content.setPadding(padding, padding, padding, 0);
         TextView digits = new TextView(this); digits.setTextSize(20); digits.setTypeface(Typeface.MONOSPACE);
-        digits.setTextIsSelectable(true); digits.setText(values[selectedKeyIndex]); content.addView(digits);
+        digits.setTextIsSelectable(true); digits.setText(selectedKeyIndex < 0 ? "Selecione uma das chaves encontradas." : values[selectedKeyIndex]); content.addView(digits);
         final int[] selected = {selectedKeyIndex};
         if (values.length > 1) {
             Spinner choices = new Spinner(this);
             choices.setContentDescription("Escolha a chave encontrada");
-            choices.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, values));
+            String[] labels = new String[values.length + 1]; labels[0] = "Selecione a chave da nota";
+            System.arraycopy(values, 0, labels, 1, values.length);
+            choices.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, labels));
             choices.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
-                @Override public void onItemSelected(AdapterView<?> parent, View view, int position, long id) { selected[0] = position; selectedKeyIndex = position; digits.setText(values[position]); }
+                @Override public void onItemSelected(AdapterView<?> parent, View view, int position, long id) { selected[0] = position - 1; selectedKeyIndex = position - 1;
+                    digits.setText(position == 0 ? "Selecione uma das chaves encontradas." : values[position - 1]);
+                    overlay.clear();
+                    if (confirmation != null) confirmation.getButton(android.app.AlertDialog.BUTTON_POSITIVE).setEnabled(position > 0); }
                 @Override public void onNothingSelected(AdapterView<?> parent) {}
-            }); choices.setSelection(selectedKeyIndex); content.addView(choices);
+            }); choices.setSelection(selectedKeyIndex + 1); content.addView(choices);
         }
         confirmation = new android.app.AlertDialog.Builder(this).setTitle("Chave encontrada")
             .setView(content)
             .setPositiveButton("Confirmar chave", (dialog, which) -> {
-                if (isFinishing()) return;
+                if (isFinishing() || selected[0] < 0) return;
                 setResult(RESULT_OK, new Intent().putExtra("key", values[selected[0]])); finish();
             }).setNegativeButton("Ler novamente", (dialog, which) -> retryReading())
             .setOnCancelListener(dialog -> retryReading()).create();
         confirmation.show();
+        confirmation.getButton(android.app.AlertDialog.BUTTON_POSITIVE).setEnabled(selectedKeyIndex >= 0);
     }
     private void retryReading() {
-        pendingKeys = null; selectedKeyIndex = 0; choosing = false; retryAfter = android.os.SystemClock.uptimeMillis() + 1000;
+        pendingKeys = null; selectedKeyIndex = -1; choosing = false; retryAfter = android.os.SystemClock.uptimeMillis() + 1000;
         overlay.clear();
         if (photoMode) resumeCamera();
     }
@@ -298,13 +306,15 @@ public class ScannerActivity extends ComponentActivity {
         readCrop.setEnabled(false); status.setText("Lendo código e texto localmente…");
         InputImage image = InputImage.fromBitmap(crop, 0);
         barcode.process(image).addOnSuccessListener(results -> {
-            Set<String> keys = new LinkedHashSet<>();
-            for (com.google.mlkit.vision.barcode.common.Barcode result : results) { String key = NfeKey.barcode(result.getRawValue()); if (!key.isEmpty()) keys.add(key); }
+            Set<String> keys = DetectedKeys.barcodes(results).keys();
             ocr.process(image).addOnSuccessListener(text -> {
                 keys.addAll(NfeKey.fromOcr(text.getText()));
                 if (keys.isEmpty()) status.setText("Nenhuma chave válida encontrada. Ajuste o recorte, foco ou iluminação e tente novamente.");
                 else offerKeys(keys);
-            }).addOnFailureListener(e -> status.setText("OCR indisponível nesta imagem. Tente outra foto."))
+            }).addOnFailureListener(e -> {
+                if (!keys.isEmpty()) offerKeys(keys);
+                else status.setText("OCR indisponível nesta imagem. Tente outra foto.");
+            })
                 .addOnCompleteListener(task -> { busy.set(false); readCrop.setEnabled(true); });
         }).addOnFailureListener(e -> { busy.set(false); readCrop.setEnabled(true); status.setText("Falha na leitura. Tente outra imagem."); });
     }

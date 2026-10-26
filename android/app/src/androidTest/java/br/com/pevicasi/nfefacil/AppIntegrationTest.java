@@ -94,6 +94,16 @@ public class AppIntegrationTest {
             scenario.onActivity(activity->assertFalse(activity.isFinishing()));
         }
     }
+    @Test public void impostorGeolocationOriginIsRejectedWithoutPermissionPrompt() {
+        try(ActivityScenario<MainActivity> scenario=ActivityScenario.launch(MainActivity.class)) {
+            scenario.onActivity(activity->{
+                java.util.concurrent.atomic.AtomicBoolean called=new java.util.concurrent.atomic.AtomicBoolean();
+                WebView view=findWebView(activity.getWindow().getDecorView());
+                view.getWebChromeClient().onGeolocationPermissionsShowPrompt(MainActivity.ORIGIN+".impostor.test",(origin,allow,retain)->{called.set(true);assertFalse(allow);assertFalse(retain);});
+                assertTrue(called.get());
+            });
+        }
+    }
     private static void waitForJs(ActivityScenario<MainActivity> scenario,String expression)throws Exception {
         long end=System.currentTimeMillis()+20000;
         while(System.currentTimeMillis()<end){if("true".equals(js(scenario,expression)))return;Thread.sleep(150);}
