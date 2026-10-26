@@ -1,0 +1,12 @@
+# Registro de alterações
+
+## 1.0.0 — Android / issue #1
+
+- Auditado o site atual, suas quatro páginas, interface móvel/desktop, dependências e limitações em `docs/AUDITORIA.md`.
+- Adicionado aplicativo independente em `android/`, mantendo as páginas HTML originais como fonte única dos cálculos e da interface. Os assets são gerados no build.
+- Implementados CameraX, foco contínuo e por toque, zoom, flash disponível por hardware, troca de câmera, galeria, orientação EXIF e editor de recorte.
+- Implementados ML Kit CODE 128 e OCR latino com modelos locais, validação da chave de 44 dígitos por módulo 11, deduplicação e confirmação do resultado.
+- Integrados seletor de XMLs, clipboard Android, exportação CSV, impressão/PDF, navegação e geolocalização com permissões; ponte restrita à origem local HTTPS.
+- Corrigida a exceção `torchBtn` no site com guardas para quatro elementos opcionais, sem alterar cálculos, estilos ou páginas de preços.
+- Adicionados testes de regressão web, testes unitários de validação de chaves e integração Android com modelos embarcados.
+- Configurado GitHub Actions para testes, lint, build, verificação de assinatura, APK instalável com SHA-256, relatórios e testes em emulador. Instruções de instalação e limitações em `android/README.md`.

@@ -3690,10 +3690,10 @@
     });
     pasteScannedBtn.addEventListener('click', pasteScannedCodeFromClipboard);
     closeCameraBtn.addEventListener('click', stopCamera);
-    torchBtn.addEventListener('click', toggleBetterTorch);
-    switchCameraBtn.addEventListener('click', switchBetterCamera);
-    galleryBtn.addEventListener('click', () => barcodeImageInput.click());
-    barcodeImageInput.addEventListener('change', () => {
+    torchBtn?.addEventListener('click', toggleBetterTorch);
+    switchCameraBtn?.addEventListener('click', switchBetterCamera);
+    galleryBtn?.addEventListener('click', () => barcodeImageInput.click());
+    barcodeImageInput?.addEventListener('change', () => {
       const file = barcodeImageInput.files && barcodeImageInput.files[0];
       if (file) scanBarcodeImage(file);
       barcodeImageInput.value = '';
