@@ -22,7 +22,7 @@ No GitHub, abra **Actions → Android APK → execução concluída → Artifact
 
 O CI normal gera **NF-e Fácil (teste)** no pacote separado `br.com.pevicasi.nfefacil.qa`, para não conflitar com o app instalado. O release de distribuição mantém o pacote original e só é gerado pelo workflow manual com `distribution=true`, após provisionar uma chave permanente e a impressão de certificado aprovada. Consulte [assinatura, configuração segura e migração](ASSINATURA.md) e [investigação de Play Protect](../docs/PLAY_PROTECT.md). Um APK QA não comprova que a distribuição permanente foi provisionada.
 
-O leitor considera todos os CODE 128 válidos, valida a estrutura fiscal além do DV e aplica a mesma política ao OCR. Havendo várias chaves, escolha explicitamente a nota no seletor antes de confirmar; nenhum primeiro código é assumido. A moldura acompanha exclusivamente essa escolha. Validação estrutural não comprova autorização da NF-e na SEFAZ. Testes sintéticos não substituem amostra física da nota com vários códigos.
+O leitor relê regiões sobrepostas com o mesmo ML Kit quando há códigos/potenciais regiões, pois o SDK pode fundir códigos alinhados no quadro completo. O número de resultados do SDK não é uma contagem garantida de códigos físicos. Ele considera todos os CODE 128 válidos, valida a estrutura fiscal além do DV e aplica a mesma política ao OCR. Havendo várias chaves, escolha explicitamente a nota no seletor antes de confirmar; nenhum primeiro código é assumido. A moldura acompanha exclusivamente essa escolha. Validação estrutural não comprova autorização da NF-e na SEFAZ. Testes sintéticos não substituem amostra física da nota com vários códigos.
 
 ## Scanner 1.0.1
 

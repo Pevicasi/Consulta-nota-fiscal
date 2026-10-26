@@ -4,7 +4,9 @@
 
 A incompatibilidade de instalação foi reproduzida pela inspeção dos certificados e metadados dos APKs (ver [assinatura](../android/ASSINATURA.md)). Ela é uma verificação do Package Manager, diferente de uma classificação do Play Protect. Os APKs antigos são debug, distribuídos por download fora da Play Store, com identidade de assinatura variável. Isso não permite concluir qual alerta apareceu nem que houve detecção de malware.
 
-Não foi fornecido o texto exato do alerta, tela de detalhes/classificação, versão do Play Protect ou um dispositivo físico para reprodução. Sem isso, a causa específica do alerta permanece **não determinada**. Uma assinatura permanente não garante remoção de alertas e não equivale a uma análise/aprovação da Google.
+O responsável informou que, nas versões 1.0.0 e 1.0.1, apareceu: “O app foi bloqueado para proteger seu dispositivo. O Play Protect nunca viu um app desse desenvolvedor. Ele pode não ser seguro.” Havia a opção “Instalar assim mesmo”, sem indicação explícita de malware. Essa opção foi relatada como evidência; não é uma recomendação para contornar o bloqueio.
+
+O texto identifica um bloqueio por desenvolvedor/identidade ainda desconhecido pelo serviço, sem uma classificação explícita de comportamento nocivo. Isso não é prova de ausência de malware nem permite declarar o alerta falso positivo. É diferente do conflito de pacote/assinatura também relatado na 1.0.1. A identidade debug variável entre builds prejudica continuidade e rastreabilidade; não se afirma que ela seja a única causa do alerta. Uma assinatura permanente não garante remoção do aviso e não equivale a uma análise/aprovação da Google. Não foi disponibilizado aparelho físico, versão do Play Protect ou análise dinâmica para reproduzir a decisão do serviço.
 
 ## Revisão realizada no projeto
 

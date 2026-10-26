@@ -35,10 +35,11 @@ public class ScannerActivity extends ComponentActivity {
     private ScannerOverlay overlay;
     private android.app.AlertDialog confirmation;
     private volatile int cameraGeneration;
-    private long retryAfter;
+    private volatile long retryAfter;
     private String[] pendingKeys;
     private int selectedKeyIndex = -1;
     private int photoGeneration;
+    private boolean readersClosed;
     private Button torch, capture, readCrop, resume;
     private SeekBar zoom;
     private CropImageView photo;
@@ -154,25 +155,43 @@ public class ScannerActivity extends ComponentActivity {
     }
     @androidx.annotation.OptIn(markerClass = {androidx.camera.core.ExperimentalGetImage.class, androidx.camera.view.TransformExperimental.class})
     private void analyze(ImageProxy frame) {
-        if (destroyed || photoMode || android.os.SystemClock.uptimeMillis() < retryAfter || !busy.compareAndSet(false, true)) { frame.close(); return; }
+        synchronized (busy) {
+            if (destroyed || photoMode || android.os.SystemClock.uptimeMillis() < retryAfter || !busy.compareAndSet(false, true)) { frame.close(); return; }
+        }
         android.media.Image media = frame.getImage();
-        if (media == null) { frame.close(); busy.set(false); return; }
+        if (media == null) { frame.close(); busy.set(false); runOnUiThread(this::closeReadersWhenIdle); return; }
         final int generation = cameraGeneration;
         final androidx.camera.view.transform.OutputTransform source = sourceTransform(frame);
         InputImage image = InputImage.fromMediaImage(media, frame.getImageInfo().getRotationDegrees());
-        barcode.process(image).addOnSuccessListener(results -> {
-            if (destroyed || generation != cameraGeneration || photoMode) { frame.close(); busy.set(false); return; }
-            DetectedKeys detected = DetectedKeys.barcodes(results);
+        Bitmap converted = null;
+        try {
+            Bitmap raw = frame.toBitmap(); Matrix rotation = new Matrix(); rotation.postRotate(frame.getImageInfo().getRotationDegrees());
+            try { converted = Bitmap.createBitmap(raw, 0, 0, raw.getWidth(), raw.getHeight(), rotation, true); }
+            finally { if (raw != converted) raw.recycle(); }
+        } catch (RuntimeException | OutOfMemoryError error) { /* Keep the original media-image reader and OCR available. */ }
+        final Bitmap upright = converted;
+        FiscalScanner.scan(barcode, image, upright, executor).addOnSuccessListener(detected -> {
+            if (destroyed || generation != cameraGeneration || photoMode) { releaseFrame(frame, upright); return; }
             showDetections(detected, source, 900);
-            if (!detected.keys().isEmpty()) { frame.close(); busy.set(false); }
+            if (!detected.keys().isEmpty()) { releaseFrame(frame, upright); }
             else if (!destroyed && !photoMode && System.currentTimeMillis() - lastOcr > 1500) {
                 lastOcr = System.currentTimeMillis();
                 ocr.process(image).addOnSuccessListener(text -> {
                     if (!destroyed && generation == cameraGeneration && !photoMode)
                         showDetections(DetectedKeys.text(text), source, 1800);
-                }).addOnCompleteListener(task -> { frame.close(); busy.set(false); });
-            } else { frame.close(); busy.set(false); }
-        }).addOnFailureListener(error -> { frame.close(); busy.set(false); });
+                }).addOnCompleteListener(task -> releaseFrame(frame, upright));
+            } else { releaseFrame(frame, upright); }
+        }).addOnFailureListener(error -> releaseFrame(frame, upright));
+    }
+    private void releaseFrame(ImageProxy frame, Bitmap upright) {
+        if (upright != null) upright.recycle();
+        frame.close(); busy.set(false); closeReadersWhenIdle();
+    }
+    private void closeReadersWhenIdle() {
+        if (destroyed && !busy.get() && !readersClosed) {
+            readersClosed = true;
+            barcode.close(); ocr.close(); executor.shutdown();
+        }
     }
     @androidx.annotation.OptIn(markerClass = androidx.camera.view.TransformExperimental.class)
     private void showDetections(DetectedKeys detected, androidx.camera.view.transform.OutputTransform source, long duration) {
@@ -305,14 +324,14 @@ public class ScannerActivity extends ComponentActivity {
         status.setText("Arraste para mover o recorte; arraste o canto inferior direito para redimensionar. Selecione a chave ou código e toque em Ler recorte.");
     }
     private void readCrop() {
-        if (!busy.compareAndSet(false, true)) return;
+        if (destroyed || !busy.compareAndSet(false, true)) return;
         Bitmap crop = photo.crop(); if (crop == null) { busy.set(false); return; }
         final int generation = photoGeneration;
         readCrop.setEnabled(false); status.setText("Lendo código e texto localmente…");
         InputImage image = InputImage.fromBitmap(crop, 0);
-        barcode.process(image).addOnSuccessListener(results -> {
-            if (destroyed || !photoMode || generation != photoGeneration) { busy.set(false); if (!destroyed) readCrop.setEnabled(true); return; }
-            Set<String> keys = DetectedKeys.barcodes(results).keys();
+        FiscalScanner.scan(barcode, image, crop, executor).addOnSuccessListener(found -> {
+            if (destroyed || !photoMode || generation != photoGeneration) { busy.set(false); if (!destroyed) readCrop.setEnabled(true); closeReadersWhenIdle(); return; }
+            Set<String> keys = found.keys();
             ocr.process(image).addOnSuccessListener(text -> {
                 if (destroyed || !photoMode || generation != photoGeneration) return;
                 keys.addAll(NfeKey.fromOcr(text.getText()));
@@ -323,8 +342,8 @@ public class ScannerActivity extends ComponentActivity {
                 if (!keys.isEmpty()) offerKeys(keys);
                 else status.setText("OCR indisponível nesta imagem. Tente outra foto.");
             })
-                .addOnCompleteListener(task -> { busy.set(false); readCrop.setEnabled(true); });
-        }).addOnFailureListener(e -> { busy.set(false); readCrop.setEnabled(true); status.setText("Falha na leitura. Tente outra imagem."); });
+                .addOnCompleteListener(task -> { busy.set(false); if (!destroyed) readCrop.setEnabled(true); closeReadersWhenIdle(); });
+        }).addOnFailureListener(e -> { busy.set(false); if (!destroyed) { readCrop.setEnabled(true); status.setText("Falha na leitura. Tente outra imagem."); } closeReadersWhenIdle(); });
     }
     private void resumeCamera() {
         cameraGeneration++; photoGeneration++; overlay.clear(); overlay.setVisibility(View.VISIBLE); photoMode = false; photo.setVisibility(View.GONE); preview.setVisibility(View.VISIBLE);
@@ -342,8 +361,9 @@ public class ScannerActivity extends ComponentActivity {
     }
     @Override protected void onStop() { if (camera != null) camera.getCameraControl().enableTorch(false); torchOn = false; torch.setText("Lanterna"); super.onStop(); }
     @Override protected void onDestroy() {
-        destroyed = true; cameraGeneration++; overlay.clear(); if (confirmation != null) confirmation.dismiss(); if (analysis != null) analysis.clearAnalyzer(); if (provider != null) provider.unbindAll();
-        // Close clients after in-flight tasks finish; executor shutdown rejects no already-running task.
-        barcode.close(); ocr.close(); executor.shutdown(); super.onDestroy();
+        synchronized (busy) { destroyed = true; }
+        cameraGeneration++; overlay.clear(); if (confirmation != null) confirmation.dismiss(); if (analysis != null) analysis.clearAnalyzer(); if (provider != null) provider.unbindAll();
+        // Regional continuations must finish before closing their clients/executor.
+        closeReadersWhenIdle(); super.onDestroy();
     }
 }

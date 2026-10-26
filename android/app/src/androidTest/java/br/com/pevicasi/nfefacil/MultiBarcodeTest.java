@@ -48,6 +48,12 @@ public class MultiBarcodeTest {
         try {return new ArrayList<>(Tasks.await(scanner.process(InputImage.fromBitmap(sheet,0)),30,TimeUnit.SECONDS));}
         finally {scanner.close();}
     }
+    private static DetectedKeys decodeFiscal(Bitmap sheet) throws Exception {
+        BarcodeScanner scanner=BarcodeScanning.getClient(new BarcodeScannerOptions.Builder().setBarcodeFormats(Barcode.FORMAT_CODE_128).enableAllPotentialBarcodes().build());
+        java.util.concurrent.ExecutorService worker=java.util.concurrent.Executors.newSingleThreadExecutor();
+        try {return Tasks.await(FiscalScanner.scan(scanner,InputImage.fromBitmap(sheet,0),sheet,worker),60,TimeUnit.SECONDS);}
+        finally {scanner.close();worker.shutdown();}
+    }
     private static String describe(List<Barcode> codes) {
         StringBuilder description=new StringBuilder();
         for(Barcode code:codes) description.append("[format=").append(code.getFormat()).append(", raw=").append(code.getRawValue()).append(", fiscal=").append(NfeKey.barcode(code.getRawValue())).append(", box=").append(code.getBoundingBox()).append("] ");
@@ -62,11 +68,15 @@ public class MultiBarcodeTest {
             draw(sheet,qr,BarcodeFormat.QR_CODE,610);
             draw(sheet,invoice,BarcodeFormat.CODE_128,1100);
             List<Barcode> results=decode(sheet);
-            assertTrue("Synthetic image must really decode multiple codes",results.size()>=4);
-            DetectedKeys found=DetectedKeys.barcodes(results);
-            assertEquals("All formats: "+describe(results)+"; production CODE128: "+describe(decode(sheet,Barcode.FORMAT_CODE_128))+"; expected valid="+NfeKey.isValid(invoice),Collections.singleton(invoice),found.keys());
+            assertTrue("The real mixed-format image must decode its fiscal QR",results.stream().anyMatch(b->b.getFormat()==Barcode.FORMAT_QR_CODE && qr.equals(b.getRawValue())));
+            assertTrue("The real mixed-format image must decode its payment ITF",results.stream().anyMatch(b->b.getFormat()==Barcode.FORMAT_ITF && payment.equals(b.getRawValue())));
+            assertTrue(results.stream().anyMatch(b->nonFiscal.equals(b.getRawValue())));
+            DetectedKeys found=decodeFiscal(sheet);
+            assertEquals("Regional production scan must recover the fiscal code hidden by the full-frame ROI: "+describe(results),Collections.singleton(invoice),found.keys());
             assertNotNull(found.bounds(null));assertTrue(found.bounds(null).top>1000);
-            Collections.reverse(results);assertEquals(found.keys(),DetectedKeys.barcodes(results).keys());
+            Collections.reverse(results);
+            assertFalse(DetectedKeys.barcodes(results).keys().contains(qr));
+            assertFalse(found.keys().contains(payment));assertFalse(found.keys().contains(nonFiscal));
         } finally {sheet.recycle();}
     }
     @Test public void multipleFiscalKeysAreDeduplicatedAndHaveNoImplicitOverlayTarget() throws Exception {
@@ -79,12 +89,17 @@ public class MultiBarcodeTest {
             draw(sheet,first,BarcodeFormat.CODE_128,660);
             draw(sheet,second,BarcodeFormat.CODE_128,970);
             List<Barcode> results=decode(sheet);
-            assertTrue("Must decode all four physical codes, including duplicate and bad DV. All formats: "+describe(results)+"; production CODE128: "+describe(decode(sheet,Barcode.FORMAT_CODE_128)),results.size()>=4);
-            DetectedKeys found=DetectedKeys.barcodes(results);
+            // ML Kit may merge repeated/aligned physical codes; validate fiscal identities, not an unsupported physical-count guarantee.
+            DetectedKeys found=decodeFiscal(sheet);
             assertEquals(new HashSet<>(Arrays.asList(first,second)),found.keys());
             assertNull(found.bounds(null));assertNull(found.bounds("unselected"));
-            assertNotNull(found.bounds(first));assertTrue(found.bounds(second).top>900);
-            Collections.reverse(results);assertEquals(found.keys(),DetectedKeys.barcodes(results).keys());
+            assertNotNull(found.bounds(first));assertTrue("Must fit a single code, not the merged multi-code ROI",found.bounds(first).height()<300);
+            assertTrue(found.bounds(second).top>900);
+            assertFalse(found.keys().contains(invalid));
+            // Also exercise app-side deduplication when the SDK supplies repeated detections.
+            Barcode duplicate=results.stream().filter(b->first.equals(b.getRawValue())).findFirst().get();
+            results.add(duplicate);Collections.reverse(results);
+            assertEquals(found.keys(),DetectedKeys.barcodes(results).keys());
         } finally {sheet.recycle();}
     }
     @Test public void itfEncodedFiscalDigitsAreNotAcceptedAsCode128() throws Exception {
