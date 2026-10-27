@@ -24,9 +24,9 @@ android {
     defaultConfig { resValue 'string', 'app_name', 'NF-e Fácil' }
     buildTypes {
         debug {
-            applicationIdSuffix '.qa'
-            versionNameSuffix '-qa'
-            resValue 'string', 'app_name', 'NF-e Fácil (teste)'
+            // Personal-use APK: original app identity, automatic Android debug signing.
+            // This key can change across GitHub runners; upgrades may require backup and reinstall.
+            resValue 'string', 'app_name', 'NF-e Fácil'
         }
         release {
             debuggable false
