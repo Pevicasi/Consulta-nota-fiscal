@@ -32,6 +32,15 @@
     more.textContent = 'Adicionar XMLs';
     more.addEventListener('click', () => document.getElementById('multipleXmlFiles').click());
     document.getElementById('notesTabs').before(more);
+    const originalShowStatus = showStatus;
+    window.showStatus = (message, type) => {
+      // The original status lives inside the upload card, hidden after opening
+      // notes. Keep the SAME live content visible in whichever view is active.
+      if (result.classList.contains('hidden')) uploadCard.append(statusBox);
+      else more.before(statusBox);
+      originalShowStatus(message, type);
+    };
+    statusBox.setAttribute('role','status'); statusBox.setAttribute('aria-live','polite');
     window.acceptNativeXmlDocuments = documents => {
       const before = loadedNotes.slice(), selected = activeNoteIndex;
       const notes = before.slice(), registry = loadedXmls.slice();

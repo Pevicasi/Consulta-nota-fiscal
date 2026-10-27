@@ -83,7 +83,7 @@ test('Android SAF importer appends batches, reports unreadable/invalid/empty fil
  await p.locator('#notesTabs button').nth(1).click();assert.equal(await p.locator('#nfeNumber').innerText(),'1002');
  await p.evaluate(d=>acceptNativeXmlDocuments(d),docs.slice(2));assert.equal(await p.locator('#notesTabs button').count(),5);assert.equal(await p.locator('#nfeNumber').innerText(),'1002');
  await p.evaluate(d=>acceptNativeXmlDocuments([...d,{name:'vazio.xml',text:''},{name:'invalido.xml',text:'<broken>'},{name:'negado.xml',error:'Permissão negada'}]),docs);
- assert.equal(await p.locator('#notesTabs button').count(),5);assert.match(await p.locator('#status').innerText(),/3 arquivo\(s\) não importado/);
+ assert.equal(await p.locator('#notesTabs button').count(),5);assert.match(await p.locator('#status').innerText(),/3 arquivo\(s\) não importado/);assert.equal(await p.locator('#status').isVisible(),true);
  assert.match(await p.locator('#status').innerText(),/5 repetida/);assert.equal(await p.locator('#markupPercent').inputValue(),'20');
  await p.reload();await p.evaluate(bridge);await p.evaluate(d=>acceptNativeXmlDocuments(d),docs);
  assert.equal(await p.locator('#notesTabs button').count(),5);assert.equal(await p.locator('#nfeNumber').innerText(),'1002');
