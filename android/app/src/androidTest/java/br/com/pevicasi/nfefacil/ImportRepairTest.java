@@ -124,27 +124,39 @@ public class ImportRepairTest {
     }
     private void select(ActivityScenario<MainActivity> scenario,String...names)throws Exception {
         clickWeb(scenario,"true".equals(js(scenario,"document.getElementById('nativeImportMore').getClientRects().length>0"))?"#nativeImportMore":"#loadXmlsBtn");
-        long deadline=System.currentTimeMillis()+15000;
-        boolean openedRoots=false;
-        while(device.findObject(By.text(names[0]))==null && System.currentTimeMillis()<deadline){
-            UiObject2 root=device.findObject(By.text("NF-e XML fixture"));
-            try {
-                if(root!=null)root.click();
-                else if(!openedRoots){
-                    UiObject2 roots=device.findObject(By.desc(Pattern.compile("(?i)(show roots|mostrar raízes|open navigation drawer)")));
-                    if(roots!=null){roots.click();openedRoots=true;}
-                }
-            }catch(StaleObjectException refreshed){/* DocumentsUI refreshed roots; query fresh nodes. */}
-            Thread.sleep(200);
+        assertTrue("The real Android document picker must open",device.wait(Until.hasObject(By.pkg("com.google.android.documentsui")),10000));
+        listSaf();
+        if(!revealSafDocument(names[0])){
+            clickSaf(By.desc(Pattern.compile("(?i)(show roots|mostrar raízes|open navigation drawer)")),false);
+            clickSaf(By.text("NF-e XML fixture"),false);
+            listSaf();
         }
+        assertTrue("SAF must list the requested document",revealSafDocument(names[0]));
         saveUiEvidence("saf-documents-before-"+names.length);
         clickSaf(By.text(names[0]),true);
-        for(int i=1;i<names.length;i++)clickSaf(By.text(names[i]),false);
+        for(int i=1;i<names.length;i++){
+            assertTrue("SAF must scroll to "+names[i],revealSafDocument(names[i]));
+            clickSaf(By.text(names[i]),false);
+        }
         saveUiEvidence("saf-selected-"+names.length);
         BySelector confirm=By.res("com.google.android.documentsui","action_menu_select");
         if(device.wait(Until.findObject(confirm),1000)==null)confirm=By.text(Pattern.compile("(?i)(open|abrir|select|selecionar)"));
         clickSaf(confirm,false);
         assertTrue(device.wait(Until.hasObject(By.pkg("br.com.pevicasi.nfefacil")),10000));
+    }
+    private void listSaf()throws Exception {
+        device.waitForIdle(1000);
+        BySelector list=By.res("com.google.android.documentsui","sub_menu_list");
+        if(device.findObject(list)!=null)clickSaf(list,false);
+        device.waitForIdle(1000);
+    }
+    private boolean revealSafDocument(String name)throws Exception {
+        if(device.wait(Until.findObject(By.text(name)),1000)!=null)return true;
+        try {
+            UiScrollable files=new UiScrollable(new UiSelector().resourceId("com.google.android.documentsui:id/dir_list"));
+            files.setAsVerticalList();files.setMaxSearchSwipes(10);
+            return files.scrollIntoView(new UiSelector().text(name));
+        }catch(UiObjectNotFoundException missing){return false;}
     }
     private void clickSaf(BySelector selector,boolean hold)throws Exception {
         long end=System.currentTimeMillis()+10000;
