@@ -42,7 +42,7 @@ public abstract class AppearanceActivity extends ComponentActivity {
 
     protected void addAppearanceControls(LinearLayout parent) {
         LinearLayout bar = new LinearLayout(this); bar.setOrientation(LinearLayout.VERTICAL);
-        LinearLayout row = new LinearLayout(this);
+        LinearLayout row = new LinearLayout(this); row.setGravity(Gravity.CENTER_VERTICAL);
         smaller = control("A−", "Diminuir fontes", () -> setFontPercent(fontPercent()-10));
         larger = control("A+", "Aumentar fontes", () -> setFontPercent(fontPercent()+10));
         percentage = new TextView(this); percentage.setGravity(Gravity.CENTER); percentage.setTextSize(14);
@@ -50,9 +50,8 @@ public abstract class AppearanceActivity extends ComponentActivity {
         row.addView(smaller, new LinearLayout.LayoutParams(dp(64), -2));
         row.addView(percentage, new LinearLayout.LayoutParams(dp(64), -1));
         row.addView(larger, new LinearLayout.LayoutParams(dp(64), -2));
-        row.addView(control("Restaurar padrão", "Restaurar fontes para 100%", () -> setFontPercent(100)), new LinearLayout.LayoutParams(-2, -2));
-        HorizontalScrollView scroll = new HorizontalScrollView(this); scroll.setFillViewport(true);
-        scroll.addView(row); bar.addView(scroll);
+        row.addView(control("Restaurar padrão", "Restaurar fontes para 100%", () -> setFontPercent(100)), new LinearLayout.LayoutParams(0, -2, 1));
+        bar.addView(row);
         themeButton = control("", "Escolher tema: Claro, Escuro ou Automático", () -> {
             String[] modes = {"light", "dark", "auto"};
             int selected = Arrays.asList(modes).indexOf(themeMode());

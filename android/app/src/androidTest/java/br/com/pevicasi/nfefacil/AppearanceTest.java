@@ -33,6 +33,9 @@ public class AppearanceTest {
                 assertEquals(160,a.fontPercent());assertFalse(plus.isEnabled());
             });
             waitJs(scenario,"document.documentElement.dataset.nativeFontPercent === '160'");
+            InstrumentationRegistry.getInstrumentation().waitForIdleSync();
+            scenario.onActivity(a->assertLabelsFit(a.findViewById(android.R.id.content)));
+            screenshot("controls-160");
             scenario.recreate();ready(scenario);scenario.onActivity(a->assertEquals(160,a.fontPercent()));
             scenario.onActivity(a->{
                 Button minus=(Button)findDescription(a.getWindow().getDecorView(),"Diminuir fontes");
@@ -70,7 +73,7 @@ public class AppearanceTest {
             }
             for(int version:new int[]{15,16,17}) {
                 scenario.onActivity(a->web(a.getWindow().getDecorView()).loadUrl(MainActivity.ORIGIN+"/assets/site/consulta_precos_v"+version+".html"));
-                waitJs(scenario,"typeof consultar === 'function' && document.documentElement.dataset.nativeTheme === 'dark'");
+                waitJs(scenario,"location.pathname.endsWith('/consulta_precos_v"+version+".html') && document.readyState === 'complete' && typeof consultar === 'function' && document.documentElement.dataset.nativeTheme === 'dark'");
                 js(scenario,"document.getElementById('q').value='arroz';true");
                 scenario.onActivity(a->{a.setFontPercent(90);a.setThemeMode("light");});
                 waitJs(scenario,"document.documentElement.dataset.nativeFontPercent === '90' && document.documentElement.dataset.nativeTheme === 'light'");
@@ -85,7 +88,8 @@ public class AppearanceTest {
     @Test public void scannerAndFiscalConfirmationUsePersistedAppearanceWithoutLosingKey() throws Exception {
         InstrumentationRegistry.getInstrumentation().getTargetContext().getSharedPreferences("appearance",0).edit().putInt("fontPercent",160).putString("themeMode","dark").commit();
         try(ActivityScenario<ScannerActivity> scenario=ActivityScenario.launch(ScannerActivity.class)) {
-            String key="35261012345678000195550010000001231123456788";
+            String key="35261012345678000195550010000001231123456784";
+            assertTrue("Fiscal fixture must have a valid structure and DV",NfeKey.isValid(key));
             scenario.onActivity(a->{assertEquals(160,a.fontPercent());assertTrue(a.isDark());a.offerKeys(Collections.singleton(key));});
             InstrumentationRegistry.getInstrumentation().waitForIdleSync();
             scenario.onActivity(a->{
@@ -138,6 +142,17 @@ public class AppearanceTest {
     private static View findDescription(View view,String description){
         if(description.contentEquals(view.getContentDescription()==null?"":view.getContentDescription()))return view;
         if(view instanceof ViewGroup)for(int i=0;i<((ViewGroup)view).getChildCount();i++){View found=findDescription(((ViewGroup)view).getChildAt(i),description);if(found!=null)return found;}return null;
+    }
+    private static void assertLabelsFit(View view){
+        if(view instanceof WebView || view.getVisibility()!=View.VISIBLE)return;
+        if(view instanceof TextView && view.getWidth()>0 && view.getHeight()>0){
+            TextView label=(TextView)view;
+            if(label.getLayout()!=null){
+                assertTrue("Native text clipped vertically: "+label.getText(),label.getLayout().getHeight()+label.getCompoundPaddingTop()+label.getCompoundPaddingBottom()<=label.getHeight()+2);
+                for(int line=0;line<label.getLineCount();line++)assertEquals("Ellipsized native label: "+label.getText(),0,label.getLayout().getEllipsisCount(line));
+            }
+        }
+        if(view instanceof ViewGroup)for(int i=0;i<((ViewGroup)view).getChildCount();i++)assertLabelsFit(((ViewGroup)view).getChildAt(i));
     }
     private static WebView web(View view){
         if(view instanceof WebView)return (WebView)view;

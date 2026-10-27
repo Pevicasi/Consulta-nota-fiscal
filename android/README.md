@@ -2,7 +2,7 @@
 
 ## Atualização 1.2.0: fontes e aparência
 
-No topo das telas principais e do scanner, use **A− / A+ / Restaurar padrão** (90%–160%, padrão 100%) e **Tema: Claro / Escuro / Automático (Android)**. Se o espaço for pequeno, a faixa dos controles de fonte permite rolagem horizontal. As preferências são salvas no app e reaplicadas nas páginas locais, no scanner e nos diálogos. A tabela continua rolável horizontalmente; dados fiscais e desconto permanecem legíveis. Não é necessário mudar a fonte global do Android.
+No topo das telas principais e do scanner, use **A− / A+ / Restaurar padrão** (90%–160%, padrão 100%) e **Tema: Claro / Escuro / Automático (Android)**. Os botões de fonte ajustam a altura e quebram texto quando necessário para caber na tela. As preferências são salvas no app e reaplicadas nas páginas locais, no scanner e nos diálogos. A tabela continua rolável horizontalmente; dados fiscais e desconto permanecem legíveis. Não é necessário mudar a fonte global do Android.
 
 APK pessoal **NF-e Fácil**, `br.com.pevicasi.nfefacil`, **1.2.0/código 4**, universal, assinatura debug automática sem exigir Secrets permanentes. Artefato `nfe-facil-1.2.0-<SHA>` do Actions. Não há variante teste como entrega e nenhuma biblioteca/ABI foi retirada. A opção de ABI mencionada no histórico foi removida por decisão do proprietário. APKs anteriores não são excluídos nesta atualização.
 

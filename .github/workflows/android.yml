@@ -105,12 +105,7 @@ jobs:
           script: |
             adb shell svc wifi disable
             adb shell svc data disable
-            ./gradlew --no-daemon connectedDebugAndroidTest
-      - name: Collect native appearance screenshots
-        if: always()
-        run: |
-          mkdir -p android/app/build/reports/appearance-screenshots
-          adb pull /sdcard/Android/data/br.com.pevicasi.nfefacil/files/appearance-evidence/. android/app/build/reports/appearance-screenshots/ || true
+            bash tools/run-device-tests.sh
       - name: Report completed instrumented tests
         if: always()
         run: python3 android/tools/report-tests.py android/app/build/reports/androidTests/connected/debug/index.html 24 'Instrumented'
