@@ -51,7 +51,16 @@ public class ImportRepairTest {
             select(scenario,"empty.xml","invalid.xml","nota1.xml","nota2.xml","nota3.xml","nota4.xml","nota5.xml");
             waitJs(scenario,"document.getElementById('status').textContent.includes('2 arquivo(s) não importado(s)')");
             assertEquals("true",js(scenario,"loadedNotes.length === 5 && document.getElementById('status').textContent.includes('5 repetida(s)') && document.getElementById('status').getBoundingClientRect().height>0"));
-            for(int i=0;i<5;i++)assertEquals("true",js(scenario,"showNote(loadedNotes.findIndex(e=>e.data.nfeNumber==='"+(1001+i)+"'));document.getElementById('nfeNumber').textContent === '"+(1001+i)+"' && currentItems[0].description === 'Produto Android "+(i+1)+"' && currentItems[0].unitCostWithST === "+(12*(i+1))+" && loadedNotes[activeNoteIndex].data.totalDiscount === "+(5.5*(i+1))+" && loadedNotes[activeNoteIndex].data.totalInvoice === "+(18.5*(i+1))+" && loadedNotes[activeNoteIndex].data.totalProducts === "+(20*(i+1))));
+            for(int i=0;i<5;i++){
+                String number=String.valueOf(1001+i);
+                js(scenario,"showNote(loadedNotes.findIndex(e=>e.data.nfeNumber==='"+number+"'));true");
+                assertEquals("Active NF-e",JSONObject.quote(number),js(scenario,"document.getElementById('nfeNumber').textContent"));
+                assertEquals("Product of NF-e "+number,JSONObject.quote("Produto Android "+(i+1)),js(scenario,"currentItems[0].name"));
+                assertNumber(scenario,"currentItems[0].unitCostWithST",12*(i+1));
+                assertNumber(scenario,"loadedNotes[activeNoteIndex].data.totalDiscount",5.5*(i+1));
+                assertNumber(scenario,"loadedNotes[activeNoteIndex].data.totalInvoice",18.5*(i+1));
+                assertNumber(scenario,"loadedNotes[activeNoteIndex].data.totalProducts",20*(i+1));
+            }
             assertEquals("\"20\"",js(scenario,"document.getElementById('markupPercent').value"));
             scenario.recreate();ready(scenario);assertEquals("true",js(scenario,"loadedNotes.length === 5 && document.querySelectorAll('#notesTabs button').length === 5"));
             select(scenario,"nota1.xml","nota2.xml");waitJs(scenario,"document.getElementById('status').textContent.includes('2 repetida(s)')");
@@ -200,6 +209,9 @@ public class ImportRepairTest {
         assertTrue(device.click(bounds[0]+(int)(x*scale),bounds[1]+(int)(y*scale)));
     }
     private static WebView web(android.view.View v){if(v instanceof WebView)return (WebView)v;if(v instanceof android.view.ViewGroup)for(int i=0;i<((android.view.ViewGroup)v).getChildCount();i++){WebView found=web(((android.view.ViewGroup)v).getChildAt(i));if(found!=null)return found;}return null;}
+    private static void assertNumber(ActivityScenario<MainActivity> scenario,String expression,double expected)throws Exception {
+        assertEquals(expression,expected,Double.parseDouble(js(scenario,expression)),.001);
+    }
     private static String js(ActivityScenario<MainActivity> scenario,String code)throws Exception {
         CountDownLatch latch=new CountDownLatch(1);AtomicReference<String> result=new AtomicReference<>();scenario.onActivity(a->web(a.getWindow().getDecorView()).evaluateJavascript(code,value->{result.set(value);latch.countDown();}));assertTrue(latch.await(10,TimeUnit.SECONDS));return result.get();
     }
