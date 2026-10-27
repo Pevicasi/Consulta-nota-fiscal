@@ -38,7 +38,11 @@
   return {factor,base:'UN',equivalent:true,source:count?'Quantidade explícita na embalagem':'Equivalência documentada no XML'};
  }
  NfeCost.calculate=(data,ignored,options)=>{
-  if(!data.fiscalRaw)return originalCalculate(data,{},options);
+  if(!data.fiscalRaw){
+   const result=originalCalculate(data,{},options);
+   result.items.forEach((row,i)=>{row.commercialUnit=normalize(data.items[i].unit)||'unidade comercial';Object.assign(row.conversion,{base:row.commercialUnit,equivalent:false,automatic:true,source:''});});
+   return result;
+  }
   const conversions=data.items.map((item,i)=>documentedConversion(item,data.fiscalRaw.items[i]));
   // Isolate repeated SKUs: packaging can differ between lines of the same note.
   const calculationData={...data,items:data.items.map((item,i)=>({...item,productCode:'APP-AUTO-LINE-'+i}))};
@@ -50,7 +54,7 @@
  const style=document.createElement('style');style.textContent=`
  html[data-native-theme] #itemsBody .product-name{min-width:0;max-width:100%;font-weight:600;overflow-wrap:normal!important;word-break:normal;white-space:normal;}
  html[data-native-theme] #itemsBody td[data-column-key="1"]{overflow-wrap:normal;word-break:normal;}
- html[data-native-theme] #itemsBody :is(th,td){padding-top:6px;padding-bottom:6px;}
+ html[data-native-theme] #itemsBody :is(th,td){padding-top:3px;padding-bottom:3px;}
  html[data-native-theme] #itemsBody .basis-notice{display:block;white-space:normal;}
  html[data-native-theme] #fiscalSummary>p{display:none;}
  html[data-native-theme] #fiscalWarnings{margin-top:8px;}
@@ -81,7 +85,7 @@
    const product=tr.querySelector('td[data-column-key="1"]'),name=document.createElement('div');name.className='product-name';name.textContent=currentItems[index].name;product.replaceChildren(name);
    const commercial=!row.conversion.equivalent,base=row.conversion.base;
    const quantity=tr.querySelector('td[data-column-key="7"]');quantity.textContent=(row.conversion.unitsExact??numberBR.format(currentItems[index].quantity))+' '+base;
-   if(commercial&&row.conversion.source!=='Unidade comercial documentada'){const notice=document.createElement('small');notice.className='basis-notice';notice.textContent=row.conversion.source;tr.querySelector('td[data-column-key="4"]').append(notice);}
+   if(commercial&&row.conversion.source&&row.conversion.source!=='Unidade comercial documentada'){const notice=document.createElement('small');notice.className='basis-notice';notice.textContent=row.conversion.source;tr.querySelector('td[data-column-key="4"]').append(notice);}
    const ipi=document.createElement('td');ipi.className='number';ipi.dataset.columnKey='16';
    const raw=loadedNotes[activeNoteIndex]?.data.fiscalRaw;const known=raw&&(raw.items[index].ipi!=null||raw.totals.ipi!=null);
    let value=null;if(known)try{value=NfeCost.unitCents(row.parts.ipi,row.quantity,row.conversion.exactFactor??row.conversion.factor);}catch(_){}

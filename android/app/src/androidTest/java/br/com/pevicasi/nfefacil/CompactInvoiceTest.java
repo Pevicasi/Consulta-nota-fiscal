@@ -32,6 +32,8 @@ public class CompactInvoiceTest {
       js(s,"document.querySelector('#itemsBody tr').scrollIntoView({block:'start',inline:'start',behavior:'instant'});document.querySelector('.table-wrap').scrollLeft=0;true");Thread.sleep(250);
       if(percent==100&&!wide)assertEquals("At least eight compact product rows visible", "true",js(s,"Array.from(document.querySelectorAll('#itemsBody tr')).filter(r=>{const b=r.getBoundingClientRect();return b.top>=0&&b.bottom<=innerHeight}).length>=8"));
       AppearanceTest.screenshot("compact-ipi-"+percent+"-"+mode+"-"+(wide?"landscape":"portrait"),s);
+      js(s,"document.querySelector('td[data-column-key=\"4\"]').scrollIntoView({block:'start',inline:'start',behavior:'instant'});true");Thread.sleep(250);
+      AppearanceTest.screenshot("automatic-cost-price-"+percent+"-"+mode+"-"+(wide?"landscape":"portrait"),s);
      }
     }
    }

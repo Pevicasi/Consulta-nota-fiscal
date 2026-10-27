@@ -32,5 +32,11 @@ test('automatic packaging XML matrix reconciles money, counts, taxes, ambiguity,
  assert.equal(await p.evaluate(()=>NfeCost.price(currentFinance.items[0],getMarkupPercent())),238);
  await p.reload();for(const f of ['android-appearance.js','android-invoice.js'])await p.evaluate(await fs.readFile('android/app/src/main/assets/'+f,'utf8'));
  assert.equal(await p.evaluate(()=>currentFinance.items[0].conversion.units),120);
+ await p.setViewportSize({width:411,height:535});await p.evaluate(()=>{applyNativeAppearance({fontPercent:100,dark:true});fitNativeInvoiceColumns();document.querySelector('#itemsBody tr').scrollIntoView({block:'start',behavior:'instant'});});
+ assert.equal(await p.evaluate(()=>Array.from(document.querySelectorAll('#itemsBody tr')).filter(r=>{const b=r.getBoundingClientRect();return b.top>=0&&b.bottom<=innerHeight}).length>=8),true);
+ await p.evaluate(()=>{delete loadedNotes[activeNoteIndex].data.fiscalRaw;renderNoteData(loadedNotes[activeNoteIndex].data);});
+ assert.equal(await p.evaluate(()=>currentFinance.items[0].conversion.base),'CX');
+ assert.equal(await p.evaluate(()=>currentFinance.items[0].ready),false);
+ assert.match(await p.locator('td[data-column-key="7"]').first().innerText(),/CX/);
  await p.emulateMedia({media:'print'});assert.equal(await p.locator('#itemsBody button,#itemsBody input,#itemsBody .cost-audit-print').count(),0);await p.close();
 });

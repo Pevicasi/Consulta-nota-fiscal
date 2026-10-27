@@ -17,3 +17,5 @@ Testes de navegador e WebView Android verificam resultados imediatos sem intera�
 Limites: XMLs e imagens reais do proprietário não foram disponibilizados. Emulador não equivale ao telefone físico. Impressão física e serviços fiscais externos reais não são cobertos. Publicação somente após Actions e Android aprovados; APK antigo removido somente depois de baixar e verificar a nova release.
 
 Entrega: o job Android verifica e preserva o próprio APK instalado pelos testes, e a release usa esse binário (não outra recompilação). O download público é comparado com o artefato validado.
+
+Compactação adicional: espaçamento vertical de 3 px, mantendo tamanho das fontes e entrelinhas, para pelo menos oito linhas no viewport 411×535 a 100%. Sessões antigas sem fiscalRaw mantêm a unidade comercial correta e pedem reimportação do XML, sem inventar UN nem preço.

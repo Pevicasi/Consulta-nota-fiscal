@@ -40,7 +40,7 @@ public class FinancialTest {
             number(s,"NfeCost.price(currentFinance.items[2],20)",7200);number(s,"NfeCost.price(currentFinance.items[3],20)",3600);assertEquals("\"KG\"",js(s,"currentFinance.items[4].conversion.base"));number(s,"NfeCost.price(currentFinance.items[4],20)",2400);
             js(s,"markupPercentInput.value='0';markupPercentInput.dispatchEvent(new Event('input',{bubbles:true}));true");number(s,"NfeCost.price(currentFinance.items[1],getMarkupPercent())",550);
             js(s,"markupPercentInput.value='12.5';markupPercentInput.dispatchEvent(new Event('input',{bubbles:true}));true");number(s,"NfeCost.price(currentFinance.items[1],getMarkupPercent())",619);
-            s.recreate();waitJs(s,"typeof acceptNativeXmlDocuments === 'function' && currentFinance?.items.length === 5");number(s,"currentFinance.items[1].conversion.factor",12);number(s,"NfeCost.price(currentFinance.items[1],getMarkupPercent())",619);
+            s.recreate();waitJs(s,"window.__compactInvoice && typeof acceptNativeXmlDocuments === 'function' && currentFinance?.items.length === 5");number(s,"currentFinance.items[1].conversion.factor",12);number(s,"NfeCost.price(currentFinance.items[1],getMarkupPercent())",619);
             assertEquals("true",js(s,"document.querySelectorAll('#itemsBody input,#itemsBody button').length===0"));
         }
     }
