@@ -246,10 +246,10 @@ public class ScannerActivity extends AppearanceActivity {
             System.arraycopy(values, 0, labels, 1, values.length);
             choices.setAdapter(new ArrayAdapter<String>(this, android.R.layout.simple_spinner_dropdown_item, labels) {
                 @Override public View getView(int position, View recycled, ViewGroup parent) {
-                    View row = super.getView(position, recycled, parent); styleOwnedView(row); return row;
+                    return fiscalChoiceRow(super.getView(position, recycled, parent));
                 }
                 @Override public View getDropDownView(int position, View recycled, ViewGroup parent) {
-                    View row = super.getDropDownView(position, recycled, parent); styleOwnedView(row); return row;
+                    return fiscalChoiceRow(super.getDropDownView(position, recycled, parent));
                 }
             });
             choices.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
@@ -276,6 +276,19 @@ public class ScannerActivity extends AppearanceActivity {
         pendingKeys = null; selectedKeyIndex = -1; choosing = false; retryAfter = android.os.SystemClock.uptimeMillis() + 1000;
         overlay.clear();
         if (photoMode) resumeCamera();
+    }
+    private View fiscalChoiceRow(View row) {
+        styleOwnedView(row);
+        TextView text = (TextView)row;
+        text.setSingleLine(false); text.setMaxLines(Integer.MAX_VALUE);
+        text.setHorizontallyScrolling(false); text.setEllipsize(null);
+        text.setBreakStrategy(android.text.Layout.BREAK_STRATEGY_SIMPLE);
+        text.setHyphenationFrequency(android.text.Layout.HYPHENATION_FREQUENCY_NONE);
+        // Spinner measures dropdown content with UNSPECIFIED width before clamping
+        // its window. Bound the actual row too, so long numeric keys wrap, not clip.
+        text.setMaxWidth(Math.max(1,getResources().getDisplayMetrics().widthPixels-Math.round(48*getResources().getDisplayMetrics().density)));
+        row.setLayoutParams(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,ViewGroup.LayoutParams.WRAP_CONTENT));
+        return row;
     }
     private void toggleTorch() {
         if (camera == null || !camera.getCameraInfo().hasFlashUnit()) return;

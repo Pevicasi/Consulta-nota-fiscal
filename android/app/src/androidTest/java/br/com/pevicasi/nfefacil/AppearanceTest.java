@@ -114,6 +114,11 @@ public class AppearanceTest {
                 a.offerKeys(new LinkedHashSet<>(Arrays.asList(key,MultiBarcodeTest.key("65",902))));
                 Spinner choices=spinner(confirmation(a).getWindow().getDecorView());assertNotNull(choices);
                 TextView option=(TextView)choices.getAdapter().getDropDownView(1,null,choices);
+                option.measure(View.MeasureSpec.makeMeasureSpec(0,View.MeasureSpec.UNSPECIFIED),View.MeasureSpec.makeMeasureSpec(0,View.MeasureSpec.UNSPECIFIED));
+                option.layout(0,0,option.getMeasuredWidth(),option.getMeasuredHeight());
+                assertTrue("Fiscal option must fit the display even during unconstrained popup measurement",option.getMeasuredWidth()<a.getResources().getDisplayMetrics().widthPixels);
+                assertTrue("All 44 digits must wrap instead of clipping",option.getLineCount()>1);
+                assertLabelsFit(option);
                 float largeSize=option.getTextSize();
                 a.setFontPercent(90);a.setThemeMode("light");
                 assertEquals(largeSize*90f/160f,option.getTextSize(),.5f);
