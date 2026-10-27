@@ -51,6 +51,10 @@ public class ScannerTest {
             scenario.onActivity(activity->{
                 activity.offerKeys(Collections.singleton("123")); assertNull(dialog(activity));
                 activity.offerKeys(Collections.singleton(key()));
+                try {
+                    java.lang.reflect.Field field=ScannerActivity.class.getDeclaredField("overlay");field.setAccessible(true);ScannerOverlay overlay=(ScannerOverlay)field.get(activity);overlay.track(new RectF(100,100,600,180),true,1000);
+                    java.lang.reflect.Method update=ScannerActivity.class.getDeclaredMethod("showDetections",DetectedKeys.class,OutputTransform.class,long.class);update.setAccessible(true);update.invoke(activity,DetectedKeys.barcodes(Collections.emptyList()),null,900L);assertFalse("Lost selected code must clear stale geometry",overlay.isTracking());
+                }catch(Exception e){throw new AssertionError(e);}
                 dialog(activity).getButton(AlertDialog.BUTTON_NEGATIVE).performClick();
             });
             InstrumentationRegistry.getInstrumentation().waitForIdleSync();

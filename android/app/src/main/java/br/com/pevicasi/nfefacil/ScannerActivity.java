@@ -214,7 +214,7 @@ public class ScannerActivity extends AppearanceActivity {
         if (choosing && selected == null) overlay.clear();
         else if (bounds != null) trackBounds(bounds, source, true, duration);
         else if(!choosing&&detected.potentialBounds()!=null)trackBounds(detected.potentialBounds(),source,false,duration);
-        else if (!choosing) overlay.clear();
+        else overlay.clear();
         if (!choosing && !detected.keys().isEmpty()) {
             if (detected.keys().size() > 1) {
                 overlay.clear(); status.setText("Várias chaves válidas encontradas. Escolha explicitamente a nota desejada.");
