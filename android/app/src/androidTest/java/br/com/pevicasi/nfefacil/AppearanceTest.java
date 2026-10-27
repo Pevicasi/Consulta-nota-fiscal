@@ -117,8 +117,9 @@ public class AppearanceTest {
                 a.setFontPercent(90);a.setThemeMode("light");
                 assertEquals(largeSize*90f/160f,option.getTextSize(),.5f);
                 assertEquals(android.graphics.Color.parseColor("#172033"),option.getCurrentTextColor());
-                a.setFontPercent(160);a.setThemeMode("dark");choices.performClick();
+                a.setFontPercent(160);a.setThemeMode("dark");
             });
+            openFiscalChoices(scenario);
             waitAccessibleText(key);
             InstrumentationRegistry.getInstrumentation().waitForIdleSync();screenshot("ambiguous-menu-dark-160",scenario);
         }
@@ -160,6 +161,24 @@ public class AppearanceTest {
         }
         fail("Fiscal choice must be visible and accessible: "+text);
     }
+    private static void openFiscalChoices(ActivityScenario<ScannerActivity> scenario)throws Exception {
+        long end=System.currentTimeMillis()+10000;
+        java.util.concurrent.atomic.AtomicBoolean opened=new java.util.concurrent.atomic.AtomicBoolean();
+        while(System.currentTimeMillis()<end){
+            scenario.onActivity(a->{
+                Spinner choices=spinner(confirmation(a).getWindow().getDecorView());
+                if(choices==null || !choices.isAttachedToWindow() || choices.getWidth()==0 || choices.getHeight()==0 || choices.isLayoutRequested())return;
+                android.graphics.Rect visible=new android.graphics.Rect();
+                if(!choices.getGlobalVisibleRect(visible) || visible.height()<choices.getHeight()) {
+                    choices.requestRectangleOnScreen(new android.graphics.Rect(0,0,choices.getWidth(),choices.getHeight()),true);return;
+                }
+                opened.set(choices.performClick());
+            });
+            if(opened.get())return;
+            Thread.sleep(100);
+        }
+        fail("Fiscal choice control must finish layout and be visible before opening");
+    }
     private static void screenshot(String name,ActivityScenario<? extends AppearanceActivity> scenario)throws Exception {
         CountDownLatch rendered=new CountDownLatch(1);
         int[] sample={-1,-1,0};
@@ -190,12 +209,21 @@ public class AppearanceTest {
             pixel=bitmap.getPixel(sample[0],sample[1]);
             int r=android.graphics.Color.red(pixel),g=android.graphics.Color.green(pixel),b=android.graphics.Color.blue(pixel);
             painted=sample[2]==1 ? r<80 && g<80 && b<80 : r>200 && g>200 && b>200;
+            if(painted && name.startsWith("discount-table-"))painted=discountPainted(bitmap,sample[1]);
             if(painted)break;
             Thread.sleep(50); // The compositor must actually present the selected theme, within a bounded deadline.
         } while(System.currentTimeMillis()<deadline);
         File dir=InstrumentationRegistry.getInstrumentation().getTargetContext().getExternalFilesDir("appearance-evidence");assertNotNull(dir);assertTrue(dir.isDirectory()||dir.mkdirs());
         try(OutputStream out=new FileOutputStream(new File(dir,name+".png"))){assertTrue(bitmap.compress(Bitmap.CompressFormat.PNG,100,out));}finally{bitmap.recycle();}
         assertTrue("Captured WebView pixels must match the selected theme: "+name+" #"+Integer.toHexString(pixel),painted);
+    }
+    private static boolean discountPainted(Bitmap bitmap,int top){
+        int green=0;
+        for(int y=Math.max(0,top);y<bitmap.getHeight();y+=8)for(int x=8;x<bitmap.getWidth()-8;x+=8){
+            int pixel=bitmap.getPixel(x,y),r=android.graphics.Color.red(pixel),g=android.graphics.Color.green(pixel),b=android.graphics.Color.blue(pixel);
+            if(r<80 && g>r*1.4 && g>b*1.1 && ++green>=200)return true;
+        }
+        return false;
     }
     private static AlertDialog confirmation(ScannerActivity a) {
         try{java.lang.reflect.Field field=ScannerActivity.class.getDeclaredField("confirmation");field.setAccessible(true);return (AlertDialog)field.get(a);}catch(Exception e){throw new AssertionError(e);}
