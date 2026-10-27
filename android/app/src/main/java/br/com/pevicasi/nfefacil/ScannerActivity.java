@@ -33,7 +33,7 @@ public class ScannerActivity extends AppearanceActivity {
     private PreviewView preview;
     private TextView status;
     private ScannerOverlay overlay;
-    private android.app.AlertDialog confirmation;
+    private android.app.AlertDialog confirmation, fiscalChoices;
     private volatile int cameraGeneration;
     private volatile long retryAfter;
     private String[] pendingKeys;
@@ -240,25 +240,20 @@ public class ScannerActivity extends AppearanceActivity {
         digits.setTextIsSelectable(true); digits.setText(selectedKeyIndex < 0 ? "Selecione uma das chaves encontradas." : values[selectedKeyIndex]); content.addView(digits);
         final int[] selected = {selectedKeyIndex};
         if (values.length > 1) {
-            Spinner choices = new Spinner(this);
-            choices.setContentDescription("Escolha a chave encontrada");
             String[] labels = new String[values.length + 1]; labels[0] = "Selecione a chave da nota";
             System.arraycopy(values, 0, labels, 1, values.length);
-            choices.setAdapter(new ArrayAdapter<String>(this, android.R.layout.simple_spinner_dropdown_item, labels) {
-                @Override public View getView(int position, View recycled, ViewGroup parent) {
-                    return fiscalChoiceRow(super.getView(position, recycled, parent));
-                }
-                @Override public View getDropDownView(int position, View recycled, ViewGroup parent) {
-                    return fiscalChoiceRow(super.getDropDownView(position, recycled, parent));
-                }
-            });
-            choices.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
-                @Override public void onItemSelected(AdapterView<?> parent, View view, int position, long id) { selected[0] = position - 1; selectedKeyIndex = position - 1;
-                    digits.setText(position == 0 ? "Selecione uma das chaves encontradas." : values[position - 1]);
-                    overlay.clear();
-                    if (confirmation != null) confirmation.getButton(android.app.AlertDialog.BUTTON_POSITIVE).setEnabled(position > 0); }
-                @Override public void onNothingSelected(AdapterView<?> parent) {}
-            }); choices.setSelection(selectedKeyIndex + 1); content.addView(choices);
+            Button choices = new Button(this); choices.setTag("fiscal-key-choice");
+            choices.setText(selectedKeyIndex < 0 ? "Escolher chave" : "Chave "+(selectedKeyIndex+1)+" de "+values.length);
+            choices.setContentDescription("Escolha a chave encontrada");
+            choices.setOnClickListener(v -> showFiscalChoices(labels, selectedKeyIndex+1, position -> {
+                selected[0] = position-1; selectedKeyIndex = position-1;
+                digits.setText(position==0 ? "Selecione uma das chaves encontradas." : values[position-1]);
+                choices.setText(position==0 ? "Escolher chave" : "Chave "+position+" de "+values.length);
+                overlay.clear();
+                if (confirmation != null) confirmation.getButton(android.app.AlertDialog.BUTTON_POSITIVE).setEnabled(position>0);
+            }));
+            content.addView(choices);
+
         }
         ScrollView choicesScroll = new ScrollView(this); choicesScroll.addView(content);
         confirmation = new android.app.AlertDialog.Builder(this).setTitle("Chave encontrada")
@@ -277,17 +272,24 @@ public class ScannerActivity extends AppearanceActivity {
         overlay.clear();
         if (photoMode) resumeCamera();
     }
-    private View fiscalChoiceRow(View row) {
-        styleOwnedView(row);
-        TextView text = (TextView)row;
-        text.setSingleLine(false); text.setMaxLines(Integer.MAX_VALUE);
-        text.setHorizontallyScrolling(false); text.setEllipsize(null);
-        text.setHyphenationFrequency(android.text.Layout.HYPHENATION_FREQUENCY_NONE);
-        // Spinner measures dropdown content with UNSPECIFIED width before clamping
-        // its window. Bound the actual row too, so long numeric keys wrap, not clip.
-        text.setMaxWidth(Math.max(1,getResources().getDisplayMetrics().widthPixels-Math.round(48*getResources().getDisplayMetrics().density)));
-        row.setLayoutParams(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,ViewGroup.LayoutParams.WRAP_CONTENT));
-        return row;
+    private void showFiscalChoices(String[] labels, int selected, java.util.function.IntConsumer choose) {
+        ScrollView scroll = new ScrollView(this);
+        RadioGroup options = new RadioGroup(this);
+        int padding = Math.round(16 * getResources().getDisplayMetrics().density);
+        options.setPadding(padding,padding,padding,padding); scroll.addView(options);
+        android.app.AlertDialog picker = new android.app.AlertDialog.Builder(this).setTitle("Escolha a chave da nota")
+            .setView(scroll).setNegativeButton("Cancelar",null).create();
+        fiscalChoices = picker;
+        for (int i=0;i<labels.length;i++) {
+            final int choice=i;
+            RadioButton option = new RadioButton(this); option.setId(View.generateViewId());
+            option.setText(labels[i]); option.setTextSize(18); option.setAllCaps(false);
+            option.setSingleLine(false); option.setMaxLines(Integer.MAX_VALUE); option.setHorizontallyScrolling(false); option.setEllipsize(null);
+            options.addView(option,new RadioGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,ViewGroup.LayoutParams.WRAP_CONTENT));
+            option.setChecked(i==selected);
+            option.setOnClickListener(v->{choose.accept(choice);picker.dismiss();});
+        }
+        showOwnedDialog(picker);
     }
     private void toggleTorch() {
         if (camera == null || !camera.getCameraInfo().hasFlashUnit()) return;

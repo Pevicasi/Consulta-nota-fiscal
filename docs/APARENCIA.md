@@ -7,7 +7,7 @@ Implementação conjunta dos comentários de acessibilidade e modo noturno da [i
 - **A− / A+** ajustam de 90% a 160%, em passos de 10%; botões são desabilitados nos limites. **Restaurar padrão** volta a 100%, preservando o tema escolhido.
 - **Tema: Claro / Escuro / Automático (Android)** mostra a seleção atual. Automático acompanha mudanças do modo noturno do sistema, sem recarregar a nota/consulta ou recriar a câmera. Claro/Escuro sobrepõem o tema do sistema somente no app.
 - As duas preferências ficam em SharedPreferences privadas, separadas da sessão fiscal; sobrevivem à troca de telas e à reabertura. Não se limpa armazenamento, não se desinstala o app e não se migram dados para outro pacote.
-- Controles de toque têm altura mínima de 48 dp, nomes acessíveis e texto que pode quebrar. O botão Restaurar usa a largura disponível e quebra o texto em telas estreitas. No scanner e na confirmação, o conteúdo pode rolar para não cortar controles/chaves. A câmera, fotografia e imagens OCR não são recoloridas.
+- Controles de toque têm altura mínima de 48 dp, nomes acessíveis e texto que pode quebrar. O botão Restaurar usa a largura disponível e quebra o texto em telas estreitas. No scanner e na confirmação, o conteúdo pode rolar para não cortar controles/chaves. A câmera, fotografia e imagens OCR não são recoloridas. A seleção entre várias chaves usa uma lista própria rolável, com os 44 dígitos quebrando em linhas completas; nenhuma nota ambígua é selecionada automaticamente.
 
 ## Escopo técnico e preservação
 

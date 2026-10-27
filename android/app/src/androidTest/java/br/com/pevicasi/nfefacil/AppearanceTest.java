@@ -112,11 +112,13 @@ public class AppearanceTest {
             InstrumentationRegistry.getInstrumentation().waitForIdleSync();
             scenario.onActivity(a->{
                 a.offerKeys(new LinkedHashSet<>(Arrays.asList(key,MultiBarcodeTest.key("65",902))));
-                Spinner choices=spinner(confirmation(a).getWindow().getDecorView());assertNotNull(choices);
-                TextView option=(TextView)choices.getAdapter().getDropDownView(1,null,choices);
-                option.measure(View.MeasureSpec.makeMeasureSpec(0,View.MeasureSpec.UNSPECIFIED),View.MeasureSpec.makeMeasureSpec(0,View.MeasureSpec.UNSPECIFIED));
-                option.layout(0,0,option.getMeasuredWidth(),option.getMeasuredHeight());
-                assertTrue("Fiscal option must fit the display even during unconstrained popup measurement",option.getMeasuredWidth()<a.getResources().getDisplayMetrics().widthPixels);
+            });
+            openFiscalChoices(scenario);
+            waitAccessibleText(key);
+            InstrumentationRegistry.getInstrumentation().waitForIdleSync();
+            scenario.onActivity(a->{
+                TextView option=MultiBarcodeTest.findOption(MultiBarcodeTest.fiscalDialog(a).getWindow().getDecorView(),key);
+                assertNotNull(option);
                 assertTrue("All 44 digits must wrap instead of clipping",option.getLineCount()>1);
                 assertLabelsFit(option);
                 float largeSize=option.getTextSize();
@@ -125,9 +127,16 @@ public class AppearanceTest {
                 assertEquals(android.graphics.Color.parseColor("#172033"),option.getCurrentTextColor());
                 a.setFontPercent(160);a.setThemeMode("dark");
             });
-            openFiscalChoices(scenario);
-            waitAccessibleText(key);
             InstrumentationRegistry.getInstrumentation().waitForIdleSync();screenshot("ambiguous-menu-dark-160",scenario);
+            clickAccessibleChoice(key);
+            long selectedDeadline=System.currentTimeMillis()+10000;
+            java.util.concurrent.atomic.AtomicBoolean selected=new java.util.concurrent.atomic.AtomicBoolean();
+            while(System.currentTimeMillis()<selectedDeadline){
+                scenario.onActivity(a->selected.set(key.equals(selectable(confirmation(a).getWindow().getDecorView()).getText().toString())
+                    && confirmation(a).getButton(AlertDialog.BUTTON_POSITIVE).isEnabled()));
+                if(selected.get())break;Thread.sleep(100);
+            }
+            assertTrue("Choosing the full fiscal key must enable confirmation without changing its digits",selected.get());
         }
     }
     @Test public void automaticThemeFollowsAndroidLiveAndExplicitLightOverridesIt() throws Exception {
@@ -172,7 +181,7 @@ public class AppearanceTest {
         java.util.concurrent.atomic.AtomicBoolean opened=new java.util.concurrent.atomic.AtomicBoolean();
         while(System.currentTimeMillis()<end){
             scenario.onActivity(a->{
-                Spinner choices=spinner(confirmation(a).getWindow().getDecorView());
+                View choices=confirmation(a).getWindow().getDecorView().findViewWithTag("fiscal-key-choice");
                 if(choices==null || !choices.isAttachedToWindow() || choices.getWidth()==0 || choices.getHeight()==0 || choices.isLayoutRequested())return;
                 android.graphics.Rect visible=new android.graphics.Rect();
                 if(!choices.getGlobalVisibleRect(visible) || visible.height()<choices.getHeight()) {
@@ -238,10 +247,7 @@ public class AppearanceTest {
         if(view instanceof TextView && ((TextView)view).isTextSelectable())return (TextView)view;
         if(view instanceof ViewGroup)for(int i=0;i<((ViewGroup)view).getChildCount();i++){TextView found=selectable(((ViewGroup)view).getChildAt(i));if(found!=null)return found;}return null;
     }
-    private static Spinner spinner(View view){
-        if(view instanceof Spinner)return (Spinner)view;
-        if(view instanceof ViewGroup)for(int i=0;i<((ViewGroup)view).getChildCount();i++){Spinner found=spinner(((ViewGroup)view).getChildAt(i));if(found!=null)return found;}return null;
-    }
+
     private static View findDescription(View view,String description){
         if(description.contentEquals(view.getContentDescription()==null?"":view.getContentDescription()))return view;
         if(view instanceof ViewGroup)for(int i=0;i<((ViewGroup)view).getChildCount();i++){View found=findDescription(((ViewGroup)view).getChildAt(i),description);if(found!=null)return found;}return null;

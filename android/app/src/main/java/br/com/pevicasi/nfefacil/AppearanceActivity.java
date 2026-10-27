@@ -80,7 +80,6 @@ public abstract class AppearanceActivity extends ComponentActivity {
         style(decor);
         dialog.getWindow().setBackgroundDrawableResource(isDark() ? android.R.color.background_dark : android.R.color.background_light);
     }
-    protected void styleOwnedView(View view) { style(view); }
     private void style(View view) {
         int text = Color.parseColor(isDark() ? "#E8EDF5" : "#172033");
         if (view instanceof LinearLayout || view instanceof ScrollView || view instanceof ListView)
@@ -94,6 +93,8 @@ public abstract class AppearanceActivity extends ComponentActivity {
             float size = originalSizes.get(label) * fontPercent()/100f;
             if (Math.abs(label.getTextSize()-size) > .1f) label.setTextSize(TypedValue.COMPLEX_UNIT_PX, size);
             label.setTextColor(text);
+            if (label instanceof CompoundButton)
+                ((CompoundButton)label).setButtonTintList(ColorStateList.valueOf(Color.parseColor(isDark()?"#9BBDFF":"#1F5EFF")));
             if (label instanceof CheckedTextView) {
                 label.setBackgroundColor(Color.parseColor(isDark()?"#111827":"#F4F7FB"));
                 ((CheckedTextView)label).setCheckMarkTintList(ColorStateList.valueOf(Color.parseColor(isDark()?"#9BBDFF":"#1F5EFF")));
@@ -144,6 +145,8 @@ public abstract class AppearanceActivity extends ComponentActivity {
     @Override protected void onResume() { super.onResume(); refreshAppearance(); }
     @Override public void onConfigurationChanged(Configuration configuration) { super.onConfigurationChanged(configuration); refreshAppearance(); }
     @Override protected void onDestroy() {
-        preferences.unregisterOnSharedPreferenceChangeListener(preferenceListener); super.onDestroy();
+        preferences.unregisterOnSharedPreferenceChangeListener(preferenceListener);
+        for (AlertDialog dialog : new ArrayList<>(dialogs)) if (dialog.isShowing()) dialog.dismiss();
+        super.onDestroy();
     }
 }

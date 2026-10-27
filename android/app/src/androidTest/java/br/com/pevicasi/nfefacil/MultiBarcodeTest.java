@@ -3,7 +3,7 @@ package br.com.pevicasi.nfefacil;
 import android.app.AlertDialog;
 import android.content.Intent;
 import android.graphics.*;
-import android.widget.Spinner;
+import android.widget.RadioButton;
 import androidx.test.core.app.ActivityScenario;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.platform.app.InstrumentationRegistry;
@@ -119,7 +119,7 @@ public class MultiBarcodeTest {
                 activity.offerKeys(new LinkedHashSet<>(Arrays.asList(key("55",123),key("65",456))));
                 AlertDialog dialog=dialog(activity);
                 assertFalse(dialog.getButton(AlertDialog.BUTTON_POSITIVE).isEnabled());
-                Spinner spinner=findSpinner(dialog.getWindow().getDecorView());assertNotNull(spinner);spinner.setSelection(2);
+                chooseFiscal(activity,key("65",456));
             });
             InstrumentationRegistry.getInstrumentation().waitForIdleSync();
             scenario.onActivity(activity->{AlertDialog dialog=dialog(activity);assertTrue(dialog.getButton(AlertDialog.BUTTON_POSITIVE).isEnabled());dialog.getButton(AlertDialog.BUTTON_POSITIVE).performClick();});
@@ -145,20 +145,29 @@ public class MultiBarcodeTest {
         try(ActivityScenario<ScannerActivity> scenario=ActivityScenario.launch(ScannerActivity.class)) {
             scenario.onActivity(activity->activity.offerKeys(new LinkedHashSet<>(Arrays.asList(key("55",123),key("65",456)))));
             scenario.recreate();
-            scenario.onActivity(activity->{assertFalse(dialog(activity).getButton(AlertDialog.BUTTON_POSITIVE).isEnabled());findSpinner(dialog(activity).getWindow().getDecorView()).setSelection(2);});
+            scenario.onActivity(activity->{assertFalse(dialog(activity).getButton(AlertDialog.BUTTON_POSITIVE).isEnabled());chooseFiscal(activity,key("65",456));});
             InstrumentationRegistry.getInstrumentation().waitForIdleSync();
             scenario.recreate();
-            scenario.onActivity(activity->{assertTrue(dialog(activity).getButton(AlertDialog.BUTTON_POSITIVE).isEnabled());assertEquals(2,findSpinner(dialog(activity).getWindow().getDecorView()).getSelectedItemPosition());});
+            scenario.onActivity(activity->{assertTrue(dialog(activity).getButton(AlertDialog.BUTTON_POSITIVE).isEnabled());assertEquals("Chave 2 de 2",((android.widget.Button)dialog(activity).getWindow().getDecorView().findViewWithTag("fiscal-key-choice")).getText().toString());});
         }
     }
     private static AlertDialog dialog(ScannerActivity activity) {
         try {java.lang.reflect.Field f=ScannerActivity.class.getDeclaredField("confirmation");f.setAccessible(true);return (AlertDialog)f.get(activity);}
         catch(Exception e){throw new AssertionError(e);}
     }
-    private static Spinner findSpinner(android.view.View view) {
-        if(view instanceof Spinner)return (Spinner)view;
+    static AlertDialog fiscalDialog(ScannerActivity activity) {
+        try {java.lang.reflect.Field f=ScannerActivity.class.getDeclaredField("fiscalChoices");f.setAccessible(true);return (AlertDialog)f.get(activity);}
+        catch(Exception e){throw new AssertionError(e);}
+    }
+    private static void chooseFiscal(ScannerActivity activity,String key) {
+        assertTrue(dialog(activity).getWindow().getDecorView().findViewWithTag("fiscal-key-choice").performClick());
+        RadioButton option=findOption(fiscalDialog(activity).getWindow().getDecorView(),key);
+        assertNotNull(option);assertTrue(option.performClick());
+    }
+    static RadioButton findOption(android.view.View view,String key) {
+        if(view instanceof RadioButton && key.contentEquals(((RadioButton)view).getText()))return (RadioButton)view;
         if(view instanceof android.view.ViewGroup)for(int i=0;i<((android.view.ViewGroup)view).getChildCount();i++) {
-            Spinner s=findSpinner(((android.view.ViewGroup)view).getChildAt(i));if(s!=null)return s;
+            RadioButton option=findOption(((android.view.ViewGroup)view).getChildAt(i),key);if(option!=null)return option;
         }
         return null;
     }
