@@ -34,7 +34,7 @@ if len(certs) != 1:
 check_site_assets(apk)
 (apk.parent/'SHA256SUMS').write_text(hashlib.sha256(apk.read_bytes()).hexdigest()+'  '+apk.name+'\n')
 (apk.parent/'SIGNING-CERT-SHA256.txt').write_text(certs[0]+'\n')
-(apk.parent/'PERSONAL-DEBUG-SIGNING.txt').write_text('NF-e Facil 1.2.0 personal-use debug APK. Package br.com.pevicasi.nfefacil. Debug certificate can change between GitHub Actions runs: direct upgrade may fail; back up important data before any manual uninstall. Do not bypass Play Protect.\n')
-print('Personal-use APK verified: original package, v2 signature, version, checksum and unchanged site assets. Debug-signed, not permanent-key distribution.')
+(apk.parent/'PERSONAL-DEBUG-SIGNING.txt').write_text('NF-e Facil '+match[3]+' personal-use debug APK. Package br.com.pevicasi.nfefacil. Debug certificate can change between GitHub Actions runs: direct upgrade may fail; back up important data before any manual uninstall. Do not bypass Play Protect.\n')
+print('Personal-use APK verified: original package, v2 signature, version, checksum and bundled assets matching this commit. Debug-signed, not permanent-key distribution.')
 print('::notice title=Personal APK verified::NF-e Fácil | package='+match[1]+' | version='+match[3]+' | code='+match[2]
       +' | SHA-256='+hashlib.sha256(apk.read_bytes()).hexdigest()+' | bytes='+str(apk.stat().st_size)+' | ABIs='+','.join(abis))
