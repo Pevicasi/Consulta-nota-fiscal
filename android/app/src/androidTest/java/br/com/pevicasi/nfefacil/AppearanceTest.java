@@ -66,7 +66,8 @@ public class AppearanceTest {
                 assertEquals("true",js(scenario,"getComputedStyle(document.getElementById('totalDiscount')).color === '"+(mode.equals("dark")?"rgb(141, 240, 187)":"rgb(2, 122, 72)")+"'"));
                 screenshot("invoice-"+mode+"-"+percent,scenario);
                 if(percent==160 && mode.equals("dark")) {
-                    js(scenario,"document.getElementById('discountTotalBox').scrollIntoView({behavior:'instant',block:'center'});true");
+                    assertEquals("true",js(scenario,"document.getElementById('discountTotalBox').scrollIntoView({behavior:'auto',block:'center'});true"));
+                    waitJs(scenario,"(() => {const r=document.getElementById('discountTotalBox').getBoundingClientRect();return r.top>=0 && r.bottom<=innerHeight;})()");
                     screenshot("discount-table-dark-160",scenario);
                 }
             }
