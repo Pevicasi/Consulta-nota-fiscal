@@ -1,5 +1,15 @@
 # Registro de alterações
 
+## 1.1.0 — Auditoria integral da issue #1
+
+- Corrigida falha reproduzida: o cartão de desconto permanecia com `hidden` mesmo para `ICMSTot/vDesc` positivo. A renderização agora controla o atributo correto; total oficial zero continua autoritativo. Na ausência do total, usa somente a soma de `prod/vDesc`, sem somar ambos nem inferir `vProd - vNF`.
+- Adicionada regressão web e teste instrumentado sobre o HTML realmente embarcado: desconto positivo, zero, ausente, fallback de itens, frete/outros ajustes, valor monetário/visibilidade e verde no WebView. Mantidos acréscimo padrão de 20%, XMLs, navegação, CSV e impressão.
+- Corrigida a mensagem de status da Consulta 2 nas versões 15/16/17, usando `setStatus` em vez da propriedade global `window.status`. Regressão de falha de rede adicionada.
+- Acrescentada otimização optativa por ABI ARM confirmada do aparelho, sem mudar nome/pacote nem remover ML Kit/OCR. Build padrão e instrumentação continuam universais. ABI do aparelho ainda deve ser confirmada; não se presume arm64.
+- Verificador do APK agora exige nome NF-e Fácil, pacote original, versão e ABIs esperadas. CI registra tamanho bruto, SHA-256 e decomposição por ABI; não compara ZIP de artefato com APK bruto.
+- Atualizada documentação para a decisão vigente de APK pessoal com debug automático, sem variante QA de entrega e sem exigir Secrets permanentes. Riscos de atualização, backup e Play Protect permanecem explícitos.
+- Resultados e pendências em `docs/AUDITORIA_1_1_0.md`. Não foram apagados artefatos antigos. Aprovação depende do CI e do APK do commit final da main, além da confirmação de ABI para otimização. Não houve teste físico do aparelho.
+
 ## 1.1.0 — Continuação da issue #1
 
 - Investigado o conflito de instalação: APKs 1.0.1 com mesmo pacote/versão tinham certificados Android Debug diferentes. Documentadas impressões SHA-256, impossibilidade de atualização entre assinaturas incompatíveis e migração manual com backup verificado, sem limpeza automática de dados.

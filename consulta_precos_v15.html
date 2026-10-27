@@ -89,7 +89,7 @@ function setTab(n){
  t2.classList.toggle('on',n===2);
  tokenBox.classList.toggle('hide',n!==2);
  result.innerHTML='';
- status.textContent=n===1?'Pronto para pesquisar.':'Consulta 2 ainda requer autenticação.';
+ setStatus(n===1?'Pronto para pesquisar.':'Consulta 2 ainda requer autenticação.');
 }
 async function nomearLocal(la,lo){
  try{
@@ -294,7 +294,7 @@ async function consultar(){
  else{let tok=token.value.trim();if(!tok){setStatus('A Consulta 2 exige autenticação. Cole o token para testar.');return}let params=new URLSearchParams({'pesquisa.latitude':la,'pesquisa.longitude':lo,'pesquisa.nroKmDistancia':raio.value,'pesquisa.nroDiaPrz':dias.value});let endpoint;if(/^\d{8,14}$/.test(query)){endpoint='PorGtin';params.set('pesquisa.gtin',query)}else{endpoint='PorDescricao';params.set('pesquisa.descricao',query)}url='https://mprs.sefaz.rs.gov.br/API/ConsultaMenorPrecoBrasil/api/v1/Item/'+endpoint+'?'+params;opt.headers.Authorization=tok.toLowerCase().startsWith('bearer ')?tok:'Bearer '+tok}
  setStatus('Consultando...');
  try{let r;for(let t=1;t<=3;t++){try{r=await fetch(url,opt);if(r.ok)break}catch(e){}if(t<3)await new Promise(z=>setTimeout(z,500*t))}let text=await r.text();if(!r.ok)throw new Error('HTTP '+r.status+' — '+text.slice(0,300));let data;try{data=JSON.parse(text)}catch{data=text}clearStatus();show(data)}
- catch(e){status.textContent='Falhou: '+e.message+'\n\nSe aparecer CORS/bloqueio do navegador, a próxima versão será HTML + PHP.'}
+ catch(e){setStatus('Falhou: '+e.message+'\n\nSe aparecer CORS/bloqueio do navegador, a próxima versão será HTML + PHP.')}
 }
 window.addEventListener('load',()=>{mudarModo('produtos');if(navigator.geolocation)loc();else cidadeBusca.placeholder='Digite uma cidade';});
 </script>

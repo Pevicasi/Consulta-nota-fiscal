@@ -1,5 +1,11 @@
 # Resultados verificados
 
+## Estado atual: auditoria integral 1.1.0 — PENDENTE de validação do novo CI
+
+O relatório vigente está em [AUDITORIA_1_1_0.md](AUDITORIA_1_1_0.md). Os links QA e os APKs 1.0.x abaixo são históricos e **não são a entrega atual**. A decisão do proprietário autoriza um único app pessoal com nome e pacote originais, assinatura debug automática e sem Secrets de distribuição.
+
+O commit-base `54db98e7f3ee22252ecdb5535a64d63f8d9ef6e8` teve [Actions 40439251418](https://github.com/Pevicasi/Consulta-nota-fiscal/actions/runs/40439251418) verde, mas continha falha reproduzida de visibilidade do desconto. O artefato `12706105790` desse run não comprova as correções desta auditoria e não deve ser oferecido como versão corrigida. O resultado do CI do novo commit e seu APK precisam ser conferidos antes de aprovação. Um build local não substitui essa verificação.
+
 ## 1.1.0 — Continuação da issue #1: QA aprovado; distribuição permanente pendente
 
 Código testado: [`001e91894af7329ea5f19dd338a6b44293fcb23f`](https://github.com/Pevicasi/Consulta-nota-fiscal/commit/001e91894af7329ea5f19dd338a6b44293fcb23f). [Workflow QA concluído com sucesso](https://github.com/Pevicasi/Consulta-nota-fiscal/actions/runs/40415457546).

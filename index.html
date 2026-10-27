@@ -1842,7 +1842,11 @@
         totalProducts: num(directText(icmsTot, 'vProd')),
         totalBCST: num(directText(icmsTot, 'vBCST')),
         totalST: num(directText(icmsTot, 'vST')),
-        totalDiscount: Math.max(0, num(directText(icmsTot, 'vDesc'))),
+        // Official total is authoritative (including zero). Fall back to item
+        // discounts only when absent; never add both or infer vProd - vNF.
+        totalDiscount: directChild(icmsTot, 'vDesc')
+          ? Math.max(0, num(directText(icmsTot, 'vDesc')))
+          : itemNodes.reduce((sum, det) => sum + Math.max(0, num(directText(directChild(det, 'prod'), 'vDesc'))), 0),
         totalInvoice: num(directText(icmsTot, 'vNF')),
         items
       };
@@ -2205,7 +2209,7 @@
       document.getElementById('totalSTPercent').textContent =
         `${percentBR.format(totalSTPercent)}%`;
       const discount = Number(data.totalDiscount) || 0;
-      document.getElementById('discountTotalBox').style.display = discount > 0 ? '' : 'none';
+      document.getElementById('discountTotalBox').hidden = discount <= 0;
       document.getElementById('totalDiscount').textContent = brl.format(discount);
       document.getElementById('totalInvoice').textContent = brl.format(data.totalInvoice);
 

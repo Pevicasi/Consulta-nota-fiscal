@@ -104,6 +104,28 @@ public class AppIntegrationTest {
             });
         }
     }
+    @Test public void bundledInvoiceShowsOfficialDiscountOnlyWhenPositive() throws Exception {
+        try(ActivityScenario<MainActivity> scenario=ActivityScenario.launch(MainActivity.class)) {
+            waitForJs(scenario,"typeof window.acceptNativeKey === 'function'");
+            String[] totals={"5.50", "0", null, null, "5.50"};
+            String[] items={"5.50", "5.50", null, "3.25", "5.50"};
+            double[] expected={5.5,0,0,3.25,5.5};
+            for(int i=0;i<totals.length;i++) {
+                String xml="<NFe><infNFe><ide><nNF>"+(800+i)+"</nNF></ide><det nItem='1'><prod><xProd>Desconto Android</xProd><qCom>2</qCom><vUnCom>10</vUnCom><vProd>20</vProd>"
+                    +(items[i]==null?"":"<vDesc>"+items[i]+"</vDesc>")+"</prod></det><total><ICMSTot><vProd>20</vProd>"
+                    +(totals[i]==null?"":"<vDesc>"+totals[i]+"</vDesc>")+"<vFrete>7</vFrete><vOutro>2</vOutro><vNF>"+(i==4?"23.50":"10")+"</vNF></ICMSTot></total></infNFe></NFe>";
+                assertEquals("true",js(scenario,"loadMultipleXmls([new File(["+org.json.JSONObject.quote(xml)+"], 'nota.xml', {type:'text/xml'})]);true"));
+                waitForJs(scenario,"document.getElementById('nfeNumber').textContent === '"+(800+i)+"'");
+                assertEquals("true",js(scenario,"parseXML("+org.json.JSONObject.quote(xml)+").totalDiscount === "+expected[i]));
+                assertEquals(String.valueOf(expected[i]>0),js(scenario,"document.getElementById('discountTotalBox').getBoundingClientRect().height > 0"));
+                if(expected[i]>0) {
+                    String money="R$"+String.format(java.util.Locale.ROOT,"%.2f",expected[i]).replace('.',',');
+                    assertEquals("true",js(scenario,"document.getElementById('totalDiscount').textContent.replace(/\\s/g,'') === "+org.json.JSONObject.quote(money)));
+                    assertEquals("true",js(scenario,"getComputedStyle(document.getElementById('totalDiscount')).color === 'rgb(2, 122, 72)'"));
+                }
+            }
+        }
+    }
     private static void waitForJs(ActivityScenario<MainActivity> scenario,String expression)throws Exception {
         long end=System.currentTimeMillis()+20000;
         while(System.currentTimeMillis()<end){if("true".equals(js(scenario,expression)))return;Thread.sleep(150);}

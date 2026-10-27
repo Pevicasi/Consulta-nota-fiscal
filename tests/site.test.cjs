@@ -61,6 +61,34 @@ test('invalid XML, zero quantity, malformed input and XSS are handled',async()=>
  assert.equal(await p.evaluate(()=>extractNfeKeyFromOcrText('123\n456')),'');assert.equal(await p.evaluate(k=>extractValidNfeKey(k),validKey()),validKey());
  assert.equal(await p.evaluate(k=>isValidNfeKey(k.slice(0,43)+(Number(k[43])+1)%10),validKey()),false);await p.close();
 });
+test('official discount is visible only when positive, without double counting or inferring totals',async()=>{
+ const p=await page();await p.goto(base);
+ const cases=[
+  {total:'5.50',item:'5.50',expected:5.5},
+  {total:'0',item:'5.50',expected:0},
+  {total:null,item:null,expected:0},
+  {total:null,item:'3.25',expected:3.25},
+  {total:'5.50',item:'5.50',expected:5.5,adjustments:true},
+ ];
+ assert.equal(await p.locator('#markupPercent').inputValue(),'20');
+ for(const [i,c] of cases.entries()){
+  let source=xml(700+i);
+  if(c.item!==null)source=source.replace('</prod>',`<vDesc>${c.item}</vDesc></prod>`);
+  source=source.replace('<vNF>24</vNF>',`${c.total===null?'':`<vDesc>${c.total}</vDesc>`}<vFrete>7</vFrete><vOutro>2</vOutro><vNF>${c.adjustments?'27.50':'10'}</vNF>`);
+  await upload(p,[[`discount-${i}.xml`,source]]);
+  await p.locator('#notesTabs button').last().click();
+  assert.equal(await p.evaluate(s=>parseXML(s).totalDiscount,source),c.expected);
+  assert.equal(await p.locator('#discountTotalBox').isVisible(),c.expected>0);
+  if(c.expected>0){
+   assert.equal((await p.locator('#totalDiscount').innerText()).replace(/\s/g,''),`R$${c.expected.toFixed(2).replace('.',',')}`);
+   assert.equal(await p.locator('#discountTotalBox').evaluate(el=>el.hidden),false);
+  }
+  assert.equal(await p.locator('#markupPercent').inputValue(),'20');
+  assert.match(await p.locator('#itemsBody td:nth-child(7)').innerText(),/14,40/);
+ }
+ await p.reload();assert.equal(await p.locator('#discountTotalBox').isVisible(),true);
+ await p.close();
+});
 test('price modes, fuels, token requirement and mocked product response',async()=>{
  for(const version of [15,16,17]){
   const p=await page();await p.goto(base+`/consulta_precos_v${version}.html`);
@@ -69,6 +97,16 @@ test('price modes, fuels, token requirement and mocked product response',async()
   await p.locator('.fuel').first().click();await p.click('#modoProdutos');assert.equal(await p.locator('#q').isVisible(),true);
   await p.evaluate(()=>{setTab(1);window.fetch=async()=>({ok:true,text:async()=>JSON.stringify({produtos:[]}),json:async()=>({produtos:[]})});});
   await p.fill('#q','arroz');await p.click('.go');await p.waitForFunction(()=>document.querySelector('#result').textContent.includes('Nenhum resultado'));assert.match(await p.locator('#result').innerText(),/Nenhum resultado/);await p.close();
+ }
+});
+test('price consultation 2 reports failed requests instead of remaining stuck',async()=>{
+ for(const version of [15,16,17]){
+  const p=await page();await p.goto(base+`/consulta_precos_v${version}.html`);
+  await p.evaluate(()=>{lat.value='-25.4';lon.value='-49.2';setTab(2);window.fetch=async()=>{throw new Error('offline fixture')};});
+  assert.match(await p.locator('#status').innerText(),/autenticação/);
+  await p.fill('#token','fixture-not-a-credential');await p.fill('#q','arroz');await p.click('.go');
+  await p.waitForFunction(()=>document.querySelector('#status').textContent.startsWith('Falhou:'));
+  assert.equal(await p.locator('#status').isVisible(),true);await p.close();
  }
 });
 test('Android bridge preserves XML/CSV, native scanner, clipboard and print routes',async()=>{

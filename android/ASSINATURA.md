@@ -1,5 +1,11 @@
 # Assinatura permanente e migração segura
 
+## Decisão vigente: uso pessoal com debug automático
+
+A decisão mais recente da issue #1 substitui a exigência de assinatura permanente para a entrega pessoal. O app entregue deve ser **NF-e Fácil**, `br.com.pevicasi.nfefacil`, **1.1.0**, sem `.qa` nem sufixo “teste”. O workflow normal gera assinatura Android Debug automaticamente, sem Secrets de release. Essa assinatura pode mudar e não garante atualização entre execuções. Backup deve ser conferido antes de qualquer migração manual; não há desinstalação ou limpeza automática.
+
+As instruções de chave permanente abaixo são opcionais para uma migração futura, não um bloqueio da entrega pessoal. A separação QA descrita no histórico não representa a entrega atual. Consulte [auditoria vigente](../docs/AUDITORIA_1_1_0.md). A assinatura debug não elimina alertas Play Protect; não se recomenda desativar proteção.
+
 ## Diagnóstico confirmado
 
 Os APKs 1.0.1 tinham pacote `br.com.pevicasi.nfefacil` e `versionCode=2`, mas certificados diferentes:

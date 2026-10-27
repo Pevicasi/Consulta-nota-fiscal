@@ -19,6 +19,15 @@ if not match or match[1] != 'br.com.pevicasi.nfefacil' or match[3] != '1.1.0':
     sys.exit('Unexpected application identity for personal-use APK')
 if int(match[2]) != int(os.environ['EXPECTED_VERSION_CODE']):
     sys.exit('Unexpected QA versionCode')
+if "application-label:'NF-e Fácil'" not in info or '.qa' in match[1] or '-qa' in match[3]:
+    sys.exit('Unexpected app name or rejected QA identity')
+from zipfile import ZipFile
+with ZipFile(apk) as archive:
+    abis = sorted({name.split('/')[1] for name in archive.namelist() if name.startswith('lib/') and name.endswith('.so')})
+expected_abi = os.environ.get('EXPECTED_ABI', 'universal')
+expected_abis = ['arm64-v8a', 'armeabi-v7a', 'x86', 'x86_64'] if expected_abi == 'universal' else [expected_abi]
+if abis != sorted(expected_abis):
+    sys.exit('Unexpected APK ABIs: '+str(abis))
 certs = re.findall(r'Signer #\d+ certificate SHA-256 digest: ([0-9a-f]+)', verified)
 if len(certs) != 1:
     sys.exit('Unexpected QA signer count')

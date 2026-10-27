@@ -4,6 +4,12 @@ on:
     branches: [main]
   workflow_dispatch:
     inputs:
+      personal_abi:
+        description: 'Device ABI confirmed by owner (universal keeps compatibility; never guess arm64)'
+        type: choice
+        options: [universal, arm64-v8a, armeabi-v7a]
+        default: universal
+        required: false
       distribution:
         description: 'Build a permanent-key distribution APK (requires signing Secrets and approved certificate)'
         type: boolean
@@ -43,12 +49,27 @@ jobs:
       - name: Test, lint and build installable APK
         working-directory: android
         run: ./gradlew --no-daemon testDebugUnitTest lintDebug assembleDebug assembleDebugAndroidTest
-      - name: Report completed QA unit tests
-        run: python3 android/tools/report-tests.py android/app/build/reports/tests/testDebugUnitTest/index.html 8 'QA unit'
+      - name: Report completed unit tests
+        run: python3 android/tools/report-tests.py android/app/build/reports/tests/testDebugUnitTest/index.html 8 'Unit'
+      - name: Measure universal APK before optional ABI optimization
+        run: |
+          cp android/app/build/outputs/apk/debug/app-debug.apk "$RUNNER_TEMP/nfe-universal.apk"
+          stat -c %s "$RUNNER_TEMP/nfe-universal.apk"
+      - name: Build for confirmed personal device ABI
+        if: github.event_name == 'workflow_dispatch' && inputs.personal_abi && inputs.personal_abi != 'universal'
+        working-directory: android
+        env:
+          PERSONAL_ABI: ${{ inputs.personal_abi }}
+        run: ./gradlew --no-daemon "-PpersonalAbi=$PERSONAL_ABI" assembleDebug
       - name: Verify personal APK identity, signature, site and checksum
         env:
           EXPECTED_VERSION_CODE: '3'
+          EXPECTED_ABI: ${{ inputs.personal_abi || 'universal' }}
         run: python3 android/tools/verify-qa.py android/app/build/outputs/apk/debug/app-debug.apk
+      - name: Record raw APK size and ABI breakdown
+        run: |
+          stat -c %s android/app/build/outputs/apk/debug/app-debug.apk
+          python3 android/tools/apk-size.py "$RUNNER_TEMP/nfe-universal.apk" android/app/build/outputs/apk/debug/app-debug.apk > android/app/build/outputs/apk/debug/APK-SIZE.json
       - name: Upload installable APK
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
@@ -58,6 +79,7 @@ jobs:
             android/app/build/outputs/apk/debug/SHA256SUMS
             android/app/build/outputs/apk/debug/SIGNING-CERT-SHA256.txt
             android/app/build/outputs/apk/debug/PERSONAL-DEBUG-SIGNING.txt
+            android/app/build/outputs/apk/debug/APK-SIZE.json
           if-no-files-found: error
           retention-days: 30
       - name: Upload test and lint reports
@@ -100,9 +122,9 @@ jobs:
             adb shell svc wifi disable
             adb shell svc data disable
             ./gradlew --no-daemon connectedDebugAndroidTest
-      - name: Report completed QA instrumented tests
+      - name: Report completed instrumented tests
         if: always()
-        run: python3 android/tools/report-tests.py android/app/build/reports/androidTests/connected/debug/index.html 19 'QA instrumented'
+        run: python3 android/tools/report-tests.py android/app/build/reports/androidTests/connected/debug/index.html 20 'Instrumented'
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: always()
         with:
@@ -173,7 +195,7 @@ jobs:
         if: always()
         run: |
           python3 android/tools/report-tests.py android/app/build/reports/tests/testReleaseUnitTest/index.html 8 'Release unit'
-          python3 android/tools/report-tests.py android/app/build/reports/androidTests/connected/release/index.html 19 'Release instrumented'
+          python3 android/tools/report-tests.py android/app/build/reports/androidTests/connected/release/index.html 20 'Release instrumented'
       - name: Verify distribution identity, signature and checksum
         env:
           ANDROID_SIGNING_CERT_SHA256: ${{ vars.ANDROID_SIGNING_CERT_SHA256 }}

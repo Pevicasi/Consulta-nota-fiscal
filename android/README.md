@@ -1,5 +1,13 @@
 # NF-e Fácil para Android
 
+## Política atual de entrega — decisão do proprietário na issue #1
+
+O APK pessoal é **NF-e Fácil**, pacote **br.com.pevicasi.nfefacil**, versão **1.1.0**, código **3**, com assinatura debug automática. Não há app `.qa` como entrega nem exigência de Secrets/chave permanente para esse uso. A assinatura debug pode mudar entre runners; atualização sobre assinatura diferente pode falhar e exigir migração manual, com risco de perda de dados. Nunca desinstalar ou apagar dados automaticamente. Não contornar Play Protect nem prometer eliminar seu aviso.
+
+Consulte a [auditoria atual](../docs/AUDITORIA_1_1_0.md). Os trechos antigos sobre “NF-e Fácil (teste)” abaixo são históricos e foram substituídos por esta decisão. No Actions, o artefato pessoal chama-se `nfe-facil-1.1.0-<SHA>`, contendo `app-debug.apk`, checksum, certificado e medição de tamanho. APK de instrumentação é exclusivamente interno.
+
+O build padrão permanece universal para compatibilidade e para o emulador x86_64 do CI. Somente após confirmar a ABI do aparelho, use `./gradlew -PpersonalAbi=arm64-v8a assembleDebug` (ou `armeabi-v7a`) ou a entrada `personal_abi` do workflow manual. Isso filtra apenas bibliotecas nativas; não remove ML Kit, OCR, HTMLs ou testes. Nunca escolher arm64 por suposição. O CI compara APK bruto universal e candidato em `APK-SIZE.json`, mantendo a instrumentação universal. Uma medição local não comprova um APK publicado.
+
 Aplicativo Android 8.0+ (API 26), separado do site, com CameraX e modelos **embarcados** do Google ML Kit (CODE 128 e OCR latino). O leitor funciona sem internet, inclusive na primeira abertura. Os XMLs, cálculos, abas, colunas, preços e histórico usam os mesmos HTMLs do site, copiados automaticamente por `syncSite` durante o build. Não há servidor remoto para abrir as notas nem duplicação manual do site.
 
 ## Compilar e testar
