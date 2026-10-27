@@ -1,3 +1,10 @@
+# 1.4.0
+
+- Busca colorida em movimento, rastreamento real e caminho rápido/lazy no scanner.
+- Tabela compacta Android, editor de conversão separado e coluna IPI visível.
+- Migração de 16 para 17 colunas com persistência; site público preservado.
+- APK único mais recente após validação; benchmarks e evidências Android.
+
 # 1.3.1
 
 - Corrige também a largura mínima herdada do nome do produto; testes verificam conteúdo dentro da célula.

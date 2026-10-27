@@ -227,8 +227,8 @@ public class MainActivity extends AppearanceActivity {
         web.setBackgroundColor(android.graphics.Color.parseColor(isDark()?"#111827":"#F4F7FB"));
         String url = web.getUrl();
         if (url == null || !url.matches("https://appassets\\.androidplatform\\.net/assets/site/(index|consulta_precos_v(15|16|17))\\.html")) return;
-        try (InputStream in = getAssets().open("android-appearance.js")) {
-            web.evaluateJavascript(readUtf8(in)+";window.applyNativeAppearance?.({dark:"+isDark()+",fontPercent:"+fontPercent()+"});", ignored -> {
+        try (InputStream in = getAssets().open("android-appearance.js"); InputStream invoice = getAssets().open("android-invoice.js")) {
+            web.evaluateJavascript(readUtf8(in)+";"+readUtf8(invoice)+";window.applyNativeAppearance?.({dark:"+isDark()+",fontPercent:"+fontPercent()+"});", ignored -> {
                 if (isDestroyed()) return;
                 web.postVisualStateCallback(System.nanoTime(), new WebView.VisualStateCallback() {
                     @Override public void onComplete(long requestId) {

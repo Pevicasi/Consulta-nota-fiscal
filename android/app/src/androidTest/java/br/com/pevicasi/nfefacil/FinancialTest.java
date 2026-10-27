@@ -27,12 +27,12 @@ public class FinancialTest {
     private static String js(ActivityScenario<MainActivity> s,String code)throws Exception{return AppIntegrationTest.js(s,code);}
     private static void waitJs(ActivityScenario<MainActivity> s,String code)throws Exception{AppIntegrationTest.waitForJs(s,code);}
     private static void load(ActivityScenario<MainActivity> s)throws Exception{
-        waitJs(s,"typeof window.acceptNativeXmlDocuments === 'function' && typeof NfeCost === 'object'");
+        waitJs(s,"window.__compactInvoice && typeof window.acceptNativeXmlDocuments === 'function' && typeof NfeCost === 'object'");
         js(s,"localStorage.clear();costFactors={};startNewConsultation();loadedXmls=[];markupPercentInput.value='20';document.querySelectorAll('.column-checkbox').forEach(e=>{if(!e.checked)e.click()});acceptNativeXmlDocuments([{name:'acquisition.xml',text:"+JSONObject.quote(fixture())+"}]);true");
         waitJs(s,"currentFinance && loadedNotes.length === 1 && currentItems.length === 5");
     }
     private static void factor(ActivityScenario<MainActivity> s,int index,String value)throws Exception{
-        js(s,"document.querySelector('.cost-details[data-cost-item=\""+index+"\"]').open=true;true");
+        js(s,"openProductCost("+index+");document.querySelector('.cost-details[data-cost-item=\""+index+"\"]').open=true;true");
         js(s,"(()=>{const e=document.querySelector('[data-cost-field=\"factor\"][data-cost-index=\""+index+"\"]');e.value="+JSONObject.quote(value)+";e.dispatchEvent(new Event('input',{bubbles:true}));const c=document.querySelector('[data-cost-field=\"confirmed\"][data-cost-index=\""+index+"\"]');c.click();return true;})()");
     }
     private static void number(ActivityScenario<MainActivity> s,String code,double expected)throws Exception{assertEquals(code,expected,Double.parseDouble(js(s,code)),.001);}
@@ -75,7 +75,7 @@ public class FinancialTest {
                         String raw=js(s,"JSON.stringify((()=>{fitNativeInvoiceColumns();const q=k=>document.querySelector('th[data-column-key=\"'+k+'\"]'),r=k=>q(k).getBoundingClientRect().width;return {item:r('0'),quantity:r('7'),product:r('1'),viewport:document.querySelector('.table-wrap').clientWidth,count:Array.from(document.querySelectorAll('thead th')).filter(e=>e.getClientRects().length).length,labelHeight:q('7').querySelector('.header-label').getBoundingClientRect().height,line:parseFloat(getComputedStyle(q('7')).lineHeight)};})())");
                         JSONObject m=new JSONObject((String)new JSONTokener(raw).nextValue());m.put("font",percent);m.put("dark",dark);m.put("landscape",landscape);metrics.put(m);
                         if(percent<=100)assertTrue(m.toString(),m.getDouble("item")+m.getDouble("quantity")+m.getDouble("product")<=m.getDouble("viewport")+2);
-                        assertTrue(m.toString(),m.getDouble("product")>m.getDouble("quantity")*1.2);assertTrue(m.toString(),m.getDouble("product")>m.getDouble("item")*2.5);assertEquals(fourteen?14:16,m.getInt("count"));assertTrue(m.toString(),m.getDouble("labelHeight")<=m.getDouble("line")+2);
+                        assertTrue(m.toString(),m.getDouble("product")>m.getDouble("quantity")*1.2);assertTrue(m.toString(),m.getDouble("product")>m.getDouble("item")*2.5);assertEquals(fourteen?15:17,m.getInt("count"));assertTrue(m.toString(),m.getDouble("labelHeight")<=m.getDouble("line")+2);
                     }
                     if(percent==100||percent==160){
                         js(s,"document.activeElement?.blur();document.querySelector('th[data-column-key=\"1\"]').scrollIntoView({behavior:'instant',block:'center'});true");Thread.sleep(500);

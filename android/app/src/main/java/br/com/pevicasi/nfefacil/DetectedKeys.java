@@ -7,12 +7,16 @@ import java.util.*;
 
 /** One policy for live frames, photos and OCR; ordering never chooses an invoice. */
 final class DetectedKeys {
+    private Rect potential;
+    Rect potentialBounds(){return potential==null?null:new Rect(potential);}
     private final SortedMap<String, Rect> candidates = new TreeMap<>();
     static DetectedKeys barcodes(List<Barcode> results) {
         DetectedKeys found = new DetectedKeys();
         for (Barcode result : results) {
             if (result.getFormat() != Barcode.FORMAT_CODE_128) continue;
-            found.add(NfeKey.barcode(result.getRawValue()), result.getBoundingBox());
+            String key=NfeKey.barcode(result.getRawValue());
+            if(key.isEmpty()&&result.getBoundingBox()!=null)found.potential=new Rect(result.getBoundingBox());
+            found.add(key, result.getBoundingBox());
         }
         return found;
     }

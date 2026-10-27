@@ -74,7 +74,7 @@ public class ScannerTest {
             Bitmap bitmap=Bitmap.createBitmap(1000,600,Bitmap.Config.ARGB_8888);
             view.track(new RectF(100,100,300,200),true,1000);
             for(int i=0;i<50;i++) { bitmap.eraseColor(Color.TRANSPARENT); view.draw(new Canvas(bitmap)); }
-            assertEquals(Color.rgb(46,190,110),bitmap.getPixel(100,120));
+            assertEquals(Color.rgb(52,168,83),bitmap.getPixel(100,120));
             view.clear();bitmap.eraseColor(Color.TRANSPARENT);view.draw(new Canvas(bitmap));
             assertEquals(Color.TRANSPARENT,bitmap.getPixel(100,120));
             bitmap.recycle();

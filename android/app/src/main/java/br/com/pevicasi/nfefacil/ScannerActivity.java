@@ -159,36 +159,42 @@ public class ScannerActivity extends AppearanceActivity {
     @androidx.annotation.OptIn(markerClass = {androidx.camera.core.ExperimentalGetImage.class, androidx.camera.view.TransformExperimental.class})
     private void analyze(ImageProxy frame) {
         synchronized (busy) {
-            if (destroyed || photoMode || android.os.SystemClock.uptimeMillis() < retryAfter || !busy.compareAndSet(false, true)) { frame.close(); return; }
+            if (destroyed || photoMode || choosing || android.os.SystemClock.uptimeMillis() < retryAfter || !busy.compareAndSet(false, true)) { frame.close(); return; }
         }
         android.media.Image media = frame.getImage();
         if (media == null) { frame.close(); busy.set(false); runOnUiThread(this::closeReadersWhenIdle); return; }
         final int generation = cameraGeneration;
-        final androidx.camera.view.transform.OutputTransform source = sourceTransform(frame);
-        InputImage image = InputImage.fromMediaImage(media, frame.getImageInfo().getRotationDegrees());
-        Bitmap converted = null;
-        try {
-            Bitmap raw = frame.toBitmap(); Matrix rotation = new Matrix(); rotation.postRotate(frame.getImageInfo().getRotationDegrees());
-            try { converted = Bitmap.createBitmap(raw, 0, 0, raw.getWidth(), raw.getHeight(), rotation, true); }
-            finally { if (raw != converted) raw.recycle(); }
-        } catch (RuntimeException | OutOfMemoryError error) { /* Keep the original media-image reader and OCR available. */ }
-        final Bitmap upright = converted;
-        FiscalScanner.scan(barcode, image, upright, executor).addOnSuccessListener(detected -> {
-            if (destroyed || generation != cameraGeneration || photoMode) { releaseFrame(frame, upright); return; }
-            showDetections(detected, source, 900);
-            if (!detected.keys().isEmpty()) { releaseFrame(frame, upright); }
-            else if (!destroyed && !photoMode && System.currentTimeMillis() - lastOcr > 1500) {
-                lastOcr = System.currentTimeMillis();
-                ocr.process(image).addOnSuccessListener(text -> {
-                    if (!destroyed && generation == cameraGeneration && !photoMode)
-                        showDetections(DetectedKeys.text(text), source, 1800);
-                }).addOnCompleteListener(task -> releaseFrame(frame, upright));
-            } else { releaseFrame(frame, upright); }
-        }).addOnFailureListener(error -> releaseFrame(frame, upright));
+        final androidx.camera.view.transform.OutputTransform source;
+        try{source=sourceTransform(frame);}catch(RuntimeException error){releaseFrame(frame,null);return;}
+        final long started=android.os.SystemClock.elapsedRealtime();
+        final java.util.concurrent.atomic.AtomicReference<Bitmap> bitmap=new java.util.concurrent.atomic.AtomicReference<>();
+        final CloseOnce close=new CloseOnce(()->releaseFrame(frame,bitmap.get()));
+        final InputImage image;
+        try { image=InputImage.fromMediaImage(media,frame.getImageInfo().getRotationDegrees()); }
+        catch(RuntimeException error){close.run();return;}
+        FiscalScanner.scanLazy(barcode,image,()->{
+            Bitmap raw=null,converted=null;
+            try {
+                raw=frame.toBitmap();Matrix rotation=new Matrix();rotation.postRotate(frame.getImageInfo().getRotationDegrees());
+                converted=Bitmap.createBitmap(raw,0,0,raw.getWidth(),raw.getHeight(),rotation,true);bitmap.set(converted);return converted;
+            }catch(RuntimeException|OutOfMemoryError error){return null;}
+            finally{if(raw!=null&&raw!=converted)raw.recycle();}
+        },executor).addOnCompleteListener(task->{
+            if(!task.isSuccessful()||destroyed||generation!=cameraGeneration||photoMode){close.run();return;}
+            DetectedKeys detected=task.getResult();showDetections(detected,source,900);
+            if(!detected.keys().isEmpty()) {ScanMetrics.record("frame-confirmation",started,0);close.run();}
+            else if(!choosing&&android.os.SystemClock.elapsedRealtime()-lastOcr>1500){
+                lastOcr=android.os.SystemClock.elapsedRealtime();final long ocrStart=lastOcr;
+                try {ocr.process(image).addOnCompleteListener(text->{
+                    try{if(text.isSuccessful()&&!destroyed&&generation==cameraGeneration&&!photoMode)showDetections(DetectedKeys.text(text.getResult()),source,1800);}
+                    finally{ScanMetrics.record("ocr-fallback",ocrStart,0);close.run();}
+                });}catch(RuntimeException error){close.run();}
+            }else close.run();
+        });
     }
+
     private void releaseFrame(ImageProxy frame, Bitmap upright) {
-        if (upright != null) upright.recycle();
-        frame.close(); busy.set(false); closeReadersWhenIdle();
+        try{if(upright!=null)upright.recycle();}finally{try{frame.close();}finally{busy.set(false);closeReadersWhenIdle();}}
     }
     private void closeReadersWhenIdle() {
         if (destroyed && !busy.get() && !readersClosed) {
@@ -204,6 +210,7 @@ public class ScannerActivity extends AppearanceActivity {
         Rect bounds = detected.bounds(selected);
         if (choosing && selected == null) overlay.clear();
         else if (bounds != null) trackBounds(bounds, source, true, duration);
+        else if(!choosing&&detected.potentialBounds()!=null)trackBounds(detected.potentialBounds(),source,false,duration);
         else if (!choosing) overlay.clear();
         if (!choosing && !detected.keys().isEmpty()) {
             if (detected.keys().size() > 1) {
@@ -232,7 +239,7 @@ public class ScannerActivity extends AppearanceActivity {
         if (destroyed || isFinishing() || choosing || keys.isEmpty() || !getLifecycle().getCurrentState().isAtLeast(androidx.lifecycle.Lifecycle.State.RESUMED)) return;
         String[] values = keys.stream().map(NfeKey::barcode).filter(k -> !k.isEmpty()).distinct().toArray(String[]::new);
         if (values.length == 0) return;
-        choosing = true; pendingKeys = values;
+        choosing = true; overlay.setActive(false); overlay.setMultiple(values.length>1); pendingKeys = values;
         selectedKeyIndex = values.length == 1 ? 0 : Math.max(-1, Math.min(selectedKeyIndex, values.length - 1));
         LinearLayout content = new LinearLayout(this); content.setOrientation(LinearLayout.VERTICAL);
         int padding = Math.round(20 * getResources().getDisplayMetrics().density); content.setPadding(padding, padding, padding, 0);
@@ -269,7 +276,7 @@ public class ScannerActivity extends AppearanceActivity {
     private void retryReading() {
         cameraGeneration++; // Discard results started before the explicit retry.
         pendingKeys = null; selectedKeyIndex = -1; choosing = false; retryAfter = android.os.SystemClock.uptimeMillis() + 1000;
-        overlay.clear();
+        overlay.clear(); overlay.setActive(true);
         if (photoMode) resumeCamera();
     }
     private void showFiscalChoices(String[] labels, int selected, java.util.function.IntConsumer choose) {
@@ -306,16 +313,16 @@ public class ScannerActivity extends AppearanceActivity {
     }
     private void takePhoto() {
         if (imageCapture == null) { status.setText("Câmera indisponível. Use a galeria."); return; }
-        photoMode = true; capture.setEnabled(false);
+        photoMode = true; overlay.setActive(false); capture.setEnabled(false);
         imageCapture.takePicture(ContextCompat.getMainExecutor(this), new ImageCapture.OnImageCapturedCallback() {
             @Override public void onCaptureSuccess(ImageProxy image) {
                 try {
                     Bitmap bitmap = image.toBitmap(); Matrix rotation = new Matrix(); rotation.postRotate(image.getImageInfo().getRotationDegrees());
                     showPhoto(Bitmap.createBitmap(bitmap, 0, 0, bitmap.getWidth(), bitmap.getHeight(), rotation, true));
-                } catch (RuntimeException e) { status.setText("Não foi possível preparar a foto."); photoMode = false; capture.setEnabled(true); }
+                } catch (RuntimeException e) { status.setText("Não foi possível preparar a foto."); photoMode = false; overlay.setActive(true); capture.setEnabled(true); }
                 finally { image.close(); }
             }
-            @Override public void onError(ImageCaptureException e) { photoMode = false; capture.setEnabled(true); status.setText("Não foi possível fotografar. Tente novamente."); }
+            @Override public void onError(ImageCaptureException e) { photoMode = false; overlay.setActive(true); capture.setEnabled(true); status.setText("Não foi possível fotografar. Tente novamente."); }
         });
     }
     private void loadPhoto(Uri uri) {
@@ -342,7 +349,7 @@ public class ScannerActivity extends AppearanceActivity {
         });
     }
     private void showPhoto(Bitmap bitmap) {
-        cameraGeneration++; photoGeneration++; photoMode = true; overlay.clear(); overlay.setVisibility(View.GONE); if (camera != null) camera.getCameraControl().enableTorch(false);
+        cameraGeneration++; photoGeneration++; photoMode = true; overlay.clear(); overlay.setActive(false); overlay.setVisibility(View.GONE); if (camera != null) camera.getCameraControl().enableTorch(false);
         torchOn = false; torch.setEnabled(false); zoom.setEnabled(false);
         photo.setBitmap(bitmap); photo.setVisibility(View.VISIBLE); preview.setVisibility(View.INVISIBLE);
         capture.setVisibility(View.GONE); readCrop.setVisibility(View.VISIBLE); resume.setVisibility(View.VISIBLE);
@@ -354,24 +361,23 @@ public class ScannerActivity extends AppearanceActivity {
         final int generation = photoGeneration;
         readCrop.setEnabled(false); status.setText("Lendo código e texto localmente…");
         InputImage image = InputImage.fromBitmap(crop, 0);
-        FiscalScanner.scan(barcode, image, crop, executor).addOnSuccessListener(found -> {
-            if (destroyed || !photoMode || generation != photoGeneration) { busy.set(false); if (!destroyed) readCrop.setEnabled(true); closeReadersWhenIdle(); return; }
-            Set<String> keys = found.keys();
-            ocr.process(image).addOnSuccessListener(text -> {
-                if (destroyed || !photoMode || generation != photoGeneration) return;
-                keys.addAll(NfeKey.fromOcr(text.getText()));
-                if (keys.isEmpty()) status.setText("Nenhuma chave válida encontrada. Ajuste o recorte, foco ou iluminação e tente novamente.");
-                else offerKeys(keys);
-            }).addOnFailureListener(e -> {
-                if (destroyed || !photoMode || generation != photoGeneration) return;
-                if (!keys.isEmpty()) offerKeys(keys);
-                else status.setText("OCR indisponível nesta imagem. Tente outra foto.");
-            })
-                .addOnCompleteListener(task -> { busy.set(false); if (!destroyed) readCrop.setEnabled(true); closeReadersWhenIdle(); });
-        }).addOnFailureListener(e -> { busy.set(false); if (!destroyed) { readCrop.setEnabled(true); status.setText("Falha na leitura. Tente outra imagem."); } closeReadersWhenIdle(); });
+        final long started=android.os.SystemClock.elapsedRealtime();
+        FiscalScanner.scan(barcode,image,crop,executor).addOnCompleteListener(task->{
+            if(!task.isSuccessful()||destroyed||!photoMode||generation!=photoGeneration){finishCrop(crop);return;}
+            Set<String> keys=task.getResult().keys();
+            if(!keys.isEmpty()){offerKeys(keys);ScanMetrics.record("photo-confirmation",started,0);finishCrop(crop);return;}
+            try{ocr.process(image).addOnCompleteListener(text->{
+                try{if(!destroyed&&photoMode&&generation==photoGeneration){
+                    if(text.isSuccessful())keys.addAll(NfeKey.fromOcr(text.getResult().getText()));
+                    if(keys.isEmpty())status.setText("Nenhuma chave válida. Ajuste foco, recorte ou iluminação.");else offerKeys(keys);
+                }}finally{ScanMetrics.record("photo-ocr",started,0);finishCrop(crop);}
+            });}catch(RuntimeException error){finishCrop(crop);}
+        });
     }
+    private void finishCrop(Bitmap crop){crop.recycle();busy.set(false);if(!destroyed)readCrop.setEnabled(true);closeReadersWhenIdle();}
+
     private void resumeCamera() {
-        cameraGeneration++; photoGeneration++; overlay.clear(); overlay.setVisibility(View.VISIBLE); photoMode = false; photo.setVisibility(View.GONE); preview.setVisibility(View.VISIBLE);
+        cameraGeneration++; photoGeneration++; overlay.clear(); overlay.setActive(!choosing); overlay.setVisibility(View.VISIBLE); photoMode = false; photo.setVisibility(View.GONE); preview.setVisibility(View.VISIBLE);
         capture.setVisibility(View.VISIBLE); capture.setEnabled(camera != null); readCrop.setVisibility(View.GONE); resume.setVisibility(View.GONE);
         zoom.setEnabled(camera != null); torch.setEnabled(camera != null && camera.getCameraInfo().hasFlashUnit()); torch.setText("Lanterna");
         status.setText("Centralize a chave. Toque para focar e use pinça para ampliar.");
@@ -384,10 +390,12 @@ public class ScannerActivity extends AppearanceActivity {
         if (choosing && pendingKeys != null) { state.putStringArray("pendingKeys", pendingKeys); state.putInt("selectedKeyIndex", selectedKeyIndex); }
         super.onSaveInstanceState(state);
     }
+    @Override protected void onResume(){super.onResume();if(overlay!=null)overlay.setActive(!photoMode&&!choosing);}
+    @Override protected void onPause(){if(overlay!=null)overlay.setActive(false);super.onPause();}
     @Override protected void onStop() { if (camera != null) camera.getCameraControl().enableTorch(false); torchOn = false; torch.setText("Lanterna"); super.onStop(); }
     @Override protected void onDestroy() {
         synchronized (busy) { destroyed = true; }
-        cameraGeneration++; overlay.clear(); if (confirmation != null) confirmation.dismiss(); if (analysis != null) analysis.clearAnalyzer(); if (provider != null) provider.unbindAll();
+        cameraGeneration++; overlay.setActive(false); overlay.clear(); if (confirmation != null) confirmation.dismiss(); if (analysis != null) analysis.clearAnalyzer(); if (provider != null) provider.unbindAll();
         // Regional continuations must finish before closing their clients/executor.
         closeReadersWhenIdle(); super.onDestroy();
     }

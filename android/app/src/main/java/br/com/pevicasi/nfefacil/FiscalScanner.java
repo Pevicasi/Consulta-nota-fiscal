@@ -9,21 +9,38 @@ import com.google.mlkit.vision.barcode.common.Barcode;
 import com.google.mlkit.vision.common.InputImage;
 import java.util.*;
 import java.util.concurrent.Executor;
+import java.util.function.Supplier;
+import android.os.SystemClock;
 
 /** Bounded ML Kit rereads separate aligned codes merged into one full-frame ROI. */
 final class FiscalScanner {
     static Task<DetectedKeys> scan(BarcodeScanner scanner, InputImage full, Bitmap upright, Executor worker) {
+        return scanLazy(scanner, full, () -> upright, worker);
+    }
+    static Task<DetectedKeys> scanLazy(BarcodeScanner scanner, InputImage full, Supplier<Bitmap> bitmap, Executor worker) {
+        final long started=SystemClock.elapsedRealtime();
         try {
             return scanner.process(full).onSuccessTask(worker, results -> {
-                Task<DetectedKeys> accumulated = Tasks.forResult(DetectedKeys.barcodes(results));
-                if (upright == null) return accumulated;
-                for (Rect region : regions(upright.getWidth(), upright.getHeight(), results)) {
-                    accumulated = accumulated.onSuccessTask(worker, found -> reread(scanner, upright, region, found, worker));
+                DetectedKeys first=DetectedKeys.barcodes(results);
+                boolean uncertain=results.stream().anyMatch(b -> b.getBoundingBox()!=null && (NfeKey.barcode(b.getRawValue()).isEmpty() || merged(b.getBoundingBox())));
+                if(!ScanPolicy.refine(first.keys().size(),uncertain,results.stream().anyMatch(b->b.getBoundingBox()!=null&&!b.getBoundingBox().isEmpty()))){ ScanMetrics.record("barcode-fast",started,0);return Tasks.forResult(first); }
+                if(results.isEmpty())return Tasks.forResult(first);
+                Bitmap upright=bitmap.get();if(upright==null)return Tasks.forResult(first);
+                final long roiStarted=SystemClock.elapsedRealtime();
+                Task<DetectedKeys> accumulated=Tasks.forResult(first);
+                int count=0;final java.util.concurrent.atomic.AtomicInteger executed=new java.util.concurrent.atomic.AtomicInteger();
+                for(Rect region:regions(upright.getWidth(),upright.getHeight(),results)){
+                    if(++count>ScanPolicy.MAX_ROIS)break;
+                    accumulated=accumulated.onSuccessTask(worker,found -> {
+                        if(!ScanPolicy.probe(0,SystemClock.elapsedRealtime()-roiStarted))return Tasks.forResult(found);
+                        executed.incrementAndGet();return reread(scanner,upright,region,found,worker);
+                    });
                 }
-                return accumulated;
+                return accumulated.continueWith(worker,t->{ScanMetrics.record("barcode-roi",started,executed.get());return t.getResult();});
             });
-        } catch (RuntimeException error) { return Tasks.forException(error); }
+        } catch(RuntimeException error){return Tasks.forException(error);}
     }
+    private static boolean merged(Rect box){return Math.max(box.width(),box.height())<4.5f*Math.min(box.width(),box.height());}
     private static Task<DetectedKeys> reread(BarcodeScanner scanner, Bitmap upright, Rect region, DetectedKeys found, Executor worker) {
         final Bitmap patch;
         try { patch = Bitmap.createBitmap(upright, region.left, region.top, region.width(), region.height()); }
@@ -49,9 +66,9 @@ final class FiscalScanner {
         }
         List<Rect> windows=new ArrayList<>();
         // No detected/potential code: keep the original full-frame/OCR path, without blind searches.
-        // At most seven overlapping bands per axis (14 probes), processed sequentially off the UI thread.
-        addBands(windows,width,height,true,horizontal?4:(shortCode?2:0));
-        addBands(windows,width,height,false,vertical?4:(narrow?2:0));
+        // Probe only detector-supported orientations; cap eight probes and two seconds in scanLazy.
+        addBands(windows,width,height,true,horizontal?4:0);
+        addBands(windows,width,height,false,vertical?4:0);
         return windows;
     }
     private static void addBands(List<Rect> windows,int width,int height,boolean rows,int divisor) {

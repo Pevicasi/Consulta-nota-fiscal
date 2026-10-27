@@ -108,7 +108,7 @@ public class ImportRepairTest {
                     waitJs(scenario,"document.documentElement.dataset.nativeFontPercent === '"+percent+"' && document.documentElement.dataset.nativeTheme === '"+(dark?"dark":"light")+"'");
                     js(scenario,"acceptNativeXmlDocuments([{name:'layout.xml',text:"+JSONObject.quote(SafDocumentsProvider.xml(1))+"}]);true");
                     assertEquals("true",js(scenario,"['0','1','7'].every(k=>{const e=document.querySelector('th[data-column-key=\"'+k+'\"] .header-label'),r=e.getBoundingClientRect(),p=e.closest('th').getBoundingClientRect();return getComputedStyle(e).whiteSpace==='nowrap' && r.height<=parseFloat(getComputedStyle(e).lineHeight)+2 && r.right<=p.right+1;})"));
-                    assertEquals("true",js(scenario,"Array.from(document.querySelectorAll('#draggableHeaderRow th')).filter(e=>e.getClientRects().length).length===14 && document.querySelector('.table-wrap').scrollWidth>document.querySelector('.table-wrap').clientWidth && document.getElementById('markupPercent').value==='20' && loadedNotes[0].data.totalDiscount===5.5"));
+                    assertEquals("true",js(scenario,"Array.from(document.querySelectorAll('#draggableHeaderRow th')).filter(e=>e.getClientRects().length).length===15 && document.querySelector('.table-wrap').scrollWidth>document.querySelector('.table-wrap').clientWidth && document.getElementById('markupPercent').value==='20' && loadedNotes[0].data.totalDiscount===5.5"));
                     if(percent==160){
                         scrollWeb(scenario,"th[data-column-key=\"7\"] .header-label");
                         AppearanceTest.screenshot("repairs-table-"+(dark?"dark":"light")+"-160-"+(landscape?"landscape":"portrait"),scenario);
