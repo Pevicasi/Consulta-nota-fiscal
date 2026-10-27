@@ -107,7 +107,16 @@ public class AppearanceTest {
                 TextView digits=selectable(confirmation(a).getWindow().getDecorView());assertNotNull(digits.getLayout());
                 for(int line=0;line<digits.getLineCount();line++)assertEquals(0,digits.getLayout().getEllipsisCount(line));
                 confirmation(a).getButton(AlertDialog.BUTTON_NEGATIVE).performClick();assertFalse(a.isFinishing());
+                a.offerKeys(new LinkedHashSet<>(Arrays.asList(key,MultiBarcodeTest.key("65",902))));
+                Spinner choices=spinner(confirmation(a).getWindow().getDecorView());assertNotNull(choices);
+                TextView option=(TextView)choices.getAdapter().getDropDownView(1,null,choices);
+                float largeSize=option.getTextSize();
+                a.setFontPercent(90);a.setThemeMode("light");
+                assertEquals(largeSize*90f/160f,option.getTextSize(),.5f);
+                assertEquals(android.graphics.Color.parseColor("#172033"),option.getCurrentTextColor());
+                a.setFontPercent(160);a.setThemeMode("dark");choices.performClick();
             });
+            InstrumentationRegistry.getInstrumentation().waitForIdleSync();screenshot("ambiguous-menu-dark-160");
         }
     }
     @Test public void automaticThemeFollowsAndroidLiveAndExplicitLightOverridesIt() throws Exception {
@@ -138,6 +147,10 @@ public class AppearanceTest {
     private static TextView selectable(View view){
         if(view instanceof TextView && ((TextView)view).isTextSelectable())return (TextView)view;
         if(view instanceof ViewGroup)for(int i=0;i<((ViewGroup)view).getChildCount();i++){TextView found=selectable(((ViewGroup)view).getChildAt(i));if(found!=null)return found;}return null;
+    }
+    private static Spinner spinner(View view){
+        if(view instanceof Spinner)return (Spinner)view;
+        if(view instanceof ViewGroup)for(int i=0;i<((ViewGroup)view).getChildCount();i++){Spinner found=spinner(((ViewGroup)view).getChildAt(i));if(found!=null)return found;}return null;
     }
     private static View findDescription(View view,String description){
         if(description.contentEquals(view.getContentDescription()==null?"":view.getContentDescription()))return view;

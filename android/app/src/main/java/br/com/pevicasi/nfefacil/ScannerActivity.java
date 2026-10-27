@@ -244,7 +244,14 @@ public class ScannerActivity extends AppearanceActivity {
             choices.setContentDescription("Escolha a chave encontrada");
             String[] labels = new String[values.length + 1]; labels[0] = "Selecione a chave da nota";
             System.arraycopy(values, 0, labels, 1, values.length);
-            choices.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, labels));
+            choices.setAdapter(new ArrayAdapter<String>(this, android.R.layout.simple_spinner_dropdown_item, labels) {
+                @Override public View getView(int position, View recycled, ViewGroup parent) {
+                    View row = super.getView(position, recycled, parent); styleOwnedView(row); return row;
+                }
+                @Override public View getDropDownView(int position, View recycled, ViewGroup parent) {
+                    View row = super.getDropDownView(position, recycled, parent); styleOwnedView(row); return row;
+                }
+            });
             choices.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
                 @Override public void onItemSelected(AdapterView<?> parent, View view, int position, long id) { selected[0] = position - 1; selectedKeyIndex = position - 1;
                     digits.setText(position == 0 ? "Selecione uma das chaves encontradas." : values[position - 1]);
