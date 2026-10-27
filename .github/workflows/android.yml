@@ -4,12 +4,6 @@ on:
     branches: [main]
   workflow_dispatch:
     inputs:
-      personal_abi:
-        description: 'Device ABI confirmed by owner (universal keeps compatibility; never guess arm64)'
-        type: choice
-        options: [universal, arm64-v8a, armeabi-v7a]
-        default: universal
-        required: false
       distribution:
         description: 'Build a permanent-key distribution APK (requires signing Secrets and approved certificate)'
         type: boolean
@@ -51,29 +45,19 @@ jobs:
         run: ./gradlew --no-daemon testDebugUnitTest lintDebug assembleDebug assembleDebugAndroidTest
       - name: Report completed unit tests
         run: python3 android/tools/report-tests.py android/app/build/reports/tests/testDebugUnitTest/index.html 8 'Unit'
-      - name: Measure universal APK before optional ABI optimization
-        run: |
-          cp android/app/build/outputs/apk/debug/app-debug.apk "$RUNNER_TEMP/nfe-universal.apk"
-          stat -c %s "$RUNNER_TEMP/nfe-universal.apk"
-      - name: Build for confirmed personal device ABI
-        if: github.event_name == 'workflow_dispatch' && inputs.personal_abi && inputs.personal_abi != 'universal'
-        working-directory: android
-        env:
-          PERSONAL_ABI: ${{ inputs.personal_abi }}
-        run: ./gradlew --no-daemon "-PpersonalAbi=$PERSONAL_ABI" assembleDebug
       - name: Verify personal APK identity, signature, site and checksum
         env:
-          EXPECTED_VERSION_CODE: '3'
-          EXPECTED_ABI: ${{ inputs.personal_abi || 'universal' }}
+          EXPECTED_VERSION_CODE: '4'
+          EXPECTED_ABI: universal
         run: python3 android/tools/verify-qa.py android/app/build/outputs/apk/debug/app-debug.apk
       - name: Record raw APK size and ABI breakdown
         run: |
           stat -c %s android/app/build/outputs/apk/debug/app-debug.apk
-          python3 android/tools/apk-size.py "$RUNNER_TEMP/nfe-universal.apk" android/app/build/outputs/apk/debug/app-debug.apk > android/app/build/outputs/apk/debug/APK-SIZE.json
+          python3 android/tools/apk-size.py android/app/build/outputs/apk/debug/app-debug.apk > android/app/build/outputs/apk/debug/APK-SIZE.json
       - name: Upload installable APK
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: nfe-facil-1.1.0-${{ github.sha }}
+          name: nfe-facil-1.2.0-${{ github.sha }}
           path: |
             android/app/build/outputs/apk/debug/app-debug.apk
             android/app/build/outputs/apk/debug/SHA256SUMS
@@ -122,14 +106,21 @@ jobs:
             adb shell svc wifi disable
             adb shell svc data disable
             ./gradlew --no-daemon connectedDebugAndroidTest
+      - name: Collect native appearance screenshots
+        if: always()
+        run: |
+          mkdir -p android/app/build/reports/appearance-screenshots
+          adb pull /sdcard/Android/data/br.com.pevicasi.nfefacil/files/appearance-evidence/. android/app/build/reports/appearance-screenshots/ || true
       - name: Report completed instrumented tests
         if: always()
-        run: python3 android/tools/report-tests.py android/app/build/reports/androidTests/connected/debug/index.html 20 'Instrumented'
+        run: python3 android/tools/report-tests.py android/app/build/reports/androidTests/connected/debug/index.html 24 'Instrumented'
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: always()
         with:
           name: device-test-reports
-          path: android/app/build/reports/androidTests/
+          path: |
+            android/app/build/reports/androidTests/
+            android/app/build/reports/appearance-screenshots/
 
   distribution:
     if: github.event_name == 'workflow_dispatch' && inputs.distribution && github.ref == 'refs/heads/main'
@@ -195,11 +186,11 @@ jobs:
         if: always()
         run: |
           python3 android/tools/report-tests.py android/app/build/reports/tests/testReleaseUnitTest/index.html 8 'Release unit'
-          python3 android/tools/report-tests.py android/app/build/reports/androidTests/connected/release/index.html 20 'Release instrumented'
+          python3 android/tools/report-tests.py android/app/build/reports/androidTests/connected/release/index.html 24 'Release instrumented'
       - name: Verify distribution identity, signature and checksum
         env:
           ANDROID_SIGNING_CERT_SHA256: ${{ vars.ANDROID_SIGNING_CERT_SHA256 }}
-          EXPECTED_VERSION_CODE: '3'
+          EXPECTED_VERSION_CODE: '4'
         run: python3 android/tools/verify-distribution.py android/app/build/outputs/apk/release/app-release.apk
       - name: Upload approved distribution APK
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4

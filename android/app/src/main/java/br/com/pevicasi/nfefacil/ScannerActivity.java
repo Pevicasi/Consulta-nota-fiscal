@@ -29,7 +29,7 @@ import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /** CameraX owns camera lifecycle; both ML Kit models are bundled and work in airplane mode. */
-public class ScannerActivity extends ComponentActivity {
+public class ScannerActivity extends AppearanceActivity {
     private PreviewView preview;
     private TextView status;
     private ScannerOverlay overlay;
@@ -69,13 +69,15 @@ public class ScannerActivity extends ComponentActivity {
             v.setPadding(12 + insets.getSystemWindowInsetLeft(), 12 + insets.getSystemWindowInsetTop(),
                 12 + insets.getSystemWindowInsetRight(), 12 + insets.getSystemWindowInsetBottom()); return insets;
         });
+        addAppearanceControls(root);
         TextView title = new TextView(this); title.setText("Ler chave NF-e · CODE 128 e OCR local"); title.setTextSize(20); root.addView(title);
         status = new TextView(this); status.setText("Toque para focar. Use pinça ou a barra para ampliar. Centralize os 44 dígitos."); root.addView(status);
         FrameLayout frame = new FrameLayout(this);
         preview = new PreviewView(this); preview.setImplementationMode(PreviewView.ImplementationMode.COMPATIBLE); frame.addView(preview);
         overlay = new ScannerOverlay(this); frame.addView(overlay);
         photo = new CropImageView(this); photo.setVisibility(View.GONE); frame.addView(photo);
-        root.addView(frame, new LinearLayout.LayoutParams(-1, 0, 1));
+        int previewHeight = Math.round(Math.max(160, Math.min(320, getResources().getDisplayMetrics().heightPixels / getResources().getDisplayMetrics().density * .4f)) * getResources().getDisplayMetrics().density);
+        root.addView(frame, new LinearLayout.LayoutParams(-1, previewHeight));
         zoom = new SeekBar(this); zoom.setContentDescription("Zoom da câmera"); zoom.setMax(100); zoom.setEnabled(false); root.addView(zoom);
         zoom.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override public void onProgressChanged(SeekBar bar, int value, boolean fromUser) { if (fromUser && camera != null) camera.getCameraControl().setLinearZoom(value / 100f); }
@@ -90,7 +92,8 @@ public class ScannerActivity extends ComponentActivity {
         capture = button(actions, "Foto / recorte", this::takePhoto); capture.setEnabled(false);
         readCrop = button(actions, "Ler recorte", this::readCrop); readCrop.setVisibility(View.GONE);
         resume = button(actions, "Voltar à câmera", this::resumeCamera); resume.setVisibility(View.GONE);
-        button(actions, "Fechar", this::finish); root.addView(actions); setContentView(root);
+        button(actions, "Fechar", this::finish); root.addView(actions);
+        ScrollView scroll = new ScrollView(this); scroll.setFillViewport(true); scroll.addView(root); setContentView(scroll);
         ScaleGestureDetector scale = new ScaleGestureDetector(this, new ScaleGestureDetector.SimpleOnScaleGestureListener() {
             @Override public boolean onScale(ScaleGestureDetector detector) {
                 if (camera == null || camera.getCameraInfo().getZoomState().getValue() == null) return true;
@@ -250,14 +253,15 @@ public class ScannerActivity extends ComponentActivity {
                 @Override public void onNothingSelected(AdapterView<?> parent) {}
             }); choices.setSelection(selectedKeyIndex + 1); content.addView(choices);
         }
+        ScrollView choicesScroll = new ScrollView(this); choicesScroll.addView(content);
         confirmation = new android.app.AlertDialog.Builder(this).setTitle("Chave encontrada")
-            .setView(content)
+            .setView(choicesScroll)
             .setPositiveButton("Confirmar chave", (dialog, which) -> {
                 if (isFinishing() || selected[0] < 0) return;
                 setResult(RESULT_OK, new Intent().putExtra("key", values[selected[0]])); finish();
             }).setNegativeButton("Ler novamente", (dialog, which) -> retryReading())
             .setOnCancelListener(dialog -> retryReading()).create();
-        confirmation.show();
+        showOwnedDialog(confirmation);
         confirmation.getButton(android.app.AlertDialog.BUTTON_POSITIVE).setEnabled(selectedKeyIndex >= 0);
     }
     private void retryReading() {
@@ -352,7 +356,7 @@ public class ScannerActivity extends ComponentActivity {
         status.setText("Centralize a chave. Toque para focar e use pinça para ampliar.");
     }
     private Button button(LinearLayout row, String title, Runnable action) {
-        Button result = new Button(this); result.setText(title); result.setTextSize(11); result.setOnClickListener(v -> action.run());
+        Button result = new Button(this); result.setText(title); result.setTextSize(14); result.setOnClickListener(v -> action.run());
         row.addView(result, new LinearLayout.LayoutParams(0, -2, 1)); return result;
     }
     @Override protected void onSaveInstanceState(Bundle state) {

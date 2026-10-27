@@ -21,7 +21,7 @@ import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.util.Set;
 
-public class MainActivity extends ComponentActivity {
+public class MainActivity extends AppearanceActivity {
     static final String ORIGIN = "https://appassets.androidplatform.net";
     private WebView web;
     private ValueCallback<Uri[]> fileCallback;
@@ -63,11 +63,12 @@ public class MainActivity extends ComponentActivity {
         root.setOnApplyWindowInsetsListener((v, insets) -> {
             v.setPadding(insets.getSystemWindowInsetLeft(), insets.getSystemWindowInsetTop(), insets.getSystemWindowInsetRight(), insets.getSystemWindowInsetBottom()); return insets;
         });
+        addAppearanceControls(root);
         LinearLayout nav = new LinearLayout(this);
         button(nav, "Notas", () -> web.loadUrl(ORIGIN + "/assets/site/index.html"));
-        button(nav, "Preços", () -> new android.app.AlertDialog.Builder(this).setTitle("Consulta de preços")
+        button(nav, "Preços", () -> showOwnedDialog(new android.app.AlertDialog.Builder(this).setTitle("Consulta de preços")
             .setItems(new String[]{"Versão 17 (atual)", "Versão 16", "Versão 15"}, (d, which) ->
-                web.loadUrl(ORIGIN + "/assets/site/consulta_precos_v" + (17 - which) + ".html")).show());
+                web.loadUrl(ORIGIN + "/assets/site/consulta_precos_v" + (17 - which) + ".html")).create()));
         button(nav, "Ler chave", () -> scanner.launch(new Intent(this, ScannerActivity.class)));
         root.addView(nav);
         web = new WebView(this); root.addView(web, new LinearLayout.LayoutParams(-1, 0, 1)); setContentView(root);
@@ -100,10 +101,11 @@ public class MainActivity extends ComponentActivity {
                         });
                     } catch (IOException e) { toast("Não foi possível iniciar os controles Android."); }
                 }
+                onAppearanceChanged();
             }
         });
         if (!WebViewFeature.isFeatureSupported(WebViewFeature.WEB_MESSAGE_LISTENER)) {
-            new android.app.AlertDialog.Builder(this).setMessage("Atualize o Android System WebView para usar o leitor e a exportação.").setPositiveButton("OK", null).show();
+            showOwnedDialog(new android.app.AlertDialog.Builder(this).setMessage("Atualize o Android System WebView para usar o leitor e a exportação.").setPositiveButton("OK", null).create());
         } else {
             WebViewCompat.addWebMessageListener(web, "NativeApp", java.util.Collections.singleton(ORIGIN), (view, message, sourceOrigin, isMainFrame, reply) -> {
                 if (!isMainFrame) return;
@@ -133,6 +135,15 @@ public class MainActivity extends ComponentActivity {
         });
         if (state != null) pendingNativeKey = state.getString("pendingNativeKey");
         if (state == null || web.restoreState(state) == null) web.loadUrl(ORIGIN + "/assets/site/index.html");
+    }
+    @Override protected void onAppearanceChanged() {
+        if (web == null) return;
+        web.setBackgroundColor(android.graphics.Color.parseColor(isDark()?"#111827":"#F4F7FB"));
+        String url = web.getUrl();
+        if (url == null || !url.matches("https://appassets\\.androidplatform\\.net/assets/site/(index|consulta_precos_v(15|16|17))\\.html")) return;
+        try (InputStream in = getAssets().open("android-appearance.js")) {
+            web.evaluateJavascript(readUtf8(in)+";window.applyNativeAppearance?.({dark:"+isDark()+",fontPercent:"+fontPercent()+"});", null);
+        } catch (IOException error) { toast("Não foi possível aplicar a aparência."); }
     }
     void acceptScannerKey(String key) {
         if (!NfeKey.isValid(key)) return;
@@ -178,14 +189,14 @@ public class MainActivity extends ComponentActivity {
         }
     }
     private void button(LinearLayout row, String label, Runnable action) {
-        Button button = new Button(this); button.setText(label); button.setTextSize(12); button.setOnClickListener(v -> action.run());
+        Button button = new Button(this); button.setText(label); button.setTextSize(14); button.setOnClickListener(v -> action.run());
         row.addView(button, new LinearLayout.LayoutParams(0, -2, 1));
     }
     private void openExternal(Uri uri) {
         if (!"https".equals(uri.getScheme()) && !"http".equals(uri.getScheme()) && !"geo".equals(uri.getScheme())) return;
         try { startActivity(new Intent(Intent.ACTION_VIEW, uri)); } catch (ActivityNotFoundException e) { toast("Nenhum aplicativo pode abrir este link."); }
     }
-    private void toast(String message) { Toast.makeText(this, message, Toast.LENGTH_LONG).show(); }
+    private void toast(String message) { showNotice(message); }
     @Override protected void onSaveInstanceState(Bundle out) { super.onSaveInstanceState(out); web.saveState(out); out.putString("pendingNativeKey", pendingNativeKey); }
     @Override protected void onPause() { web.onPause(); super.onPause(); }
     @Override protected void onResume() { super.onResume(); if (web != null) web.onResume(); }

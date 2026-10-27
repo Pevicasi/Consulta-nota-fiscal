@@ -1,5 +1,9 @@
 # Resultados verificados
 
+## Atualização 1.2.0 — fontes e modo noturno
+
+A atualização implementa as duas melhorias na mesma entrega, com APK universal pessoal, identidade original e debug automático. O escopo, comandos e testes estão em [APARENCIA.md](APARENCIA.md). Os resultados do GitHub Actions e o artefato do commit final são registrados na [issue #1](https://github.com/Pevicasi/Consulta-nota-fiscal/issues/1). Um build local não substitui essa validação. Links e resultados 1.1.0/QA abaixo são históricos.
+
 ## Estado atual: auditoria integral 1.1.0 — PENDENTE de validação do novo CI
 
 O relatório vigente está em [AUDITORIA_1_1_0.md](AUDITORIA_1_1_0.md). Os links QA e os APKs 1.0.x abaixo são históricos e **não são a entrega atual**. A decisão do proprietário autoriza um único app pessoal com nome e pacote originais, assinatura debug automática e sem Secrets de distribuição.

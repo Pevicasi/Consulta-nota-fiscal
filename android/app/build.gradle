@@ -6,16 +6,10 @@ android {
         applicationId 'br.com.pevicasi.nfefacil'
         minSdk 26
         targetSdk 36
-        versionCode 3
-        versionName '1.1.0'
+        versionCode 4
+        versionName '1.2.0'
         testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
-        // Opt in only after checking the user's device ABI. Emulator CI remains universal.
-        def personalAbi = providers.gradleProperty('personalAbi').orNull
-        if (personalAbi != null) {
-            if (!(personalAbi in ['arm64-v8a', 'armeabi-v7a']))
-                throw new GradleException('personalAbi must be a confirmed arm64-v8a or armeabi-v7a device ABI')
-            ndk { abiFilters personalAbi }
-        }
+
     }
     def signingNames = ['ANDROID_KEYSTORE_PATH', 'ANDROID_KEYSTORE_PASSWORD', 'ANDROID_KEY_ALIAS', 'ANDROID_KEY_PASSWORD']
     if (signingNames.every { System.getenv(it) }) {

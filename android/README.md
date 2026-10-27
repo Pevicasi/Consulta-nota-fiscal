@@ -1,12 +1,20 @@
 # NF-e Fácil para Android
 
+## Atualização 1.2.0: fontes e aparência
+
+No topo das telas principais e do scanner, use **A− / A+ / Restaurar padrão** (90%–160%, padrão 100%) e **Tema: Claro / Escuro / Automático (Android)**. Se o espaço for pequeno, a faixa dos controles de fonte permite rolagem horizontal. As preferências são salvas no app e reaplicadas nas páginas locais, no scanner e nos diálogos. A tabela continua rolável horizontalmente; dados fiscais e desconto permanecem legíveis. Não é necessário mudar a fonte global do Android.
+
+APK pessoal **NF-e Fácil**, `br.com.pevicasi.nfefacil`, **1.2.0/código 4**, universal, assinatura debug automática sem exigir Secrets permanentes. Artefato `nfe-facil-1.2.0-<SHA>` do Actions. Não há variante teste como entrega e nenhuma biblioteca/ABI foi retirada. A opção de ABI mencionada no histórico foi removida por decisão do proprietário. APKs anteriores não são excluídos nesta atualização.
+
+O site público e páginas externas não recebem o tema nem os ajustes do app. Impressão/PDF usa a apresentação clara original. Consulte [funcionamento e validação](../docs/APARENCIA.md). Os registros 1.1.0 abaixo são históricos; não confundir seus links/pendências com a atualização 1.2.0.
+
 ## Política atual de entrega — decisão do proprietário na issue #1
 
 O APK pessoal é **NF-e Fácil**, pacote **br.com.pevicasi.nfefacil**, versão **1.1.0**, código **3**, com assinatura debug automática. Não há app `.qa` como entrega nem exigência de Secrets/chave permanente para esse uso. A assinatura debug pode mudar entre runners; atualização sobre assinatura diferente pode falhar e exigir migração manual, com risco de perda de dados. Nunca desinstalar ou apagar dados automaticamente. Não contornar Play Protect nem prometer eliminar seu aviso.
 
 Consulte a [auditoria atual](../docs/AUDITORIA_1_1_0.md). Os trechos antigos sobre “NF-e Fácil (teste)” abaixo são históricos e foram substituídos por esta decisão. No Actions, o artefato pessoal chama-se `nfe-facil-1.1.0-<SHA>`, contendo `app-debug.apk`, checksum, certificado e medição de tamanho. APK de instrumentação é exclusivamente interno.
 
-O build padrão permanece universal para compatibilidade e para o emulador x86_64 do CI. Somente após confirmar a ABI do aparelho, use `./gradlew -PpersonalAbi=arm64-v8a assembleDebug` (ou `armeabi-v7a`) ou a entrada `personal_abi` do workflow manual. Isso filtra apenas bibliotecas nativas; não remove ML Kit, OCR, HTMLs ou testes. Nunca escolher arm64 por suposição. O CI compara APK bruto universal e candidato em `APK-SIZE.json`, mantendo a instrumentação universal. Uma medição local não comprova um APK publicado.
+Na atualização 1.2.0, o build é somente universal; a opção de filtragem de ABI foi removida conforme decisão do proprietário.
 
 Aplicativo Android 8.0+ (API 26), separado do site, com CameraX e modelos **embarcados** do Google ML Kit (CODE 128 e OCR latino). O leitor funciona sem internet, inclusive na primeira abertura. Os XMLs, cálculos, abas, colunas, preços e histórico usam os mesmos HTMLs do site, copiados automaticamente por `syncSite` durante o build. Não há servidor remoto para abrir as notas nem duplicação manual do site.
 

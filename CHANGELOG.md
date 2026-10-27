@@ -1,5 +1,15 @@
 # Registro de alterações
 
+## 1.2.0 — Fontes e modo noturno / issue #1
+
+- Controles A−, A+ e Restaurar padrão nas telas Notas/Preços e scanner; escala de 90% a 160%, em passos de 10%, padrão 100%, com nomes acessíveis, indicação de percentual e limites desabilitados.
+- Tema Claro, Escuro ou Automático seguindo o Android, com preferência persistida junto da escala em SharedPreferences. Mudanças imediatas sem recriar a Activity, reiniciar câmera, recarregar consulta ou perder XML/estado da nota. Alterações de tema do sistema em Automático atualizam as telas em uso.
+- Tema/fontes também em navegação, câmera, controles, mensagens, menus e diálogos próprios; scanner e confirmação permitem rolagem quando necessário. Conteúdo local do WebView recebe um asset exclusivo do app: cartões adaptativos, texto quebrável, tabela de 16 colunas com rolagem horizontal e desconto verde contrastante. Impressão mantém cores claras e o estilo original.
+- Os quatro HTMLs do site público continuam inalterados nesta atualização; o asset recusa origens externas e não é carregado no GitHub Pages.
+- Mantidos barcode/ML Kit/OCR, importação XML, desconto, acréscimo, CSV, impressão, dados existentes, nome NF-e Fácil e pacote original. Versão 1.2.0, código 4, APK universal com debug automático para uso pessoal. Removida a opção de filtrar ABI introduzida anteriormente, conforme decisão posterior do proprietário; não há otimização de tamanho nem bibliotecas removidas.
+- Adicionados 3 testes web de aparência (13 no total) e 4 testes instrumentados (24 no total), com capturas Android, limites/reset, persistência, tema do sistema, combinações de escala/tema, nota, preços e confirmação do scanner. CI verifica nome/pacote/versão, ABIs universais, assinatura v2, identidade dos HTMLs e dos dois assets Android, e publica checksum SHA-256 do APK em anotação.
+- APKs anteriores preservados até aprovação do proprietário. Assinatura debug pode variar entre execuções; não é garantida atualização sobre certificado diferente, não há desinstalação/limpeza automática e não se promete remover alertas Play Protect. Evidências e limites em docs/APARENCIA.md e na issue #1.
+
 ## 1.1.0 — Auditoria integral da issue #1
 
 - Corrigida falha reproduzida: o cartão de desconto permanecia com `hidden` mesmo para `ICMSTot/vDesc` positivo. A renderização agora controla o atributo correto; total oficial zero continua autoritativo. Na ausência do total, usa somente a soma de `prod/vDesc`, sem somar ambos nem inferir `vProd - vNF`.
