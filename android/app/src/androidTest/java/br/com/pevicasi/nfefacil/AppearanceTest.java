@@ -35,7 +35,7 @@ public class AppearanceTest {
             waitJs(scenario,"document.documentElement.dataset.nativeFontPercent === '160'");
             InstrumentationRegistry.getInstrumentation().waitForIdleSync();
             scenario.onActivity(a->assertLabelsFit(a.findViewById(android.R.id.content)));
-            screenshot("controls-160");
+            screenshot("controls-160",scenario);
             scenario.recreate();ready(scenario);scenario.onActivity(a->assertEquals(160,a.fontPercent()));
             scenario.onActivity(a->{
                 Button minus=(Button)findDescription(a.getWindow().getDecorView(),"Diminuir fontes");
@@ -64,7 +64,11 @@ public class AppearanceTest {
                 assertEquals("true",js(scenario,"document.getElementById('discountTotalBox').getBoundingClientRect().height > 0 && document.getElementById('totalDiscount').textContent.includes('5,50')"));
                 assertEquals("true",js(scenario,"document.getElementById('nfeNumber').textContent === '902' && document.getElementById('markupPercent').value === '20'"));
                 assertEquals("true",js(scenario,"getComputedStyle(document.getElementById('totalDiscount')).color === '"+(mode.equals("dark")?"rgb(141, 240, 187)":"rgb(2, 122, 72)")+"'"));
-                screenshot("invoice-"+mode+"-"+percent);
+                screenshot("invoice-"+mode+"-"+percent,scenario);
+                if(percent==160 && mode.equals("dark")) {
+                    js(scenario,"document.getElementById('discountTotalBox').scrollIntoView({behavior:'instant',block:'center'});true");
+                    screenshot("discount-table-dark-160",scenario);
+                }
             }
             for(int version:new int[]{15,16,17}) {
                 scenario.onActivity(a->web(a.getWindow().getDecorView()).loadUrl(MainActivity.ORIGIN+"/assets/site/consulta_precos_v"+version+".html"));
@@ -76,7 +80,7 @@ public class AppearanceTest {
                 scenario.onActivity(a->{a.setFontPercent(160);a.setThemeMode("dark");});
                 waitJs(scenario,"document.documentElement.dataset.nativeFontPercent === '160' && document.documentElement.dataset.nativeTheme === 'dark'");
                 assertEquals("true",js(scenario,"document.documentElement.scrollWidth <= innerWidth+1"));
-                screenshot("prices-"+version+"-dark-160");
+                screenshot("prices-"+version+"-dark-160",scenario);
             }
         }
     }
@@ -95,9 +99,9 @@ public class AppearanceTest {
                 assertEquals(android.graphics.Color.parseColor("#172033"),digits.getCurrentTextColor());
                 a.setFontPercent(90);
             });
-            InstrumentationRegistry.getInstrumentation().waitForIdleSync();screenshot("scanner-light-90");
+            InstrumentationRegistry.getInstrumentation().waitForIdleSync();screenshot("scanner-light-90",scenario);
             scenario.onActivity(a->{a.setFontPercent(160);a.setThemeMode("dark");});
-            InstrumentationRegistry.getInstrumentation().waitForIdleSync();screenshot("scanner-dark-160");
+            InstrumentationRegistry.getInstrumentation().waitForIdleSync();screenshot("scanner-dark-160",scenario);
             scenario.onActivity(a->{
                 TextView digits=selectable(confirmation(a).getWindow().getDecorView());assertNotNull(digits.getLayout());
                 for(int line=0;line<digits.getLineCount();line++)assertEquals(0,digits.getLayout().getEllipsisCount(line));
@@ -115,7 +119,7 @@ public class AppearanceTest {
                 assertEquals(android.graphics.Color.parseColor("#172033"),option.getCurrentTextColor());
                 a.setFontPercent(160);a.setThemeMode("dark");choices.performClick();
             });
-            InstrumentationRegistry.getInstrumentation().waitForIdleSync();screenshot("ambiguous-menu-dark-160");
+            InstrumentationRegistry.getInstrumentation().waitForIdleSync();screenshot("ambiguous-menu-dark-160",scenario);
         }
     }
     @Test public void automaticThemeFollowsAndroidLiveAndExplicitLightOverridesIt() throws Exception {
@@ -145,8 +149,34 @@ public class AppearanceTest {
         }
         fail("Theme choice must be accessible and clickable: "+text);
     }
-    private static void screenshot(String name)throws Exception {
+    private static void screenshot(String name,ActivityScenario<? extends AppearanceActivity> scenario)throws Exception {
+        CountDownLatch rendered=new CountDownLatch(1);
+        int[] sample={-1,-1,0};
+        scenario.onActivity(a->{
+            View decor=a.getWindow().getDecorView();WebView local=web(decor);
+            Runnable captureReady=()->{
+                if(local!=null && local.getUrl()!=null && local.getUrl().endsWith("/site/index.html")) {
+                    int[] position=new int[2];local.getLocationOnScreen(position);
+                    sample[0]=position[0]+2;sample[1]=position[1]+Math.min(32,local.getHeight()/4);sample[2]=a.isDark()?1:0;
+                }
+                rendered.countDown();
+            };
+            Runnable nextFrames=()->decor.postOnAnimation(()->decor.postOnAnimation(captureReady));
+            if(local==null)nextFrames.run();
+            else {
+                local.postVisualStateCallback(System.nanoTime(),new WebView.VisualStateCallback(){
+                    @Override public void onComplete(long requestId){nextFrames.run();}
+                });
+            }
+        });
+        assertTrue("Updated WebView/native frame must be rendered before capture",rendered.await(20,TimeUnit.SECONDS));
         Bitmap bitmap=InstrumentationRegistry.getInstrumentation().getUiAutomation().takeScreenshot();assertNotNull(bitmap);
+        if(sample[0]>=0){
+            int pixel=bitmap.getPixel(sample[0],sample[1]);
+            int r=android.graphics.Color.red(pixel),g=android.graphics.Color.green(pixel),b=android.graphics.Color.blue(pixel);
+            assertTrue("Captured WebView pixels must match the selected theme: "+name+" #"+Integer.toHexString(pixel),
+                sample[2]==1 ? r<80 && g<80 && b<80 : r>200 && g>200 && b>200);
+        }
         File dir=InstrumentationRegistry.getInstrumentation().getTargetContext().getExternalFilesDir("appearance-evidence");assertNotNull(dir);assertTrue(dir.isDirectory()||dir.mkdirs());
         try(OutputStream out=new FileOutputStream(new File(dir,name+".png"))){assertTrue(bitmap.compress(Bitmap.CompressFormat.PNG,100,out));}finally{bitmap.recycle();}
     }
