@@ -228,7 +228,8 @@ jobs:
           (cd delivery/current && sha256sum -c SHA256SUMS)
           cp delivery/current/app-debug.apk delivery/NF-e-Facil-1.2.0.apk
           (cd delivery && sha256sum NF-e-Facil-1.2.0.apk > SHA256SUMS)
-          if ! gh release view v1.1.0 >/dev/null 2>&1; then
+          archived=$(gh release view v1.1.0 --json assets --jq '[.assets[].name] | contains(["NF-e-Facil-1.1.0.apk", "SHA256SUMS"])' 2>/dev/null || true)
+          if [ "$archived" != true ]; then
             gh run download 40442578145 --name nfe-facil-1.1.0-5b73ae1bcb005ac06f22496f054c26d66dee5a40 --dir delivery/previous
             (cd delivery/previous && sha256sum -c SHA256SUMS)
             echo '550976a868f36d147165954447d39507cfe17b03957d0a9c04f03a9a4721c35e  delivery/previous/app-debug.apk' | sha256sum -c -
@@ -239,7 +240,11 @@ jobs:
 
           Origem: commit 5b73ae1bcb005ac06f22496f054c26d66dee5a40, Actions 40442578145, artefato 12706986411. SHA-256 conferido contra o arquivo original. Este arquivo de versão mantém o APK disponível além da validade do artefato do Actions. Não excluir antes da aprovação do proprietário.
           NOTES
+            if gh release view v1.1.0 >/dev/null 2>&1; then
+              gh release upload v1.1.0 delivery/archive/NF-e-Facil-1.1.0.apk delivery/archive/SHA256SUMS
+            else
             gh release create v1.1.0 delivery/archive/NF-e-Facil-1.1.0.apk delivery/archive/SHA256SUMS --target 5b73ae1bcb005ac06f22496f054c26d66dee5a40 --title 'NF-e Fácil 1.1.0 — APK anterior preservado' --notes-file delivery/archive/NOTES.md --latest=false
+            fi
           fi
           cat > delivery/NOTES.md <<NOTES
           NF-e Fácil 1.2.0 (código 4), pacote original br.com.pevicasi.nfefacil, APK universal com assinatura debug automática para uso pessoal. Sem Secrets de assinatura e sem otimização/remoção de ABI.
@@ -252,7 +257,13 @@ jobs:
           NOTES
           if gh release view v1.2.0 >/dev/null 2>&1; then
             published=$(gh release view v1.2.0 --json targetCommitish --jq .targetCommitish)
-            test "$published" = "$GITHUB_SHA" || { echo 'Existing release preserved: bump version before publishing another APK.'; exit 1; }
+            if [ "$published" != "$GITHUB_SHA" ]; then
+              git fetch --no-tags --depth=1 origin "$published"
+              # A delivery-only repair must preserve the already published APK.
+              # Any app/build/test change still requires a new version.
+              git diff --exit-code "$published" "$GITHUB_SHA" -- . ':!.github/workflows/android.yml' ':!docs/APARENCIA.md' ':!docs/VALIDACAO.md' || { echo 'Existing release preserved: bump version before publishing changed app code.'; exit 1; }
+              echo '::notice::Application source unchanged; existing published APK preserved.'
+            fi
           else
             gh release create v1.2.0 delivery/NF-e-Facil-1.2.0.apk delivery/SHA256SUMS delivery/current/SIGNING-CERT-SHA256.txt delivery/current/PERSONAL-DEBUG-SIGNING.txt delivery/current/APK-SIZE.json --target "$GITHUB_SHA" --title 'NF-e Fácil 1.2.0 — fontes e modo noturno' --notes-file delivery/NOTES.md --latest
           fi
