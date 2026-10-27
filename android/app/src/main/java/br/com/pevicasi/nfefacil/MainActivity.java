@@ -17,6 +17,12 @@ import androidx.webkit.WebViewAssetLoader;
 import androidx.webkit.WebViewCompat;
 import androidx.webkit.WebViewFeature;
 import org.json.JSONObject;
+import org.json.JSONArray;
+import android.database.Cursor;
+import android.provider.OpenableColumns;
+import java.util.LinkedHashSet;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.util.Set;
@@ -25,13 +31,15 @@ public class MainActivity extends AppearanceActivity {
     static final String ORIGIN = "https://appassets.androidplatform.net";
     private WebView web;
     private ValueCallback<Uri[]> fileCallback;
+    private final ExecutorService xmlReader = Executors.newSingleThreadExecutor();
+    private boolean xmlImporting;
     private byte[] pendingExport;
     private String pendingNativeKey;
     private GeolocationPermissions.Callback locationCallback;
     private String locationOrigin;
     private final ActivityResultLauncher<Intent> filePicker = registerForActivityResult(
         new ActivityResultContracts.StartActivityForResult(), result -> {
-            if (fileCallback != null) { fileCallback.onReceiveValue(WebChromeClient.FileChooserParams.parseResult(result.getResultCode(), result.getData())); fileCallback = null; }
+            finishXmlSelection(result.getResultCode(), result.getData());
         });
     private final ActivityResultLauncher<String> exportPicker = registerForActivityResult(
         new ActivityResultContracts.CreateDocument("text/csv"), uri -> {
@@ -116,11 +124,16 @@ public class MainActivity extends AppearanceActivity {
         }
         web.setWebChromeClient(new WebChromeClient() {
             @Override public boolean onShowFileChooser(WebView view, ValueCallback<Uri[]> callback, FileChooserParams params) {
+                if (!isNotesPage() || xmlImporting) {
+                    callback.onReceiveValue(null);
+                    toast(xmlImporting ? "Aguarde a leitura dos XMLs selecionados." : "Abra a tela Notas para importar XMLs.");
+                    return true;
+                }
                 if (fileCallback != null) fileCallback.onReceiveValue(null);
                 fileCallback = callback;
                 Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT).setType("*/*").addCategory(Intent.CATEGORY_OPENABLE)
                     .putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
-                try { filePicker.launch(intent); } catch (ActivityNotFoundException e) { callback.onReceiveValue(null); fileCallback = null; }
+                try { filePicker.launch(intent); } catch (ActivityNotFoundException e) { callback.onReceiveValue(null); fileCallback = null; xmlNotice("Nenhum seletor de documentos disponível para abrir os XMLs."); }
                 return true;
             }
             @Override public void onGeolocationPermissionsShowPrompt(String origin, GeolocationPermissions.Callback callback) {
@@ -135,6 +148,79 @@ public class MainActivity extends AppearanceActivity {
         });
         if (state != null) pendingNativeKey = state.getString("pendingNativeKey");
         if (state == null || web.restoreState(state) == null) web.loadUrl(ORIGIN + "/assets/site/index.html");
+    }
+    private boolean isNotesPage() {
+        return web != null && (ORIGIN + "/assets/site/index.html").equals(web.getUrl());
+    }
+    // FileChooserParams.parseResult does not reliably include ClipData on all
+    // WebViews/providers. Read every selected grant explicitly, never arbitrary paths.
+    static Uri[] selectedDocuments(int resultCode, Intent data) {
+        if (resultCode != RESULT_OK || data == null) return new Uri[0];
+        LinkedHashSet<Uri> selected = new LinkedHashSet<>();
+        if (data.getClipData() != null) for (int i=0;i<data.getClipData().getItemCount();i++) {
+            Uri uri = data.getClipData().getItemAt(i).getUri();
+            if (uri != null) selected.add(uri);
+        }
+        if (data.getData() != null) selected.add(data.getData());
+        return selected.toArray(new Uri[0]);
+    }
+    private void xmlNotice(String message) {
+        toast(message);
+        if (isNotesPage()) web.evaluateJavascript("showStatus("+JSONObject.quote(message)+", 'error')", null);
+    }
+    void finishXmlSelection(int resultCode, Intent data) {
+        if (fileCallback == null) return;
+        // Complete/reset the Chromium file input. content:// is deliberately not
+        // exposed to WebView (allowContentAccess and allowFileAccess remain false).
+        ValueCallback<Uri[]> callback = fileCallback; fileCallback = null;
+        callback.onReceiveValue(null);
+        if (resultCode != RESULT_OK) return;
+        Uri[] selected = selectedDocuments(resultCode, data);
+        if (selected.length == 0) { xmlNotice("O provedor não retornou arquivos. Selecione os XMLs novamente."); return; }
+        if (selected.length > 64) { xmlNotice("Selecione até 64 XMLs por vez. As notas anteriores foram mantidas."); return; }
+        xmlImporting = true;
+        xmlReader.execute(() -> {
+            JSONArray documents = new JSONArray();
+            int total = 0;
+            for (int i=0;i<selected.length;i++) {
+                Uri uri = selected[i]; String name = "nota-"+(i+1)+".xml";
+                JSONObject document = new JSONObject();
+                try {
+                    if (!"content".equals(uri.getScheme())) throw new IOException("Documento sem autorização SAF");
+                    try (Cursor cursor = getContentResolver().query(uri, new String[]{OpenableColumns.DISPLAY_NAME}, null, null, null)) {
+                        if (cursor != null && cursor.moveToFirst() && !cursor.isNull(0)) name = cursor.getString(0);
+                    } catch (RuntimeException unavailableMetadata) {
+                        // Some SAF providers omit optional display-name metadata.
+                        // The actual URI read still enforces its read grant.
+                    }
+                    document.put("name",name);
+                    try (InputStream in = getContentResolver().openInputStream(uri)) {
+                        if (in == null) throw new IOException("Documento indisponível");
+                        ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+                        byte[] buffer = new byte[8192]; int count;
+                        while ((count=in.read(buffer)) != -1) {
+                            total += count;
+                            if (bytes.size()+count > 4*1024*1024 || total > 8*1024*1024)
+                                throw new IOException("Limite de leitura de XML excedido");
+                            bytes.write(buffer,0,count);
+                        }
+                        document.put("text",bytes.toString(StandardCharsets.UTF_8.name()).replaceFirst("^\uFEFF", ""));
+                    }
+                } catch (Exception error) {
+                    try { document.put("name",name); document.put("error","Não foi possível ler o documento (permissão, provedor ou limite de 4 MB por arquivo/8 MB por seleção)."); }
+                    catch (org.json.JSONException ignored) { /* String values are always valid JSON. */ }
+                }
+                documents.put(document);
+            }
+            runOnUiThread(() -> {
+                xmlImporting = false;
+                if (isDestroyed()) return;
+                if (!isNotesPage()) { toast("Volte a Notas e selecione os XMLs novamente. As notas anteriores foram mantidas."); return; }
+                web.evaluateJavascript("typeof window.acceptNativeXmlDocuments === 'function' ? (window.acceptNativeXmlDocuments("+documents+"), true) : false", result -> {
+                    if ("false".equals(result)) xmlNotice("A tela ainda não está pronta. Selecione os XMLs novamente; as notas anteriores foram mantidas.");
+                });
+            });
+        });
     }
     @Override protected void onAppearanceChanged() {
         if (web == null) return;
@@ -207,5 +293,5 @@ public class MainActivity extends AppearanceActivity {
     @Override protected void onSaveInstanceState(Bundle out) { super.onSaveInstanceState(out); web.saveState(out); out.putString("pendingNativeKey", pendingNativeKey); }
     @Override protected void onPause() { web.onPause(); super.onPause(); }
     @Override protected void onResume() { super.onResume(); if (web != null) web.onResume(); }
-    @Override protected void onDestroy() { if (fileCallback != null) fileCallback.onReceiveValue(null); web.destroy(); super.onDestroy(); }
+    @Override protected void onDestroy() { if (fileCallback != null) fileCallback.onReceiveValue(null); xmlReader.shutdownNow(); web.destroy(); super.onDestroy(); }
 }

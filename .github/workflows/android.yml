@@ -47,7 +47,7 @@ jobs:
         run: python3 android/tools/report-tests.py android/app/build/reports/tests/testDebugUnitTest/index.html 8 'Unit'
       - name: Verify personal APK identity, signature, site and checksum
         env:
-          EXPECTED_VERSION_CODE: '4'
+          EXPECTED_VERSION_CODE: '5'
           EXPECTED_ABI: universal
         run: python3 android/tools/verify-qa.py android/app/build/outputs/apk/debug/app-debug.apk
       - name: Record raw APK size and ABI breakdown
@@ -57,7 +57,7 @@ jobs:
       - name: Upload installable APK
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: nfe-facil-1.2.0-${{ github.sha }}
+          name: nfe-facil-1.2.1-${{ github.sha }}
           path: |
             android/app/build/outputs/apk/debug/app-debug.apk
             android/app/build/outputs/apk/debug/SHA256SUMS
@@ -108,7 +108,7 @@ jobs:
             bash tools/run-device-tests.sh
       - name: Report completed instrumented tests
         if: always()
-        run: python3 android/tools/report-tests.py android/app/build/reports/androidTests/connected/debug/index.html 24 'Instrumented'
+        run: python3 android/tools/report-tests.py android/app/build/reports/androidTests/connected/debug/index.html 27 'Instrumented'
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: always()
         with:
@@ -181,11 +181,11 @@ jobs:
         if: always()
         run: |
           python3 android/tools/report-tests.py android/app/build/reports/tests/testReleaseUnitTest/index.html 8 'Release unit'
-          python3 android/tools/report-tests.py android/app/build/reports/androidTests/connected/release/index.html 24 'Release instrumented'
+          python3 android/tools/report-tests.py android/app/build/reports/androidTests/connected/release/index.html 27 'Release instrumented'
       - name: Verify distribution identity, signature and checksum
         env:
           ANDROID_SIGNING_CERT_SHA256: ${{ vars.ANDROID_SIGNING_CERT_SHA256 }}
-          EXPECTED_VERSION_CODE: '4'
+          EXPECTED_VERSION_CODE: '5'
         run: python3 android/tools/verify-distribution.py android/app/build/outputs/apk/release/app-release.apk
       - name: Upload approved distribution APK
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
@@ -224,10 +224,10 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p delivery/current delivery/previous delivery/archive
-          gh run download "$GITHUB_RUN_ID" --name "nfe-facil-1.2.0-$GITHUB_SHA" --dir delivery/current
+          gh run download "$GITHUB_RUN_ID" --name "nfe-facil-1.2.1-$GITHUB_SHA" --dir delivery/current
           (cd delivery/current && sha256sum -c SHA256SUMS)
-          cp delivery/current/app-debug.apk delivery/NF-e-Facil-1.2.0.apk
-          (cd delivery && sha256sum NF-e-Facil-1.2.0.apk > SHA256SUMS)
+          cp delivery/current/app-debug.apk delivery/NF-e-Facil-1.2.1.apk
+          (cd delivery && sha256sum NF-e-Facil-1.2.1.apk > SHA256SUMS)
           archived=$(gh release view v1.1.0 --json assets --jq '[.assets[].name] | contains(["NF-e-Facil-1.1.0.apk", "SHA256SUMS"])' 2>/dev/null || true)
           if [ "$archived" != true ]; then
             gh run download 40442578145 --name nfe-facil-1.1.0-5b73ae1bcb005ac06f22496f054c26d66dee5a40 --dir delivery/previous
@@ -247,16 +247,16 @@ jobs:
             fi
           fi
           cat > delivery/NOTES.md <<NOTES
-          NF-e Fácil 1.2.0 (código 4), pacote original br.com.pevicasi.nfefacil, APK universal com assinatura debug automática para uso pessoal. Sem Secrets de assinatura e sem otimização/remoção de ABI.
+          NF-e Fácil 1.2.1 (código 5), pacote original br.com.pevicasi.nfefacil, APK universal com assinatura debug automática para uso pessoal. Sem Secrets de assinatura e sem otimização/remoção de ABI.
 
-          A−, A+ e Restaurar padrão (90%–160%), Claro/Escuro/Automático (Android), preferências persistidas em todas as telas próprias e WebView local. Tabela com rolagem horizontal, desconto verde e seleção fiscal sem cortes. Site público e páginas externas preservados.
+          Corrigidos importação múltipla SAF com leitura nativa restrita aos documentos selecionados, botão Abrir site em todos os temas e cabeçalhos Quantidade/Produto/Item sem quebra interna. Importação mantém notas anteriores, relata inválidos/vazios e evita duplicar seleções repetidas. Fontes, temas, desconto verde, CSV, impressão, scanner e site público preservados.
 
-          Build, lint (zero erros), 13 testes web, 8 unitários Java, 5 de assinatura e 24 instrumentados Android passaram antes desta publicação. Relatórios e capturas: https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID . Código: $GITHUB_SHA . Auditoria: https://github.com/$GITHUB_REPOSITORY/issues/1 . Checksum do APK no arquivo SHA256SUMS.
+          Build, lint (zero erros), 15 testes web, 8 unitários Java, 5 de assinatura e 27 instrumentados Android passaram antes desta publicação. Relatórios e capturas: https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID . Código: $GITHUB_SHA . Auditoria: https://github.com/$GITHUB_REPOSITORY/issues/1 . Checksum do APK no arquivo SHA256SUMS.
 
-          APK anterior preservado na release v1.1.0; nenhum artefato anterior excluído. Assinatura debug pode variar entre runners e impedir atualização entre certificados diferentes; não há desinstalação ou limpeza automática. Não testado no telefone físico do proprietário, impressão física, APIs governamentais reais ou Play Protect.
+          APKs anteriores preservados nas releases v1.1.0 e v1.2.0; nenhum artefato anterior excluído. Assinatura debug pode variar entre runners e impedir atualização entre certificados diferentes; não há desinstalação ou limpeza automática. Não testado no telefone físico do proprietário, impressão física, APIs governamentais reais ou Play Protect.
           NOTES
-          if gh release view v1.2.0 >/dev/null 2>&1; then
-            published=$(gh release view v1.2.0 --json targetCommitish --jq .targetCommitish)
+          if gh release view v1.2.1 >/dev/null 2>&1; then
+            published=$(gh release view v1.2.1 --json targetCommitish --jq .targetCommitish)
             if [ "$published" != "$GITHUB_SHA" ]; then
               git fetch --no-tags --depth=1 origin "$published"
               # A delivery-only repair must preserve the already published APK.
@@ -265,5 +265,5 @@ jobs:
               echo '::notice::Application source unchanged; existing published APK preserved.'
             fi
           else
-            gh release create v1.2.0 delivery/NF-e-Facil-1.2.0.apk delivery/SHA256SUMS delivery/current/SIGNING-CERT-SHA256.txt delivery/current/PERSONAL-DEBUG-SIGNING.txt delivery/current/APK-SIZE.json --target "$GITHUB_SHA" --title 'NF-e Fácil 1.2.0 — fontes e modo noturno' --notes-file delivery/NOTES.md --latest
+            gh release create v1.2.1 delivery/NF-e-Facil-1.2.1.apk delivery/SHA256SUMS delivery/current/SIGNING-CERT-SHA256.txt delivery/current/PERSONAL-DEBUG-SIGNING.txt delivery/current/APK-SIZE.json --target "$GITHUB_SHA" --title 'NF-e Fácil 1.2.1 — XMLs múltiplos e legibilidade' --notes-file delivery/NOTES.md --latest
           fi

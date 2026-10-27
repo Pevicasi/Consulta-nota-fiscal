@@ -194,7 +194,7 @@ public class AppearanceTest {
         }
         fail("Fiscal choice control must finish layout and be visible before opening");
     }
-    private static void screenshot(String name,ActivityScenario<? extends AppearanceActivity> scenario)throws Exception {
+    static void screenshot(String name,ActivityScenario<? extends AppearanceActivity> scenario)throws Exception {
         CountDownLatch rendered=new CountDownLatch(1);
         int[] sample={-1,-1,0};
         scenario.onActivity(a->{

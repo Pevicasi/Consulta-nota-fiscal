@@ -25,6 +25,12 @@
     html[data-native-theme] .table-wrap { max-width:100%; overflow-x:auto; }
     html[data-native-theme] table { min-width:calc(1450px * var(--nfe-scale)); }
     html[data-native-theme] :is(th,td) { min-width:6em; max-width:24em; white-space:normal !important; overflow-wrap:anywhere; text-overflow:clip !important; }
+    html[data-native-theme] th .header-label { overflow-wrap:normal; word-break:normal; }
+    html[data-native-theme] th[data-column-key="7"] { min-width:12em; }
+    html[data-native-theme] :is(th[data-column-key="0"],th[data-column-key="1"],th[data-column-key="7"]) .header-label { white-space:nowrap !important; display:inline-block; }
+    html[data-native-theme] td { overflow-wrap:break-word; word-break:normal; }
+    html[data-native-theme] a.btn-link { display:inline-flex; align-items:center; justify-content:center; min-height:48px; padding:10px 14px; border:1px solid #24479D; border-radius:10px; background-color:#24479D !important; color:#FFFFFF !important; text-decoration:none !important; white-space:normal; overflow-wrap:normal; }
+    html[data-native-theme] a.btn-link:focus-visible { outline:3px solid #1F5EFF; outline-offset:3px; }
     html[data-native-theme] :is(th,td) :is(input,button) { min-width:3em; }
     html[data-native-theme=dark] { color-scheme:dark; --bg:#111827; --card:#1E293B; --text:#E8EDF5; --muted:#C0CDDE; --border:#526179; --primary:#9BBDFF; --success-bg:#103E30; --success-text:#8DF0BB; --danger-bg:#51202A; --danger-text:#FFD2D7; }
     html[data-native-theme=dark] body { background:#111827 !important; color:#E8EDF5 !important; }
@@ -38,6 +44,8 @@
     html[data-native-theme=dark] :is(.price,.scan-code-valid) { color:#8DF0BB !important; }
     html[data-native-theme=dark] .status.error { background-color:#51202A !important; color:#FFD2D7 !important; }
     html[data-native-theme=dark] a { color:#9BBDFF !important; text-decoration:underline; }
+    html[data-native-theme=dark] a.btn-link { background-color:#24479D !important; border-color:#9BBDFF !important; color:#FFFFFF !important; }
+    html[data-native-theme=dark] a.btn-link:focus-visible { outline-color:#9BBDFF; }
     html[data-native-theme=dark] button:disabled { opacity:.65; }
   }`;
   document.head.appendChild(style);

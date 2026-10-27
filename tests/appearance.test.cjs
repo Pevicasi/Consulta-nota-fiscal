@@ -76,3 +76,40 @@ test('appearance asset refuses public and third-party origins, and clamps suppli
  }
  await p.close();
 });
+test('Android SAF importer appends batches, reports unreadable/invalid/empty files and survives restored-session duplicates',async()=>{
+ const p=await page();const bridge=await fs.readFile('android/app/src/main/assets/android-bridge.js','utf8');await p.evaluate(bridge);
+ const docs=Array.from({length:5},(_,i)=>({name:`nota${i+1}.xml`,text:invoice.replace('<nNF>901</nNF>',`<nNF>${1001+i}</nNF>`)}));
+ await p.evaluate(d=>acceptNativeXmlDocuments(d),docs.slice(0,2));assert.equal(await p.locator('#notesTabs button').count(),2);
+ await p.locator('#notesTabs button').nth(1).click();assert.equal(await p.locator('#nfeNumber').innerText(),'1002');
+ await p.evaluate(d=>acceptNativeXmlDocuments(d),docs.slice(2));assert.equal(await p.locator('#notesTabs button').count(),5);assert.equal(await p.locator('#nfeNumber').innerText(),'1002');
+ await p.evaluate(d=>acceptNativeXmlDocuments([...d,{name:'vazio.xml',text:''},{name:'invalido.xml',text:'<broken>'},{name:'negado.xml',error:'Permissão negada'}]),docs);
+ assert.equal(await p.locator('#notesTabs button').count(),5);assert.match(await p.locator('#status').innerText(),/3 arquivo\(s\) não importado/);
+ assert.match(await p.locator('#status').innerText(),/5 repetida/);assert.equal(await p.locator('#markupPercent').inputValue(),'20');
+ await p.reload();await p.evaluate(bridge);await p.evaluate(d=>acceptNativeXmlDocuments(d),docs);
+ assert.equal(await p.locator('#notesTabs button').count(),5);assert.equal(await p.locator('#nfeNumber').innerText(),'1002');
+ assert.equal(await p.locator('#discountTotalBox').isVisible(),true);
+ await p.evaluate(()=>acceptNativeXmlDocuments([{name:'outro.xml',text:'sem XML'}]));assert.equal(await p.locator('#notesTabs button').count(),5);
+ await p.close();
+});
+test('scan link remains a real accessible button and short fiscal headings stay whole at reported scales',async()=>{
+ for(const viewport of [{width:360,height:800},{width:640,height:360}]){
+  const p=await page('index.html',viewport),q=await page('index.html',viewport);await p.evaluate(()=>addScannedCode('35261012345678000195550010000001231123456784'));await q.evaluate(async xml=>loadMultipleXmls([new File([xml],'nota.xml')]),invoice);
+  for(const fontPercent of [90,100,140,160])for(const dark of [false,true]){
+   await p.evaluate(o=>applyNativeAppearance(o),{dark,fontPercent});await q.evaluate(o=>applyNativeAppearance(o),{dark,fontPercent});
+   const link=p.locator('.scan-item-actions a.btn-link');assert.equal(await link.getAttribute('href'),'https://www.nfe.fazenda.gov.br/portal/consultaRecaptcha.aspx?tipoConsulta=resumo&tipoConteudo=7PhJ+gAVw2g=');
+   const styles=await link.evaluate(el=>{const s=getComputedStyle(el);return {background:s.backgroundColor,color:s.color,decoration:s.textDecorationLine,height:el.getBoundingClientRect().height,width:el.getBoundingClientRect().width,scroll:el.scrollWidth,client:el.clientWidth}});
+   assert.equal(styles.background,'rgb(36, 71, 157)');assert.equal(styles.color,'rgb(255, 255, 255)');assert.equal(styles.decoration,'none');assert.ok(styles.height>=48);assert.ok(styles.scroll<=styles.client+1);
+   await link.focus();assert.equal(await link.evaluate(el=>getComputedStyle(el).outlineStyle),'solid');
+   for(const key of ['0','1','7']){
+    const box=await q.locator(`th[data-column-key="${key}"] .header-label`).evaluate(el=>{const r=el.getBoundingClientRect(),th=el.closest('th').getBoundingClientRect();return {height:r.height,line:parseFloat(getComputedStyle(el).lineHeight),right:r.right,parentRight:th.right,wrap:getComputedStyle(el).whiteSpace}});
+    assert.equal(box.wrap,'nowrap');assert.ok(box.height<=box.line+2);assert.ok(box.right<=box.parentRight+1);
+   }
+   assert.equal(await q.locator('.table-wrap').evaluate(el=>el.scrollWidth>el.clientWidth),true);
+   assert.equal(await q.locator('th[data-column-key="7"] .drag-handle').innerText(),'↔');
+  }
+  await q.evaluate(()=>{const order=getHeaderCells().map(h=>h.dataset.columnKey);reorderTableTo(['7',...order.filter(k=>k!=='7')]);});
+  assert.equal(await q.locator('#draggableHeaderRow th').first().getAttribute('data-column-key'),'7');
+  await q.locator('#columnSelectorDetails summary').click();const checkbox=q.locator('.column-checkbox[data-column-key="7"]');await checkbox.uncheck();assert.equal(await q.locator('th[data-column-key="7"]').isVisible(),false);await checkbox.check();assert.equal(await q.locator('th[data-column-key="7"]').isVisible(),true);
+  await p.screenshot({path:`test-results/repairs-${viewport.width}-dark-160.png`,fullPage:true});await p.close();await q.close();
+ }
+});

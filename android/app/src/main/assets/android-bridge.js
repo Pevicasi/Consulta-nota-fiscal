@@ -24,6 +24,47 @@
     writeText: value => { send('copy', value); return Promise.resolve(); }
   }});
   window.print = () => send('print');
+  // Only SAF-selected documents supplied by MainActivity enter this importer.
+  // Keep the public site's upload behavior unchanged; retain existing app notes.
+  if (location.pathname.endsWith('/site/index.html')) {
+    const more = document.createElement('button');
+    more.id = 'nativeImportMore'; more.type = 'button'; more.className = 'btn-secondary';
+    more.textContent = 'Adicionar XMLs';
+    more.addEventListener('click', () => document.getElementById('multipleXmlFiles').click());
+    document.getElementById('notesTabs').before(more);
+    window.acceptNativeXmlDocuments = documents => {
+      const before = loadedNotes.slice(), selected = activeNoteIndex;
+      const notes = before.slice(), registry = loadedXmls.slice();
+      const identity = entry => JSON.stringify(entry.data);
+      const known = new Set(notes.map(identity));
+      let added = 0, duplicates = 0;
+      const errors = [];
+      for (const document of documents || []) {
+        try {
+          if (document.error) throw new Error(document.error);
+          if (!document.text?.trim()) throw new Error('Arquivo vazio.');
+          const data = parseXML(document.text), id = JSON.stringify(data);
+          if (known.has(id)) { duplicates++; continue; }
+          const entry = {file:{name:document.name},content:document.text,data,normalizedContent:normalizeSearchValue(document.text)};
+          known.add(id); notes.push(entry);
+          if (!registry.some(previous => identity(previous) === id)) registry.push(entry);
+          added++;
+        } catch (error) { errors.push(`${document.name || 'Documento'}: ${error.message || 'XML inválido.'}`); }
+      }
+      if (added) {
+        loadedXmls = registry;
+        openLoadedNotes(notes);
+        if (before.length) showNote(selected);
+      }
+      loadedCount.textContent = `${notes.length} XML(s) carregado(s)`;
+      const summary = `${added} nota(s) adicionada(s); ${notes.length} nota(s) aberta(s).` +
+        (duplicates ? ` ${duplicates} repetida(s), sem duplicar abas.` : '') +
+        (errors.length ? ` ${errors.length} arquivo(s) não importado(s): ${errors.join(' ')}` : '');
+      showStatus(summary, errors.length ? 'error' : 'success');
+      for (const id of ['xmlFile','multipleXmlFiles']) { const input=document.getElementById(id); if(input)input.value=''; }
+      saveAppSession();
+    };
+  }
   const click = HTMLAnchorElement.prototype.click;
   HTMLAnchorElement.prototype.click = function () {
     if (this.href.startsWith('blob:') && this.download) {

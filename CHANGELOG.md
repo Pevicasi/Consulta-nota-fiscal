@@ -1,3 +1,10 @@
+# 1.2.1
+
+- Corrige importação múltipla SAF no Android, preservando notas e informando erros por arquivo.
+- Adiciona XMLs à coleção aberta sem duplicar seleções repetidas.
+- Restaura o botão Abrir site em todos os temas e mantém Quantidade/Produto/Item sem quebra interna.
+- Preserva APKs anteriores e amplia testes reais de SAF/layout no Android.
+
 # Registro de alterações
 
 ## 1.2.0 — Fontes e modo noturno / issue #1
