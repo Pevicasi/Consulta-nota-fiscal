@@ -282,7 +282,6 @@ public class ScannerActivity extends AppearanceActivity {
         TextView text = (TextView)row;
         text.setSingleLine(false); text.setMaxLines(Integer.MAX_VALUE);
         text.setHorizontallyScrolling(false); text.setEllipsize(null);
-        text.setBreakStrategy(android.text.Layout.BREAK_STRATEGY_SIMPLE);
         text.setHyphenationFrequency(android.text.Layout.HYPHENATION_FREQUENCY_NONE);
         // Spinner measures dropdown content with UNSPECIFIED width before clamping
         // its window. Bound the actual row too, so long numeric keys wrap, not clip.
