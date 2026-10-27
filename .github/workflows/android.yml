@@ -45,19 +45,19 @@ jobs:
         run: ./gradlew --no-daemon testDebugUnitTest lintDebug assembleDebug assembleDebugAndroidTest
       - name: Report completed QA unit tests
         run: python3 android/tools/report-tests.py android/app/build/reports/tests/testDebugUnitTest/index.html 8 'QA unit'
-      - name: Verify QA package, signature, site and checksum
+      - name: Verify personal APK identity, signature, site and checksum
         env:
           EXPECTED_VERSION_CODE: '3'
         run: python3 android/tools/verify-qa.py android/app/build/outputs/apk/debug/app-debug.apk
       - name: Upload installable APK
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: nfe-facil-qa-${{ github.sha }}
+          name: nfe-facil-1.1.0-${{ github.sha }}
           path: |
             android/app/build/outputs/apk/debug/app-debug.apk
             android/app/build/outputs/apk/debug/SHA256SUMS
             android/app/build/outputs/apk/debug/SIGNING-CERT-SHA256.txt
-            android/app/build/outputs/apk/debug/QA-NOT-DISTRIBUTION.txt
+            android/app/build/outputs/apk/debug/PERSONAL-DEBUG-SIGNING.txt
           if-no-files-found: error
           retention-days: 30
       - name: Upload test and lint reports
