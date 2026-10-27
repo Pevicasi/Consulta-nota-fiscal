@@ -107,6 +107,10 @@ public class AppearanceTest {
                 TextView digits=selectable(confirmation(a).getWindow().getDecorView());assertNotNull(digits.getLayout());
                 for(int line=0;line<digits.getLineCount();line++)assertEquals(0,digits.getLayout().getEllipsisCount(line));
                 confirmation(a).getButton(AlertDialog.BUTTON_NEGATIVE).performClick();assertFalse(a.isFinishing());
+            });
+            // AlertDialog dispatches its button callback/dismiss through the main queue.
+            InstrumentationRegistry.getInstrumentation().waitForIdleSync();
+            scenario.onActivity(a->{
                 a.offerKeys(new LinkedHashSet<>(Arrays.asList(key,MultiBarcodeTest.key("65",902))));
                 Spinner choices=spinner(confirmation(a).getWindow().getDecorView());assertNotNull(choices);
                 TextView option=(TextView)choices.getAdapter().getDropDownView(1,null,choices);
