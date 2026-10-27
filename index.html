@@ -2205,7 +2205,7 @@
       document.getElementById('totalSTPercent').textContent =
         `${percentBR.format(totalSTPercent)}%`;
       const discount = Number(data.totalDiscount) || 0;
-      document.getElementById('discountTotalBox').hidden = !(discount > 0);
+      document.getElementById('discountTotalBox').style.display = discount > 0 ? '' : 'none';
       document.getElementById('totalDiscount').textContent = brl.format(discount);
       document.getElementById('totalInvoice').textContent = brl.format(data.totalInvoice);
 
