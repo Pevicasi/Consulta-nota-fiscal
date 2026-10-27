@@ -14,7 +14,7 @@ public class SafDocumentsProvider extends DocumentsProvider {
     static final String AUTHORITY="br.com.pevicasi.nfefacil.test.documents";
     private static final String[] DOCS={DocumentsContract.Document.COLUMN_DOCUMENT_ID,DocumentsContract.Document.COLUMN_DISPLAY_NAME,DocumentsContract.Document.COLUMN_MIME_TYPE,DocumentsContract.Document.COLUMN_FLAGS,DocumentsContract.Document.COLUMN_SIZE,DocumentsContract.Document.COLUMN_LAST_MODIFIED};
     public static String xml(int number) {
-        return "<NFe><infNFe><ide><nNF>"+(1000+number)+"</nNF></ide><emit><xNome>Fornecedor "+number+"</xNome></emit><det nItem='1'><prod><xProd>Produto Android "+number+"</xProd><qCom>2</qCom><vUnCom>10</vUnCom><vProd>20</vProd><vDesc>5.50</vDesc></prod><imposto><ICMS><ICMS10><vICMSST>4</vICMSST></ICMS10></ICMS></imposto></det><total><ICMSTot><vProd>20</vProd><vDesc>5.50</vDesc><vNF>18.50</vNF></ICMSTot></total></infNFe></NFe>";
+        return "<NFe><infNFe><ide><nNF>"+(1000+number)+"</nNF></ide><emit><xNome>Fornecedor "+number+"</xNome></emit><det nItem='1'><prod><xProd>Produto Android "+number+"</xProd><qCom>2</qCom><vUnCom>"+(10*number)+"</vUnCom><vProd>"+(20*number)+"</vProd><vDesc>"+(5.5*number)+"</vDesc></prod><imposto><ICMS><ICMS10><vICMSST>"+(4*number)+"</vICMSST></ICMS10></ICMS></imposto></det><total><ICMSTot><vProd>"+(20*number)+"</vProd><vDesc>"+(5.5*number)+"</vDesc><vNF>"+(18.5*number)+"</vNF></ICMSTot></total></infNFe></NFe>";
     }
     private static String content(String id) {
         if(id.equals("empty.xml"))return "";

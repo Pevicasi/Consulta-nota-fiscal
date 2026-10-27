@@ -51,7 +51,7 @@ public class ImportRepairTest {
             select(scenario,"empty.xml","invalid.xml","nota1.xml","nota2.xml","nota3.xml","nota4.xml","nota5.xml");
             waitJs(scenario,"document.getElementById('status').textContent.includes('2 arquivo(s) não importado(s)')");
             assertEquals("true",js(scenario,"loadedNotes.length === 5 && document.getElementById('status').textContent.includes('5 repetida(s)') && document.getElementById('status').getBoundingClientRect().height>0"));
-            for(int i=0;i<5;i++)assertEquals("true",js(scenario,"showNote(loadedNotes.findIndex(e=>e.data.nfeNumber==='"+(1001+i)+"'));document.getElementById('nfeNumber').textContent === '"+(1001+i)+"' && currentItems[0].description === 'Produto Android "+(i+1)+"' && loadedNotes[activeNoteIndex].data.totalDiscount === 5.5"));
+            for(int i=0;i<5;i++)assertEquals("true",js(scenario,"showNote(loadedNotes.findIndex(e=>e.data.nfeNumber==='"+(1001+i)+"'));document.getElementById('nfeNumber').textContent === '"+(1001+i)+"' && currentItems[0].description === 'Produto Android "+(i+1)+"' && currentItems[0].unitCostWithST === "+(12*(i+1))+" && loadedNotes[activeNoteIndex].data.totalDiscount === "+(5.5*(i+1))+" && loadedNotes[activeNoteIndex].data.totalInvoice === "+(18.5*(i+1))+" && loadedNotes[activeNoteIndex].data.totalProducts === "+(20*(i+1))));
             assertEquals("\"20\"",js(scenario,"document.getElementById('markupPercent').value"));
             scenario.recreate();ready(scenario);assertEquals("true",js(scenario,"loadedNotes.length === 5 && document.querySelectorAll('#notesTabs button').length === 5"));
             select(scenario,"nota1.xml","nota2.xml");waitJs(scenario,"document.getElementById('status').textContent.includes('2 repetida(s)')");
