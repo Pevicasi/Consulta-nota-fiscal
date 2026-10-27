@@ -1,6 +1,6 @@
 # Resultados verificados
 
-## Atualização 1.3.0 — colunas, custos e unidade final
+## Atualização 1.3.1 — colunas, custos e unidade final
 
 Escopo e método em [CUSTOS_1_3_0.md](CUSTOS_1_3_0.md). Resultado do commit final e APK são registrados na issue #1; registros anteriores abaixo são históricos.
 

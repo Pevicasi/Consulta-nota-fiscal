@@ -15,7 +15,7 @@ if 'Verified using v2 scheme (APK Signature Scheme v2): true' not in verified:
     sys.exit('QA APK v2 signature verification failed')
 info = subprocess.check_output([str(tools/'aapt'), 'dump', 'badging', str(apk)], text=True)
 match = re.search(r"package: name='([^']+)' versionCode='([0-9]+)' versionName='([^']+)'", info)
-if not match or match[1] != 'br.com.pevicasi.nfefacil' or match[3] != '1.3.0':
+if not match or match[1] != 'br.com.pevicasi.nfefacil' or match[3] != '1.3.1':
     sys.exit('Unexpected application identity for personal-use APK')
 if int(match[2]) != int(os.environ['EXPECTED_VERSION_CODE']):
     sys.exit('Unexpected QA versionCode')

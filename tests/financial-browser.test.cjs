@@ -36,6 +36,7 @@ test('app column geometry is compact and stable with long descriptions, 14/16 co
    const sizes=await p.evaluate(()=>Object.fromEntries(['0','7','1'].map(k=>[k,document.querySelector(`th[data-column-key="${k}"]`).getBoundingClientRect().width])));
    assert.ok(sizes['1']>sizes['7']*1.2,JSON.stringify(sizes));assert.ok(sizes['1']>sizes['0']*2.5,JSON.stringify(sizes));assert.ok(sizes['7']<11*16*fontPercent/100,JSON.stringify(sizes));if(fontPercent<=100)assert.ok(await p.locator('.table-wrap').evaluate((e,s)=>s['0']+s['7']+s['1']<=e.clientWidth+2,sizes),JSON.stringify(sizes));
    assert.equal(await p.locator('.table-wrap').evaluate(e=>e.scrollWidth>e.clientWidth),true);assert.equal(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),true);
+   assert.equal(await p.locator('.product-name').evaluateAll(nodes=>nodes.every(e=>e.scrollWidth<=e.clientWidth+1 && e.getBoundingClientRect().right<=e.closest('td').getBoundingClientRect().right+1)),true);
    const q=await p.locator('th[data-column-key="7"] .header-label').evaluate(e=>({h:e.getBoundingClientRect().height,l:parseFloat(getComputedStyle(e).lineHeight)}));assert.ok(q.h<=q.l+2);
   }
   await p.locator('#columnSelectorDetails summary').click();await p.locator('.column-checkbox[data-column-key="14"]').uncheck();await p.locator('.column-checkbox[data-column-key="15"]').uncheck();

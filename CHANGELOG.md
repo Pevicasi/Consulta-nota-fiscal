@@ -1,5 +1,6 @@
-# 1.3.0
+# 1.3.1
 
+- Corrige também a largura mínima herdada do nome do produto; testes verificam conteúdo dentro da célula.
 - Colunas compactas Item/Quantidade e mais área útil para Produto no Android.
 - Formação de custo com IPI, ST/FCP-ST, despesas, descontos, centavos e conciliação.
 - Conversão explícita de embalagens para unidade final, persistida por produto.

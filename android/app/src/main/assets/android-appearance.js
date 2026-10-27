@@ -30,6 +30,7 @@
     html[data-native-theme] th[data-column-key="0"] .drag-handle { display:block; margin-right:0; line-height:1; }
     html[data-native-theme] :is(th,td)[data-column-key="7"] { padding-left:6px; padding-right:6px; }
     html[data-native-theme] td[data-column-key="7"] { text-align:right; white-space:nowrap !important; }
+    html[data-native-theme] .product-name { min-width:0 !important; max-width:100%; overflow-wrap:anywhere; white-space:normal; }
     html[data-native-theme] td[data-column-key="1"] { overflow-wrap:break-word; word-break:normal; }
     html[data-native-theme] .cost-details :is(input,label,button) { min-width:0 !important; width:100%; max-width:100%; }
     html[data-native-theme] .cost-details input[type=checkbox] { width:auto; min-width:24px !important; }

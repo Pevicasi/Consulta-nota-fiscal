@@ -1,6 +1,6 @@
-# NF-e Fácil 1.3.0 — largura de colunas, custos e unidade final
+# NF-e Fácil 1.3.1 — largura de colunas, custos e unidade final
 
-Entrega conjunta dos pedidos da issue #1: [colunas](https://github.com/Pevicasi/Consulta-nota-fiscal/issues/1#issuecomment-6444270520) e [IPI/custos/embalagens](https://github.com/Pevicasi/Consulta-nota-fiscal/issues/1#issuecomment-6444513715). Nome NF-e Fácil, pacote br.com.pevicasi.nfefacil, versão 1.3.0/código 6. APK universal, debug automático pessoal, sem Secrets de assinatura ou otimização de ABI. Releases anteriores preservadas até aprovação do proprietário.
+Entrega conjunta dos pedidos da issue #1: [colunas](https://github.com/Pevicasi/Consulta-nota-fiscal/issues/1#issuecomment-6444270520) e [IPI/custos/embalagens](https://github.com/Pevicasi/Consulta-nota-fiscal/issues/1#issuecomment-6444513715). Nome NF-e Fácil, pacote br.com.pevicasi.nfefacil, versão 1.3.1/código 7. APK universal, debug automático pessoal, sem Secrets de assinatura ou otimização de ABI. Releases anteriores preservadas até aprovação do proprietário.
 
 ## Mudança intencional do cálculo
 
@@ -46,7 +46,7 @@ Valores financeiros de XML são convertidos por aritmética decimal/BigInt; tota
 
 ## Tabela e apresentação
 
-São preservados os 16 campos, ordem, arrastar, visibilidade 14/16 e scroll. Cada célula acompanha sua chave de coluna. No Android um colgroup é recalculado por fonte, cabeçalhos, valores, visibilidade e ordem: Item/Quantidade usam o espaço natural necessário, não mínimos fixos de 6/12 em; Produto recebe mais espaço, limitado à área útil quando possível. Cabeçalhos curtos permanecem inteiros. Nomes de produtos quebram por palavras, sem truncar. Fontes não foram reduzidas.
+São preservados os 16 campos, ordem, arrastar, visibilidade 14/16 e scroll. Cada célula acompanha sua chave de coluna. No Android um colgroup é recalculado por fonte, cabeçalhos, valores, visibilidade e ordem: Item/Quantidade usam o espaço natural necessário, não mínimos fixos de 6/12 em; Produto recebe mais espaço, limitado à área útil quando possível. Cabeçalhos curtos permanecem inteiros. Nomes de produtos quebram por palavras, sem truncar. Fontes não foram reduzidas. O mínimo herdado de 260px do nome do produto é removido somente no Android; há asserção de scrollWidth e limites do conteúdo, além da largura do cabeçalho. A versão 1.3.0 foi retida, marcada como pré-release substituída após essa falha ser detectada na inspeção das capturas; a entrega corrigida é 1.3.1.
 
 A tabela deixa custo final e preço por unidade visíveis, com unidade explícita. Embalagem, fator, total de unidades, IPI/ST/despesas/descontos e rateios ficam em detalhes expansíveis por produto. IPI total é mostrado separadamente; a decomposição completa da nota fica expansível, com alertas de pendência sempre visíveis. O desconto oficial positivo permanece verde.
 
@@ -70,6 +70,6 @@ Não foi disponibilizado o XML real da nota do proprietário: não se afirma qua
 - `npm test`: 28 testes JavaScript, sendo 10 do motor decimal/rateios e 18 no navegador. Fixtures com e sem IPI, IPINT, ST/FCP-ST, II/IPI devolvido, despesas/descontos por item/total, zeros, divergências, frações, UN/CX/FD/PCT/KG, qTrib, markup 0/20/customizado, CSV real, mídia print, múltiplas notas, migração e persistência.
 - 8 unitários Java e 5 testes da política de assinatura.
 - 30 instrumentados esperados: os 27 anteriores (incluindo SAF real 2/3/5/7, scanner ML Kit/OCR offline e acessibilidade) mais FinancialTest (cálculos/conversão persistida; divergência/CSV; larguras medidas e screenshots 90/100/140/160%, claro/escuro, retrato/paisagem, 14/16 e reordenação). Métricas ficam em financial-layout-metrics.json no artefato nativo.
-- Lint, Actions do commit final, download do APK público, identidade original, assinatura, ABIs, checksum e bytes dos assets são conferidos antes da aprovação; os resultados reais ficam na issue #1 e release 1.3.0.
+- Lint, Actions do commit final, download do APK público, identidade original, assinatura, ABIs, checksum e bytes dos assets são conferidos antes da aprovação; os resultados reais ficam na issue #1 e release 1.3.1.
 
 Limites: emulador e XMLs sintéticos não substituem o XML real ausente, telefone físico, providers OEM/nuvem, foco/flash físicos, impressão em papel, apuração fiscal ou APIs oficiais ao vivo. Assinatura debug pode mudar e impedir instalar sobre outra assinatura; não há desinstalação/limpeza automática. APKs anteriores são preservados.
