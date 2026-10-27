@@ -119,6 +119,7 @@ public class AppearanceTest {
                 assertEquals(android.graphics.Color.parseColor("#172033"),option.getCurrentTextColor());
                 a.setFontPercent(160);a.setThemeMode("dark");choices.performClick();
             });
+            waitAccessibleText(key);
             InstrumentationRegistry.getInstrumentation().waitForIdleSync();screenshot("ambiguous-menu-dark-160",scenario);
         }
     }
@@ -149,6 +150,16 @@ public class AppearanceTest {
         }
         fail("Theme choice must be accessible and clickable: "+text);
     }
+    private static void waitAccessibleText(String text)throws Exception {
+        long end=System.currentTimeMillis()+10000;
+        while(System.currentTimeMillis()<end){
+            android.view.accessibility.AccessibilityNodeInfo root=InstrumentationRegistry.getInstrumentation().getUiAutomation().getRootInActiveWindow();
+            if(root!=null)for(android.view.accessibility.AccessibilityNodeInfo node:root.findAccessibilityNodeInfosByText(text))
+                if(node.getText()!=null && text.contentEquals(node.getText()) && node.isVisibleToUser())return;
+            Thread.sleep(100);
+        }
+        fail("Fiscal choice must be visible and accessible: "+text);
+    }
     private static void screenshot(String name,ActivityScenario<? extends AppearanceActivity> scenario)throws Exception {
         CountDownLatch rendered=new CountDownLatch(1);
         int[] sample={-1,-1,0};
@@ -170,15 +181,21 @@ public class AppearanceTest {
             }
         });
         assertTrue("Updated WebView/native frame must be rendered before capture",rendered.await(20,TimeUnit.SECONDS));
-        Bitmap bitmap=InstrumentationRegistry.getInstrumentation().getUiAutomation().takeScreenshot();assertNotNull(bitmap);
-        if(sample[0]>=0){
-            int pixel=bitmap.getPixel(sample[0],sample[1]);
+        InstrumentationRegistry.getInstrumentation().getUiAutomation().waitForIdle(100,5000);
+        Bitmap bitmap=null;boolean painted=false;int pixel=0;long deadline=System.currentTimeMillis()+5000;
+        do {
+            if(bitmap!=null)bitmap.recycle();
+            bitmap=InstrumentationRegistry.getInstrumentation().getUiAutomation().takeScreenshot();assertNotNull(bitmap);
+            if(sample[0]<0){painted=true;break;}
+            pixel=bitmap.getPixel(sample[0],sample[1]);
             int r=android.graphics.Color.red(pixel),g=android.graphics.Color.green(pixel),b=android.graphics.Color.blue(pixel);
-            assertTrue("Captured WebView pixels must match the selected theme: "+name+" #"+Integer.toHexString(pixel),
-                sample[2]==1 ? r<80 && g<80 && b<80 : r>200 && g>200 && b>200);
-        }
+            painted=sample[2]==1 ? r<80 && g<80 && b<80 : r>200 && g>200 && b>200;
+            if(painted)break;
+            Thread.sleep(50); // The compositor must actually present the selected theme, within a bounded deadline.
+        } while(System.currentTimeMillis()<deadline);
         File dir=InstrumentationRegistry.getInstrumentation().getTargetContext().getExternalFilesDir("appearance-evidence");assertNotNull(dir);assertTrue(dir.isDirectory()||dir.mkdirs());
         try(OutputStream out=new FileOutputStream(new File(dir,name+".png"))){assertTrue(bitmap.compress(Bitmap.CompressFormat.PNG,100,out));}finally{bitmap.recycle();}
+        assertTrue("Captured WebView pixels must match the selected theme: "+name+" #"+Integer.toHexString(pixel),painted);
     }
     private static AlertDialog confirmation(ScannerActivity a) {
         try{java.lang.reflect.Field field=ScannerActivity.class.getDeclaredField("confirmation");field.setAccessible(true);return (AlertDialog)field.get(a);}catch(Exception e){throw new AssertionError(e);}

@@ -142,7 +142,14 @@ public class MainActivity extends AppearanceActivity {
         String url = web.getUrl();
         if (url == null || !url.matches("https://appassets\\.androidplatform\\.net/assets/site/(index|consulta_precos_v(15|16|17))\\.html")) return;
         try (InputStream in = getAssets().open("android-appearance.js")) {
-            web.evaluateJavascript(readUtf8(in)+";window.applyNativeAppearance?.({dark:"+isDark()+",fontPercent:"+fontPercent()+"});", null);
+            web.evaluateJavascript(readUtf8(in)+";window.applyNativeAppearance?.({dark:"+isDark()+",fontPercent:"+fontPercent()+"});", ignored -> {
+                if (isDestroyed()) return;
+                web.postVisualStateCallback(System.nanoTime(), new WebView.VisualStateCallback() {
+                    @Override public void onComplete(long requestId) {
+                        if (!MainActivity.this.isDestroyed()) web.invalidate();
+                    }
+                });
+            });
         } catch (IOException error) { toast("Não foi possível aplicar a aparência."); }
     }
     void acceptScannerKey(String key) {
