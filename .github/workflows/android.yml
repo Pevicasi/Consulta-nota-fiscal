@@ -109,6 +109,25 @@ jobs:
       - name: Report completed instrumented tests
         if: always()
         run: python3 android/tools/report-tests.py android/app/build/reports/androidTests/connected/debug/index.html 35 'Instrumented'
+      - name: Verify the exact APK installed by Android tests
+        env:
+          EXPECTED_VERSION_CODE: '10'
+          EXPECTED_ABI: universal
+        run: |
+          python3 android/tools/verify-qa.py android/app/build/outputs/apk/debug/app-debug.apk
+          python3 android/tools/apk-size.py android/app/build/outputs/apk/debug/app-debug.apk > android/app/build/outputs/apk/debug/APK-SIZE.json
+      - name: Preserve the APK exercised in the emulator for publication
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: nfe-facil-validated-1.4.2-${{ github.sha }}
+          path: |
+            android/app/build/outputs/apk/debug/app-debug.apk
+            android/app/build/outputs/apk/debug/SHA256SUMS
+            android/app/build/outputs/apk/debug/SIGNING-CERT-SHA256.txt
+            android/app/build/outputs/apk/debug/PERSONAL-DEBUG-SIGNING.txt
+            android/app/build/outputs/apk/debug/APK-SIZE.json
+          if-no-files-found: error
+          retention-days: 30
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: always()
         with:
@@ -224,7 +243,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p delivery/current delivery/previous delivery/archive
-          gh run download "$GITHUB_RUN_ID" --name "nfe-facil-1.4.2-$GITHUB_SHA" --dir delivery/current
+          gh run download "$GITHUB_RUN_ID" --name "nfe-facil-validated-1.4.2-$GITHUB_SHA" --dir delivery/current
           (cd delivery/current && sha256sum -c SHA256SUMS)
           cp delivery/current/app-debug.apk delivery/NF-e-Facil-1.4.2.apk
           (cd delivery && sha256sum NF-e-Facil-1.4.2.apk > SHA256SUMS)

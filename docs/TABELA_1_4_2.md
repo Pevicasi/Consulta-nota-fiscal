@@ -15,3 +15,5 @@ Fixture sintética `automatic-units.xml` e expectativas independentes JSON: 20 l
 Testes de navegador e WebView Android verificam resultados imediatos sem interação, DOM Produto igual ao nome, ausência de editor, persistência após recriação, markup editável, IPI, CSV, temas Claro/Escuro/Automático, 90/100/140/160%, retrato/paisagem, rolagem e capturas. Testes existentes de scanner, importação, OCR, ML Kit e funções nativas continuam executados, sem alterações no leitor.
 
 Limites: XMLs e imagens reais do proprietário não foram disponibilizados. Emulador não equivale ao telefone físico. Impressão física e serviços fiscais externos reais não são cobertos. Publicação somente após Actions e Android aprovados; APK antigo removido somente depois de baixar e verificar a nova release.
+
+Entrega: o job Android verifica e preserva o próprio APK instalado pelos testes, e a release usa esse binário (não outra recompilação). O download público é comparado com o artefato validado.
