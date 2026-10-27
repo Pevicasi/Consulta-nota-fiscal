@@ -1,3 +1,10 @@
+# 1.3.0
+
+- Colunas compactas Item/Quantidade e mais área útil para Produto no Android.
+- Formação de custo com IPI, ST/FCP-ST, despesas, descontos, centavos e conciliação.
+- Conversão explícita de embalagens para unidade final, persistida por produto.
+- CSV e impressão usam a mesma metodologia; ambiguidades não geram preço final.
+
 # 1.2.1
 
 - Corrige importação múltipla SAF no Android, preservando notas e informando erros por arquivo.

@@ -14,12 +14,13 @@ async function page(file='index.html',viewport={width:360,height:800},origin='ht
  const p=await browser.newPage({viewport});
  await p.route('**/*',async r=>{
   if(r.request().isNavigationRequest()) await r.fulfill({contentType:'text/html; charset=utf-8',body:await fs.readFile(path.join(process.cwd(),file))});
+  else if(r.request().url().endsWith('/fiscal-cost.js'))await r.fulfill({contentType:'text/javascript',body:await fs.readFile('fiscal-cost.js','utf8')});
   else await r.abort();
  });
  await p.addInitScript(()=>{window.NativeApp={postMessage:()=>{}}});
  await p.goto(origin+'/assets/site/'+file);await p.evaluate(appearance);return p;
 }
-const invoice=`<NFe><infNFe><ide><nNF>901</nNF></ide><det nItem="1"><prod><xProd>Produto de nome extenso para conferir legibilidade fiscal sem cortes</xProd><qCom>2</qCom><vUnCom>10</vUnCom><vProd>20</vProd><vDesc>5.50</vDesc></prod><imposto><ICMS><ICMS10><vICMSST>4</vICMSST></ICMS10></ICMS></imposto></det><total><ICMSTot><vProd>20</vProd><vDesc>5.50</vDesc><vNF>18.50</vNF></ICMSTot></total></infNFe></NFe>`;
+const invoice=`<NFe><infNFe><ide><nNF>901</nNF></ide><det nItem="1"><prod><xProd>Produto de nome extenso para conferir legibilidade fiscal sem cortes</xProd><uCom>UN</uCom><qCom>2</qCom><vUnCom>10</vUnCom><vProd>20</vProd><vDesc>5.50</vDesc></prod><imposto><ICMS><ICMS10><vICMSST>4</vICMSST></ICMS10></ICMS></imposto></det><total><ICMSTot><vProd>20</vProd><vDesc>5.50</vDesc><vNF>18.50</vNF></ICMSTot></total></infNFe></NFe>`;
 test('app appearance scales every local page without clipped controls at mobile and landscape sizes',{timeout:120000},async()=>{
  for(const viewport of [{width:360,height:800},{width:640,height:360}])for(const file of ['index.html','consulta_precos_v15.html','consulta_precos_v16.html','consulta_precos_v17.html']){
   const p=await page(file,viewport);
@@ -44,7 +45,7 @@ test('app appearance scales every local page without clipped controls at mobile 
    if(file==='index.html'){
     assert.equal(await p.locator('#discountTotalBox').isVisible(),true);
     assert.equal(await p.locator('.table-wrap').evaluate(el=>el.scrollWidth>el.clientWidth),true);
-    assert.equal(await p.locator('#itemsBody td:nth-child(6)').innerText().then(s=>/12,00/.test(s)),true);
+    assert.equal(await p.locator('#itemsBody td:nth-child(6)').innerText().then(s=>/9,25/.test(s)),true);
     assert.equal(await p.locator('#totalDiscount').evaluate(el=>getComputedStyle(el).color),dark?'rgb(141, 240, 187)':'rgb(2, 122, 72)');
    }
    if(viewport.width===360 && fontPercent===160) await p.screenshot({path:`test-results/appearance-${file}-${dark?'dark':'light'}-160.png`,fullPage:true});

@@ -1,5 +1,9 @@
 # Resultados verificados
 
+## Atualização 1.3.0 — colunas, custos e unidade final
+
+Escopo e método em [CUSTOS_1_3_0.md](CUSTOS_1_3_0.md). Resultado do commit final e APK são registrados na issue #1; registros anteriores abaixo são históricos.
+
 ## Atualização 1.2.1 — correções após teste físico
 
 Ver [CORRECOES_1_2_1.md](CORRECOES_1_2_1.md). Resultados finais do CI/APK serão registrados na issue #1; os registros 1.2.0 e anteriores abaixo são históricos.

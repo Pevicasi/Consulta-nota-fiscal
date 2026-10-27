@@ -1251,6 +1251,15 @@
       th, td { padding: 5px; font-size: 9px; }
       .header p, .footer-note { display: none; }
     }
+    .cost-details { margin-top:10px; max-width:100%; }
+    .cost-details summary,#fiscalBreakdown>summary { cursor:pointer; white-space:normal; min-height:48px; }
+    .conversion-editor { display:flex; flex-direction:column; }
+    .conversion-editor label,.fiscal-options label { display:block; min-width:0; max-width:100%; }
+    .conversion-editor input:not([type=checkbox]),.fiscal-options input:not([type=checkbox]) { display:block; width:100%; max-width:100%; min-width:0; }
+    .unit-basis { white-space:normal; }
+    .cost-audit-print { display:none; }
+    td small { display:block; white-space:normal; }
+    @media print { .cost-audit-print {display:block;} .cost-details {display:none;} #fiscalWarnings {white-space:normal;} }
   </style>
 </head>
 <body>
@@ -1393,7 +1402,7 @@
         <div class="markup-control">
           <label for="markupPercent"><strong>Porcentagem adicionada ao custo final:</strong></label>
           <div class="markup-input-wrap">
-            <input id="markupPercent" type="number" min="0" step="0.01" value="20" inputmode="decimal" />
+            <input id="markupPercent" type="number" min="0" max="1000000" step="0.01" value="20" inputmode="decimal" />
             <span>%</span>
           </div>
           <small>O padrão é 20%, mas você pode alterar. O preço sugerido é recalculado automaticamente.</small>
@@ -1420,15 +1429,15 @@
             </label>
             <label data-column-key="2">
               <input type="checkbox" class="column-checkbox" data-column-key="2" checked>
-              <span>Valor unitário</span>
+              <span>Compra básica / unidade</span>
             </label>
             <label data-column-key="3">
               <input type="checkbox" class="column-checkbox" data-column-key="3" checked>
-              <span>ICMS-ST por unidade</span>
+              <span>ST / unidade final</span>
             </label>
             <label data-column-key="4">
               <input type="checkbox" class="column-checkbox" data-column-key="4" checked>
-              <span>Custo unitário + ST</span>
+              <span>Custo de aquisição final / unidade</span>
             </label>
             <label data-column-key="5">
               <input type="checkbox" class="column-checkbox" data-column-key="5" checked>
@@ -1491,15 +1500,15 @@
                 </th>
                 <th class="number draggable-column" data-column-key="2" draggable="true">
                   <span class="drag-handle" aria-hidden="true">↔</span>
-                  <span class="header-label">Valor unitário</span>
+                  <span class="header-label">Compra básica / unidade</span>
                 </th>
                 <th class="number draggable-column" data-column-key="3" draggable="true">
                   <span class="drag-handle" aria-hidden="true">↔</span>
-                  <span class="header-label">ICMS-ST por unidade</span>
+                  <span class="header-label">ST / unidade final</span>
                 </th>
                 <th class="number draggable-column" data-column-key="4" draggable="true">
                   <span class="drag-handle" aria-hidden="true">↔</span>
-                  <span class="header-label">Custo unitário + ST</span>
+                  <span class="header-label">Custo de aquisição final / unidade</span>
                 </th>
                 <th class="number draggable-column" id="markupHeader" data-column-key="5" draggable="true">
                   <span class="drag-handle" aria-hidden="true">↔</span>
@@ -1548,7 +1557,7 @@
         </div>
 
         <p class="footer-note">
-          O “custo unitário + ST” considera o valor unitário do produto somado ao ICMS-ST por unidade. O “preço sugerido” adiciona a porcentagem escolhida sobre esse custo. Outras despesas, frete, descontos e demais tributos não são rateados nessas colunas.
+          O custo considera produtos, descontos e componentes de aquisição classificados, com rateios explicitados. Preços por unidade exigem conversão confirmada e conciliação; o percentual é acréscimo sobre custo, não margem líquida.
         </p>
       </section>
     </section>
@@ -1597,6 +1606,7 @@
 
   </main>
 
+  <script src="fiscal-cost.js"></script>
   <script>
     const fileInput = document.getElementById('xmlFile');
     const selectBtn = document.getElementById('selectBtn');
@@ -1734,7 +1744,7 @@
     });
 
     function localNameElements(parent, name) {
-      return Array.from(parent.getElementsByTagNameNS('*', name));
+      return Array.from(parent?.getElementsByTagNameNS('*', name) || []);
     }
 
     function firstElement(parent, name) {
@@ -1833,7 +1843,7 @@
         };
       });
 
-      return {
+      const data = {
         nfeNumber: directText(ide, 'nNF', '—'),
         issueDate: directText(ide, 'dhEmi', ''),
         issuer: directText(emit, 'xNome', '—'),
@@ -1850,9 +1860,46 @@
         totalInvoice: num(directText(icmsTot, 'vNF')),
         items
       };
+      data.issuerId = directText(emit, 'CNPJ', '') || directText(emit, 'CPF', '');
+      const value = (element, name) => directChild(element, name) ? directText(element, name) : null;
+      const special = [], context = [];
+      const rawItems = itemNodes.map((det, index) => {
+        const prod = directChild(det, 'prod'), tax = directChild(det, 'imposto');
+        if (directText(directChild(prod,'veicProd'),'tpOp','')==='2') special.push('Faturamento direto de veículos (W16-10 exceção 1): classificação específica pendente.');
+        if (directText(prod,'CFOP','').startsWith('3')) context.push('Importação CFOP 3: confirme a classificação e despesas de aquisição fora do XML.');
+        const icms = directChild(tax, 'ICMS'), group = icms ? Array.from(icms.children)[0] : null;
+        const ipiGroup = directChild(tax,'IPI'), ipi = directChild(ipiGroup,'IPITrib'), ipiExempt = directChild(ipiGroup,'IPINT');
+        const noSt = group && ['ICMS00','ICMS20','ICMS40','ICMS51','ICMS60','ICMSSN101','ICMSSN102','ICMSSN500','ICMS15','ICMS02','ICMS53','ICMS61'].includes(group.localName);
+        const stAmount = field => value(group,field) ?? (noSt?'0':null);
+        const devol = directChild(directChild(det, 'impostoDevol'), 'IPI');
+        const deduction = value(group, 'vICMSDeson'), indicator = directText(group, 'indDeduzDeson', '');
+        if (num(deduction) > 0 && !['0','1'].includes(indicator)) special.push('ICMS desonerado sem indDeduzDeson: confirme a convenção aplicável ao XML; não foi deduzido por presunção.');
+        const chargedST = (groupName, amount, flag) => {
+          const el = directChild(tax, groupName), v = value(el, amount), include = directText(el, flag, '');
+          if (num(v)>0 && !['0','1'].includes(include)) special.push(groupName+' sem indicador de soma: custo não confirmado.');
+          return include==='1' ? v : '0';
+        };
+        return {gross:value(prod,'vProd'),discount:value(prod,'vDesc'),st:stAmount('vICMSST'),fcpst:stAmount('vFCPST'),
+          ipi:ipiExempt?'0':value(ipi,'vIPI'),ipiDevol:value(devol,'vIPIDevol'),freight:value(prod,'vFrete'),insurance:value(prod,'vSeg'),other:value(prod,'vOutro'),
+          ii:value(directChild(tax,'II'),'vII'),pisst:chargedST('PISST','vPIS','indSomaPISST'),cofinsst:chargedST('COFINSST','vCOFINS','indSomaCOFINSST'),
+          newItemTotal:value(det,'vItem'),deson:indicator==='1'?deduction:'0',mono:value(group,'vICMSMonoReten')??(group&&group.localName!=='ICMS15'?'0':null),indTot:directText(prod,'indTot','1'),quantity:directText(prod,'qCom','0'),
+          commercialUnitValue:directText(prod,'vUnCom','0'),taxQuantity:value(prod,'qTrib'),taxUnit:directText(prod,'uTrib',''),taxUnitValue:value(prod,'vUnTrib')};
+      });
+      const taxReform = firstElement(xml,'IBSCBSTot');
+      const rtc={present:!!(taxReform||firstElement(xml,'IBSCBS')||firstElement(xml,'ISTot')||firstElement(xml,'vNFTot')||firstElement(xml,'vItem')||firstElement(xml,'vProdLiq')),year:(directText(ide,'dhEmi','')||directText(ide,'dEmi','')).slice(0,4),ibs:text(taxReform,'vIBS',''),cbs:text(taxReform,'vCBS',''),is:text(firstElement(xml,'ISTot'),'vIS','')};
+      if (num(text(xml,'vServ','0'))>0) special.push('Serviços presentes: não equiparar total financeiro a custo de mercadorias.');
+      if (num(value(icmsTot,'vICMSDeson'))>0 && !itemNodes.some(det=>num(text(det,'vICMSDeson','0'))>0)) special.push('Desoneração somente no total: dedução não confirmada.');
+      data.fiscalRaw = {finNFe:directText(ide,'finNFe',''),model:directText(ide,'mod',''),items:rawItems,special,context,rtc,newTotal:value(total,'vNFTot'),
+        totals:{gross:value(icmsTot,'vProd'),invoice:value(icmsTot,'vNF'),discount:value(icmsTot,'vDesc'),st:value(icmsTot,'vST'),fcpst:value(icmsTot,'vFCPST'),
+          ipi:value(icmsTot,'vIPI'),ipiDevol:value(icmsTot,'vIPIDevol'),freight:value(icmsTot,'vFrete'),insurance:value(icmsTot,'vSeg'),other:value(icmsTot,'vOutro'),ii:value(icmsTot,'vII'),mono:value(icmsTot,'vICMSMonoReten'),deson:null}};
+      return data;
     }
 
 
+    const COST_FACTORS_KEY = 'nfeCostFactorsV1';
+    let costFactors = {};
+    try { costFactors = JSON.parse(localStorage.getItem(COST_FACTORS_KEY) || '{}'); } catch (_) {}
+    let currentFinance = null;
     const COLUMN_ORDER_STORAGE_KEY = 'icmsStColumnOrderV2';
 
     function getHeaderCells() {
@@ -2193,6 +2240,7 @@
 
     function renderNoteData(data) {
       currentItems = data.items;
+      currentFinance = NfeCost.calculate(data, costFactors, data.purchaseOptions || {});
       currentNfeNumber = data.nfeNumber;
 
       document.getElementById('nfeNumber').textContent = data.nfeNumber;
@@ -2213,6 +2261,7 @@
       document.getElementById('totalDiscount').textContent = brl.format(discount);
       document.getElementById('totalInvoice').textContent = brl.format(data.totalInvoice);
 
+      renderFiscalSummary(data);
       renderItems();
 
 
@@ -2275,26 +2324,113 @@
       return Number.isFinite(value) && value >= 0 ? value : 0;
     }
 
+    function fiscalMoney(cents) { return cents == null ? '—' : !Number.isSafeInteger(cents) ? 'Valor fora da precisão' : brl.format(cents/100); }
+    function fiscalRawCents(value) { try { return NfeCost.cents(value); } catch (_) { return null; } }
+    function renderFiscalSummary(data) {
+      let box = document.getElementById('fiscalSummary');
+      if (!box) { box=document.createElement('section');box.id='fiscalSummary';box.className='card';document.querySelector('#result .totals').after(box); }
+      const f=currentFinance;
+      const totals=Object.entries(NfeCost.FIELDS).filter(([k])=>k==='ipi'||(f.totals[k]||0)>0).map(([k,label])=>{
+        const official=data.fiscalRaw?.totals[k],amount=official==null?f.totals[k]:fiscalRawCents(official);
+        return `<div class="total-box"><span>${escapeHTML(label)} (${official==null?'soma dos itens':'oficial XML'})</span><strong data-fiscal-total="${k}">${fiscalMoney(amount)}</strong><small>Classificado: ${fiscalMoney(f.totals[k])}</small></div>`;
+      }).join('');
+      let ipiBox=document.getElementById('ipiTotalBox');if(!ipiBox){ipiBox=document.createElement('div');ipiBox.id='ipiTotalBox';ipiBox.className='total-box';document.querySelector('#result .totals').append(ipiBox);}
+      const officialIpi=data.fiscalRaw?.totals.ipi;ipiBox.innerHTML=`<span>IPI total (${officialIpi==null?'soma itens; total XML ausente':'oficial XML'})</span><strong id="totalIPI">${fiscalMoney(officialIpi==null?f.totals.ipi:fiscalRawCents(officialIpi))}</strong>`;
+      box.innerHTML=`<details id="fiscalBreakdown"><summary>Composição do custo e conciliação com a NF-e</summary><div class="totals">${totals}
+        <div class="total-box"><span>Soma classificada dos itens</span><strong>${fiscalMoney(f.classifiedCents)}</strong></div>
+        <div class="total-box"><span>vNF oficial (financeiro)</span><strong>${fiscalMoney(f.officialCents)}</strong></div>
+        <div class="total-box"><span>Diferença não classificada</span><strong>${fiscalMoney(f.differenceCents)}</strong></div>
+        <div class="total-box"><span>Custo com ajustes manuais</span><strong>${fiscalMoney(f.costCents)}</strong></div></div>
+        <p>${escapeHTML(f.method||'Reimporte o XML original para calcular os componentes.')}</p><p>${escapeHTML(f.rtcNote||'')}</p>
+
+        <p>ICMS normal e PIS/COFINS informativos não são somados por cima. O custo inclui tributos cobrados, antes de créditos fiscais: informe apenas créditos recuperáveis efetivamente confirmados. O app não determina seu regime ou direito a crédito. IPI não é inferido pela diferença entre vNF e vProd.</p>
+        <div class="actions fiscal-options">
+          <label>Custo adicional de compra fora do XML (R$)<input data-note-option="extra" value="${escapeHTML(data.purchaseOptions?.extra||'0')}" inputmode="decimal" aria-label="Custo adicional fora do XML"></label>
+          <label>Crédito recuperável confirmado (R$)<input data-note-option="credit" value="${escapeHTML(data.purchaseOptions?.credit||'0')}" inputmode="decimal" aria-label="Crédito recuperável confirmado"></label>
+          ${(data.fiscalRaw?.context?.length || (data.fiscalRaw?.finNFe&&data.fiscalRaw.finNFe!=='1'))?`<label><input type="checkbox" data-note-option="acquisitionConfirmed" ${data.purchaseOptions?.acquisitionConfirmed?'checked':''}>Confirmo que esta operação representa aquisição dos produtos (finalidade ${escapeHTML(data.fiscalRaw.finNFe)})</label>`:''}
+        </div></details><div id="fiscalWarnings" role="status">${f.warnings.length?`<strong>Preço final pendente</strong><ul>${f.warnings.map(w=>`<li>${escapeHTML(w)}</li>`).join('')}</ul>`:'Componentes conciliados ao centavo com vNF. Conversões por produto ainda podem exigir confirmação.'}</div><p>Ajuste fora do XML: ${fiscalMoney(f.extraCents)}. Crédito confirmado: ${fiscalMoney(f.creditCents)}. O XML não é alterado.</p>`;
+    }
+    function renderCostDetails(item,index,row) {
+      if (!row) return '<p>Reimporte o XML.</p>';
+      const source=loadedNotes[activeNoteIndex]?.data.fiscalRaw?.items[index]||{};
+      const conv=row.conversion,key=NfeCost.productKey(loadedNotes[activeNoteIndex]?.data||{},item),override=costFactors[key]||{};
+      const pieces=Object.entries(NfeCost.FIELDS).filter(([k])=>['ipi','st','discount'].includes(k)||(row.parts?.[k]||0)>0).map(([k,label])=>{
+        let per=null;if(conv.confirmed&&Number(row.quantity)>0)try{per=NfeCost.unitCents(row.parts[k],row.quantity,conv.exactFactor??conv.factor);}catch(_){}
+        return `${label}${row.allocations?.some(a=>a.startsWith(label+':'))?' (rateio analítico, não discriminado no item)':''}: ${fiscalMoney(row.parts?.[k])} no item / ${fiscalMoney(per)} por ${conv.base}`;
+      });
+      const info=`Compra bruta: ${fiscalMoney(row.grossCents)}. ${pieces.join('; ')}. Adicional manual: ${fiscalMoney(row.extraCents)}; crédito: ${fiscalMoney(row.creditCents)}. Total do item: ${fiscalMoney(row.totalCents)}.`;
+      return `<p class="unit-basis">${conv.confirmed?'Conversão confirmada':'A confirmar'}. Fator: ${conv.factor==null?'a confirmar':escapeHTML(conv.factorText?.replace('.',',')||numberBR.format(conv.factor))}. Total: ${conv.units==null?'—':escapeHTML(conv.unitsExact?.replace('.',',')||numberBR.format(conv.units))} ${escapeHTML(conv.base)} ${conv.confirmed?'':'(a confirmar)'}</p>
+        <details class="cost-details" data-cost-item="${index}"><summary>IPI, custos e conversão</summary><p>${escapeHTML(conv.source)}</p>
+          <p>XML: ${numberBR.format(item.quantity)} ${escapeHTML(item.unit||'unidade não informada')}; vUnCom (R$) ${escapeHTML(source.commercialUnitValue??String(item.unitValue))} por unidade comercial. uTrib: ${escapeHTML(loadedNotes[activeNoteIndex]?.data.fiscalRaw?.items[index]?.taxUnit||'não informado')}; qTrib: ${escapeHTML(source.taxQuantity??'não informado')}; vUnTrib XML (R$): ${escapeHTML(source.taxUnitValue??'não informado')}.</p>
+          <div class="conversion-editor actions">
+            <label>Unidades por caixa/fardo/pacote (ou por unidade comercial)<input data-cost-field="factor" data-cost-index="${index}" value="${escapeHTML(String(override.factor??conv.factor??''))}" inputmode="decimal" aria-label="Fator do produto ${index+1}"></label>
+            <label>Unidade final de venda<input data-cost-field="base" data-cost-index="${index}" value="${escapeHTML(String(override.base||conv.base||'UN'))}" aria-label="Unidade final do produto ${index+1}"></label>
+            <label><input type="checkbox" data-cost-field="confirmed" data-cost-index="${index}" ${override.confirmed?'checked':''}>Confirmo a conversão para unidade vendável</label>
+            <button type="button" class="btn-secondary" data-reset-factor="${index}">Usar unidade documentada / restaurar</button>
+          </div><p>${escapeHTML(info)}</p>
+          <ul>${(row.allocations||[]).map(t=>`<li>${escapeHTML(t)}</li>`).join('')}</ul>
+          <p>Custo por ${escapeHTML(item.unit||'embalagem')}: ${(()=>{try{return Number(row.quantity)>0?fiscalMoney(NfeCost.unitCents(row.totalCents,row.quantity,1)):'—'}catch(_){return '—'}})()}. ${row.ready?'':'Preço final pendente: '+escapeHTML(row.reason||'confirmar dados')}.</p>
+        </details><p class="cost-audit-print">${escapeHTML(info)} ${escapeHTML(conv.source)}. Fator ${escapeHTML(conv.factorText||String(conv.factor||'pendente'))}; ${escapeHTML(conv.unitsExact||String(conv.units||'—'))} ${escapeHTML(conv.base)}.</p>`;
+    }
+    function refreshFiscalEditor(event) {
+      const target=event.target,entry=loadedNotes[activeNoteIndex];if(!entry)return;
+      const isNote=target.hasAttribute('data-note-option'),isFactor=target.hasAttribute('data-cost-field'),reset=target.hasAttribute('data-reset-factor');
+      if(!isNote&&!isFactor&&!reset)return;
+      const breakdownOpen=document.getElementById('fiscalBreakdown')?.open;
+      const opens=Array.from(document.querySelectorAll('.cost-details[open]')).map(d=>d.dataset.costItem);
+      const position=target.selectionStart;
+      const index=Number(target.dataset.costIndex??target.dataset.resetFactor),field=target.dataset.costField,noteField=target.dataset.noteOption;
+      if(isNote){entry.data.purchaseOptions ||= {};entry.data.purchaseOptions[noteField]=target.type==='checkbox'?target.checked:target.value;}
+      else {const key=NfeCost.productKey(entry.data,currentItems[index]);
+        if(reset)delete costFactors[key];
+        else {costFactors[key] ||= {base:currentFinance.items[index]?.conversion?.base||'UN',factor:currentFinance.items[index]?.conversion?.factor??''};costFactors[key][field]=target.type==='checkbox'?target.checked:target.value;}
+        try{localStorage.setItem(COST_FACTORS_KEY,JSON.stringify(costFactors));}catch(_){showStatus('Não foi possível salvar a conversão permanentemente.','error');}
+      }
+      renderNoteData(entry.data);saveAppSession();
+      if(breakdownOpen)document.getElementById('fiscalBreakdown').open=true;
+      opens.forEach(i=>{const d=document.querySelector(`.cost-details[data-cost-item="${i}"]`);if(d)d.open=true;});
+      const selector=isNote?`[data-note-option="${noteField}"]`:isFactor?`[data-cost-field="${field}"][data-cost-index="${index}"]`:null;
+      const restored=selector&&document.querySelector(selector);
+      if(restored){restored.focus({preventScroll:true});if(position!=null)try{restored.setSelectionRange(position,position);}catch(_){} }
+    }
+    document.addEventListener('input',event=>{if(event.target.type!=='checkbox')refreshFiscalEditor(event);});
+    document.addEventListener('change',event=>{if(event.target.type==='checkbox')refreshFiscalEditor(event);});
+    document.addEventListener('click',event=>{if(event.target.hasAttribute('data-reset-factor'))refreshFiscalEditor(event);});
+    function validMarkup(){const value=Number(markupPercentInput.value);return markupPercentInput.value.trim()!==''&&Number.isFinite(value)&&value>=0&&value<=1000000;}
+    function buildFiscalCSV() {
+      const markup=getMarkupPercent();
+      const headers=['Item','Produto','Compra básica / unidade final','ST / unidade final','Custo de aquisição final / unidade',`Preço sugerido por unidade (+${markup}%)`,'Valor dos produtos','Quantidade comercial','Base ICMS-ST','ICMS-ST total','% ICMS-ST','Código de barras','NCM','CST/CSOSN','CFOP','Código do produto','Unidade comercial','vUnCom XML','Unidade final','Fator','Conversão confirmada','Total unidades','IPI item','FCP-ST item','IPI devolvido item','II item','Frete item','Seguro item','Outras despesas item','Desconto item','PIS-ST cobrado','COFINS-ST cobrado','ICMS desonerado deduzido','Custo adicional manual item','Crédito confirmado item','Custo final item','Pendências','Rateios','NF-e','vNF oficial','Custo classificado da NF','Diferença não classificada','Acréscimo sobre custo (%)','Metodologia','uTrib XML','qTrib XML','vUnTrib XML','ICMS monofásico a reter'];
+      const value=c=>c==null?'':(c/100).toFixed(2);
+      const rows=currentItems.map((item,i)=>{const r=currentFinance.items[i],conv=r.conversion;return [item.item,item.name,value(r.basicCents),value(r.stCents),value(r.costCents),value(r.ready&&validMarkup()?NfeCost.price(r,markup):null),item.productValue,item.quantity,item.bcST,item.stValue,((item.productValue>0?item.stValue/item.productValue*100:0).toFixed(2)+'%'),normalizeBarcode(item.barcode),item.ncm,item.cstCsosn,item.cfop,item.productCode,item.unit,loadedNotes[activeNoteIndex].data.fiscalRaw?.items[i]?.commercialUnitValue??item.unitValue,conv.base,conv.factorText??conv.factor??'',conv.confirmed?'Sim':'A confirmar',conv.unitsExact??conv.units??'',...['ipi','fcpst','ipiDevol','ii','freight','insurance','other','discount','pisst','cofinsst','deson'].map(k=>value(r.parts?.[k])),value(r.extraCents),value(r.creditCents),value(r.totalCents),[...(currentFinance.warnings||[]),r.reason||'',!validMarkup()?'Acréscimo inválido':r.ready&&NfeCost.price(r,markup)==null?'Preço fora da precisão segura':''].filter(Boolean).join(' | '),(r.allocations||[]).join(' | '),currentNfeNumber,value(currentFinance.officialCents),value(currentFinance.classifiedCents),value(currentFinance.differenceCents),markup,currentFinance.method,...['taxUnit','taxQuantity','taxUnitValue'].map(k=>loadedNotes[activeNoteIndex].data.fiscalRaw?.items[i]?.[k]??''),value(r.parts?.mono)];});
+      return {headers,rows};
+    }
+
     function renderItems() {
       const markup = getMarkupPercent();
+      let markupWarning=document.getElementById('markupWarning');if(!markupWarning){markupWarning=document.createElement('small');markupWarning.id='markupWarning';markupWarning.setAttribute('role','status');markupPercentInput.closest('.markup-control').append(markupWarning);}
+      markupWarning.textContent=validMarkup()?'':'Informe um acréscimo válido entre 0 e 1000000%. Preço pendente.';
       const headerLabel = markupHeader.querySelector('.header-label');
       if (headerLabel) {
-        headerLabel.textContent = `Preço sugerido (+${percentBR.format(markup)}%)`;
+        headerLabel.textContent = `Venda por unidade (+${percentBR.format(markup)}%)`;
       }
 
-      itemsBody.innerHTML = currentItems.map(item => {
-        const suggestedPrice = item.unitCostWithST * (1 + markup / 100);
+      itemsBody.innerHTML = currentItems.map((item, index) => {
+        const row = currentFinance?.items[index];
+        const suggested = row?.ready && validMarkup() ? NfeCost.price(row,markup) : null;
+        const money = cents => cents == null ? '—' : brl.format(cents/100);
+        const basis = row?.conversion?.base || 'unidade a confirmar';
 
         const rowCellsByKey = {
           0: `<td>${escapeHTML(item.item)}</td>`,
           1: `<td>
                 <div class="product-name">${escapeHTML(item.name)}</div>
-                <div class="muted">${escapeHTML(item.unit)}</div>
+                <div class="muted">${numberBR.format(item.quantity)} ${escapeHTML(item.unit || "unidade comercial não informada")} (quantidade comercial)</div>
+                ${renderCostDetails(item,index,row)}
               </td>`,
-          2: `<td class="number">${brl.format(item.unitValue)}</td>`,
-          3: `<td class="number">${brl.format(item.stPerUnit)}</td>`,
-          4: `<td class="number">${brl.format(item.unitCostWithST)}</td>`,
-          5: `<td class="number"><strong>${brl.format(suggestedPrice)}</strong></td>`,
+          2: `<td class="number">${money(row?.basicCents)} / ${escapeHTML(basis)}<small> XML: ${brl.format(item.unitValue)} / ${escapeHTML(item.unit || "não informada")}</small></td>`,
+          3: `<td class="number">${money(row?.stCents)} / ${escapeHTML(basis)}</td>`,
+          4: `<td class="number" data-real-cost="${index}">${money(row?.costCents)} / ${escapeHTML(basis)}${row?.ready ? "" : `<small>${escapeHTML(row?.reason || "Reimporte o XML")}</small>`}</td>`,
+          5: `<td class="number" data-unit-price="${index}"><strong>${money(suggested)} / ${escapeHTML(basis)}</strong>${row?.ready&&suggested==null?"<small>Verifique acréscimo/precisão</small>":""}</td>`,
           6: `<td class="number">${brl.format(item.productValue)}</td>`,
           7: `<td class="number">${numberBR.format(item.quantity)}</td>`,
           8: `<td class="number">${brl.format(item.bcST)}</td>`,
@@ -2311,7 +2447,7 @@
 
         return `
           <tr>
-            ${order.map(key => rowCellsByKey[key]).join('')}
+            ${order.map(key => rowCellsByKey[key].replace("<td",`<td data-column-key="${key}"`)).join('')}
           </tr>
         `;
       }).join('');
@@ -2380,22 +2516,7 @@
     function downloadCSV() {
       if (!currentItems.length) return;
 
-      const headers = [
-        'Item', 'Produto', 'Valor unitário', 'ICMS-ST por unidade',
-        'Custo unitário + ST', `Preço sugerido (+${numberBR.format(getMarkupPercent())}%)`,
-        'Valor dos produtos', 'Quantidade', 'Base ICMS-ST', 'ICMS-ST total', '% ICMS-ST',
-        'Código de barras', 'NCM', 'CST/CSOSN', 'CFOP', 'Código do produto'
-      ];
-
-      const markup = getMarkupPercent();
-      const rows = currentItems.map(item => [
-        item.item, item.name, item.unitValue, item.stPerUnit,
-        item.unitCostWithST, item.unitCostWithST * (1 + markup / 100),
-        item.productValue, item.quantity, item.bcST, item.stValue,
-        ((item.productValue>0?(item.stValue/item.productValue)*100:0).toFixed(2)+'%'),
-        normalizeBarcode(item.barcode), item.ncm, item.cstCsosn,
-        item.cfop, item.productCode
-      ]);
+      const {headers,rows} = buildFiscalCSV();
 
       const csv = '\uFEFF' + [headers, ...rows]
         .map(row => row.map(csvEscape).join(';'))

@@ -126,17 +126,17 @@ public class AppIntegrationTest {
             }
         }
     }
-    private static void waitForJs(ActivityScenario<MainActivity> scenario,String expression)throws Exception {
+    static void waitForJs(ActivityScenario<MainActivity> scenario,String expression)throws Exception {
         long end=System.currentTimeMillis()+20000;
         while(System.currentTimeMillis()<end){if("true".equals(js(scenario,expression)))return;Thread.sleep(150);}
         fail("WebView did not become ready: "+expression);
     }
-    private static String js(ActivityScenario<MainActivity> scenario,String expression)throws Exception {
+    static String js(ActivityScenario<MainActivity> scenario,String expression)throws Exception {
         CountDownLatch latch=new CountDownLatch(1);AtomicReference<String> value=new AtomicReference<>();
         scenario.onActivity(activity->{WebView view=findWebView(activity.getWindow().getDecorView());assertNotNull(view);view.evaluateJavascript(expression,result->{value.set(result);latch.countDown();});});
         assertTrue(latch.await(10,TimeUnit.SECONDS));return value.get();
     }
-    private static WebView findWebView(android.view.View view){
+    static WebView findWebView(android.view.View view){
         if(view instanceof WebView)return (WebView)view;
         if(view instanceof android.view.ViewGroup){android.view.ViewGroup group=(android.view.ViewGroup)view;for(int i=0;i<group.getChildCount();i++){WebView found=findWebView(group.getChildAt(i));if(found!=null)return found;}}
         return null;

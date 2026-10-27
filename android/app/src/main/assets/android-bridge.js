@@ -46,29 +46,43 @@
     window.acceptNativeXmlDocuments = documents => {
       const before = loadedNotes.slice(), selected = activeNoteIndex;
       const notes = before.slice(), registry = loadedXmls.slice();
-      const identity = entry => JSON.stringify(entry.data);
+      const identity = entry => JSON.stringify(entry.data.fiscalRaw ? {key:entry.data.accessKey,number:entry.data.nfeNumber,issuer:entry.data.issuer,raw:entry.data.fiscalRaw} : entry.data);
       const known = new Set(notes.map(identity));
-      let added = 0, duplicates = 0;
+      let added = 0, duplicates = 0, upgraded = 0;
       const errors = [];
       for (const document of documents || []) {
         try {
           if (document.error) throw new Error(document.error);
           if (!document.text?.trim()) throw new Error('Arquivo vazio.');
-          const data = parseXML(document.text), id = JSON.stringify(data);
-          if (known.has(id)) { duplicates++; continue; }
+          const data = parseXML(document.text), id = identity({data});
+          const physical = d => JSON.stringify([d.accessKey||'',d.nfeNumber,d.issuer]);
+          const previous=notes.find(e=>physical(e.data)===physical(data));
+          if(previous && !previous.data.fiscalRaw && data.fiscalRaw){
+            if(JSON.stringify(previous.data.items)!==JSON.stringify(data.items)||previous.data.totalInvoice!==data.totalInvoice||previous.data.totalDiscount!==data.totalDiscount)throw new Error('Nota antiga diverge do XML selecionado. Use Nova consulta para substituir explicitamente.');
+            known.delete(identity(previous));const options=previous.data.purchaseOptions;
+            previous.data=data;if(options)previous.data.purchaseOptions=options;
+            previous.content=document.text;previous.normalizedContent=normalizeSearchValue(document.text);
+            known.add(id);upgraded++;continue;
+          }
+          if (known.has(id)) {
+            const stored=registry.find(e=>identity(e)===id);if(stored){stored.content=document.text;stored.normalizedContent=normalizeSearchValue(document.text);}
+            duplicates++; continue;
+          }
+          if(previous && previous.data.fiscalRaw)throw new Error('NF-e já aberta com conteúdo fiscal diferente. Use Nova consulta para substituir a coleção explicitamente.');
           const entry = {file:{name:document.name},content:document.text,data,normalizedContent:normalizeSearchValue(document.text)};
           known.add(id); notes.push(entry);
           if (!registry.some(previous => identity(previous) === id)) registry.push(entry);
           added++;
         } catch (error) { errors.push(`${document.name || 'Documento'}: ${error.message || 'XML inválido.'}`); }
       }
-      if (added) {
+      if (added || upgraded) {
         loadedXmls = registry;
         openLoadedNotes(notes);
         if (before.length) showNote(selected);
       }
       loadedCount.textContent = `${notes.length} XML(s) carregado(s)`;
       const summary = `${added} nota(s) adicionada(s); ${notes.length} nota(s) aberta(s).` +
+        (upgraded ? ` ${upgraded} nota(s) antiga(s) atualizada(s) pelo XML reimportado.` : '') +
         (duplicates ? ` ${duplicates} repetida(s), sem duplicar abas.` : '') +
         (errors.length ? ` ${errors.length} arquivo(s) não importado(s): ${errors.join(' ')}` : '');
       showStatus(summary, errors.length ? 'error' : 'success');

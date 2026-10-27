@@ -6,13 +6,13 @@ const path=require('node:path');
 const {chromium}=require('playwright-core');
 let server,browser,base;
 before(async()=>{
- server=http.createServer(async(req,res)=>{try{const file=path.basename(req.url.split('?')[0])||'index.html';if(!/^((index|consulta_precos_v(15|16|17))\.html)$/.test(file)){res.writeHead(404).end();return;}res.setHeader('Content-Type','text/html; charset=utf-8');res.end(await fs.readFile(path.join(__dirname,'..',file)));}catch{res.writeHead(404).end();}});
+ server=http.createServer(async(req,res)=>{try{const file=path.basename(req.url.split('?')[0])||'index.html';if(!/^((index|consulta_precos_v(15|16|17))\.html|fiscal-cost\.js)$/.test(file)){res.writeHead(404).end();return;}res.setHeader('Content-Type',file.endsWith('.js')?'text/javascript; charset=utf-8':'text/html; charset=utf-8');res.end(await fs.readFile(path.join(__dirname,'..',file)));}catch{res.writeHead(404).end();}});
  await new Promise(r=>server.listen(0,'127.0.0.1',r));base=`http://127.0.0.1:${server.address().port}`;
  browser=await chromium.launch({executablePath:process.env.CHROME_BIN||'/usr/bin/chromium',args:['--no-sandbox']});
 });
 after(async()=>{await browser?.close();await new Promise(r=>server?.close(r));});
 function validKey(){const base='3526101234567800019555001000000123112345678';let sum=0,w=2;for(let i=42;i>=0;i--){sum+=Number(base[i])*w;w=w===9?2:w+1;}return base+(sum%11<2?0:11-sum%11);}
-function xml(n=123,name='Produto <seguro>',q=2,st=4){return `<nfeProc xmlns="http://www.portalfiscal.inf.br/nfe"><NFe><infNFe Id="NFe${validKey()}"><ide><nNF>${n}</nNF></ide><emit><xNome>Empresa de teste</xNome></emit><dest><xNome>Cliente teste</xNome></dest><det nItem="1"><prod><cProd>001</cProd><cEAN>7891234567890</cEAN><xProd>${name.replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;')}</xProd><qCom>${q}</qCom><vUnCom>10</vUnCom><vProd>20</vProd></prod><imposto><ICMS><ICMS10><vBCST>20</vBCST><vICMSST>${st}</vICMSST></ICMS10></ICMS></imposto></det><total><ICMSTot><vProd>20</vProd><vBCST>20</vBCST><vST>${st}</vST><vNF>24</vNF></ICMSTot></total></infNFe></NFe></nfeProc>`;}
+function xml(n=123,name='Produto <seguro>',q=2,st=4){return `<nfeProc xmlns="http://www.portalfiscal.inf.br/nfe"><NFe><infNFe Id="NFe${validKey()}"><ide><nNF>${n}</nNF></ide><emit><xNome>Empresa de teste</xNome></emit><dest><xNome>Cliente teste</xNome></dest><det nItem="1"><prod><cProd>001</cProd><cEAN>7891234567890</cEAN><xProd>${name.replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;')}</xProd><uCom>UN</uCom><qCom>${q}</qCom><vUnCom>10</vUnCom><vProd>20</vProd></prod><imposto><ICMS><ICMS10><vBCST>20</vBCST><vICMSST>${st}</vICMSST></ICMS10></ICMS></imposto></det><total><ICMSTot><vProd>20</vProd><vBCST>20</vBCST><vST>${st}</vST><vNF>24</vNF></ICMSTot></total></infNFe></NFe></nfeProc>`;}
 async function page(viewport){const p=await browser.newPage({viewport:viewport||{width:1280,height:800}});await p.route('https://**/*',r=>r.abort());return p;}
 async function upload(p,files){await p.setInputFiles('#multipleXmlFiles',files.map(([name,text])=>({name,mimeType:'text/xml',buffer:Buffer.from(text)})));await p.waitForFunction(()=>!document.querySelector('#loadXmlsBtn').disabled);}
 test('all pages initialize without JS exceptions at desktop and mobile sizes',async()=>{
@@ -84,7 +84,7 @@ test('official discount is visible only when positive, without double counting o
    assert.equal(await p.locator('#discountTotalBox').evaluate(el=>el.hidden),false);
   }
   assert.equal(await p.locator('#markupPercent').inputValue(),'20');
-  assert.match(await p.locator('#itemsBody td:nth-child(7)').innerText(),/14,40/);
+  if(c.adjustments)assert.match(await p.locator('#itemsBody td:nth-child(7)').innerText(),/16,50/);else assert.match(await p.locator('#itemsBody td:nth-child(7)').innerText(),/—/);
  }
  await p.reload();assert.equal(await p.locator('#discountTotalBox').isVisible(),true);
  await p.close();

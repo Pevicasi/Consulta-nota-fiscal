@@ -6,8 +6,8 @@ android {
         applicationId 'br.com.pevicasi.nfefacil'
         minSdk 26
         targetSdk 36
-        versionCode 5
-        versionName '1.2.1'
+        versionCode 6
+        versionName '1.3.0'
         testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
 
     }
@@ -37,11 +37,12 @@ android {
     testBuildType project.hasProperty('distributionInstrumentation') ? 'release' : 'debug'
     compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
     sourceSets.main.assets.srcDir(layout.buildDirectory.dir('generated/siteAssets'))
+    sourceSets.androidTest.assets.srcDir(new File(rootProject.projectDir.parentFile, 'tests/fixtures'))
     testOptions { unitTests.returnDefaultValues = true }
     lint { abortOnError true }
 }
 tasks.register('syncSite', Sync) {
-    from(rootProject.projectDir.parentFile) { include 'index.html', 'consulta_precos_v15.html', 'consulta_precos_v16.html', 'consulta_precos_v17.html' }
+    from(rootProject.projectDir.parentFile) { include 'fiscal-cost.js', 'index.html', 'consulta_precos_v15.html', 'consulta_precos_v16.html', 'consulta_precos_v17.html' }
     into layout.buildDirectory.dir('generated/siteAssets/site')
 }
 tasks.named('preBuild').configure { dependsOn 'syncSite' }
