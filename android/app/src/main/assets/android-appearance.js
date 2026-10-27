@@ -17,6 +17,7 @@
     html[data-native-theme] :is(button,input:not([type=checkbox]):not([type=radio]),select,textarea) {
       min-height:48px; height:auto !important; max-width:100%; line-height:1.5; white-space:normal !important;
     }
+    html[data-native-theme] input::placeholder, html[data-native-theme] textarea::placeholder { color:#667085 !important; opacity:1; }
     html[data-native-theme] :is(button,label,summary,.note-tab,.header-label) { overflow-wrap:anywhere; white-space:normal !important; text-overflow:clip !important; }
     html[data-native-theme] :is(.summary-grid,.totals) { grid-template-columns:repeat(auto-fit,minmax(min(100%,calc(170px * var(--nfe-scale))),1fr)); }
     html[data-native-theme] :is(.summary-item,.total-box,.card,.wrap,.container) { min-width:0; }
@@ -30,6 +31,7 @@
     html[data-native-theme=dark] body * { background-color:transparent !important; color:inherit !important; border-color:#526179 !important; }
     html[data-native-theme=dark] :is(.card,.item,.summary-item,.total-box,table,details,.upload-area,.modal-content,.modal-box,#sugestoes) { background-color:#1E293B !important; }
     html[data-native-theme=dark] :is(input,select,textarea,button,.btn-secondary,.tab,.mode,.fuel) { background-color:#293E5C !important; color:#F1F5FC !important; }
+    html[data-native-theme=dark] input::placeholder, html[data-native-theme=dark] textarea::placeholder { color:#C0CDDE !important; opacity:1; }
     html[data-native-theme=dark] :is(.btn-primary,.go,.tab.on,.mode.active,.fuel.selected,.note-tab.active,thead th) { background-color:#24479D !important; color:#FFFFFF !important; }
     html[data-native-theme=dark] :is(#discountTotalBox,.status.success) { background-color:#103E30 !important; border-color:#8DF0BB !important; color:#8DF0BB !important; }
     html[data-native-theme=dark] :is(#discountTotalBox,.status.success) * { color:#8DF0BB !important; }

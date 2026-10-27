@@ -32,6 +32,8 @@ test('app appearance scales every local page without clipped controls at mobile 
     const lum=color=>{const c=color.match(/[\d.]+/g).slice(0,3).map(Number).map(v=>{v/=255;return v<=.04045?v/12.92:((v+.055)/1.055)**2.4});return .2126*c[0]+.7152*c[1]+.0722*c[2]};
     const ratio=(a,b)=>{a=lum(a);b=lum(b);return (Math.max(a,b)+.05)/(Math.min(a,b)+.05)};
     const body=getComputedStyle(document.body),values=[ratio(body.color,body.backgroundColor)];
+    const field=document.querySelector('input[placeholder]');
+    if(field)values.push(ratio(getComputedStyle(field,'::placeholder').color,getComputedStyle(field).backgroundColor));
     const discount=document.querySelector('#totalDiscount');
     if(discount)values.push(ratio(getComputedStyle(discount).color,getComputedStyle(document.querySelector('#discountTotalBox')).backgroundColor));
     return values;
