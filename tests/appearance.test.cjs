@@ -89,6 +89,8 @@ test('Android SAF importer appends batches, reports unreadable/invalid/empty fil
  assert.equal(await p.locator('#notesTabs button').count(),5);assert.equal(await p.locator('#nfeNumber').innerText(),'1002');
  assert.equal(await p.locator('#discountTotalBox').isVisible(),true);
  await p.evaluate(()=>acceptNativeXmlDocuments([{name:'outro.xml',text:'sem XML'}]));assert.equal(await p.locator('#notesTabs button').count(),5);
+ await p.emulateMedia({media:'print'});assert.equal(await p.locator('#nativeImportMore').isVisible(),false);assert.equal(await p.locator('#status').isVisible(),false);
+ assert.equal(await p.locator('#discountTotalBox').isVisible(),true);
  await p.close();
 });
 test('scan link remains a real accessible button and short fiscal headings stay whole at reported scales',async()=>{

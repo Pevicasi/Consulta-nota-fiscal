@@ -12,7 +12,7 @@ import java.nio.charset.StandardCharsets;
 /** Real SAF document provider for the emulator, packaged ONLY in androidTest. */
 public class SafDocumentsProvider extends DocumentsProvider {
     static final String AUTHORITY="br.com.pevicasi.nfefacil.test.documents";
-    private static final String[] DOCS={"document_id","display_name","mime_type","flags","size","last_modified"};
+    private static final String[] DOCS={DocumentsContract.Document.COLUMN_DOCUMENT_ID,DocumentsContract.Document.COLUMN_DISPLAY_NAME,DocumentsContract.Document.COLUMN_MIME_TYPE,DocumentsContract.Document.COLUMN_FLAGS,DocumentsContract.Document.COLUMN_SIZE,DocumentsContract.Document.COLUMN_LAST_MODIFIED};
     public static String xml(int number) {
         return "<NFe><infNFe><ide><nNF>"+(1000+number)+"</nNF></ide><emit><xNome>Fornecedor "+number+"</xNome></emit><det nItem='1'><prod><xProd>Produto Android "+number+"</xProd><qCom>2</qCom><vUnCom>10</vUnCom><vProd>20</vProd><vDesc>5.50</vDesc></prod><imposto><ICMS><ICMS10><vICMSST>4</vICMSST></ICMS10></ICMS></imposto></det><total><ICMSTot><vProd>20</vProd><vDesc>5.50</vDesc><vNF>18.50</vNF></ICMSTot></total></infNFe></NFe>";
     }
@@ -39,10 +39,10 @@ public class SafDocumentsProvider extends DocumentsProvider {
     private void add(MatrixCursor cursor,String id) {
         MatrixCursor.RowBuilder row=cursor.newRow();
         for(String column:cursor.getColumnNames())switch(column){
-            case "document_id":case "display_name":row.add(column,id);break;
+            case DocumentsContract.Document.COLUMN_DOCUMENT_ID:case DocumentsContract.Document.COLUMN_DISPLAY_NAME:row.add(column,id);break;
             case "mime_type":row.add(column,id.equals("root")?DocumentsContract.Document.MIME_TYPE_DIR:"application/xml");break;
             case "flags":row.add(column,0);break;
-            case "size":row.add(column,id.equals("root")?0:content(id).getBytes(StandardCharsets.UTF_8).length);break;
+            case DocumentsContract.Document.COLUMN_SIZE:row.add(column,id.equals("root")?0:content(id).getBytes(StandardCharsets.UTF_8).length);break;
             case "last_modified":row.add(column,0L);break;
             default:row.add(column,null);
         }

@@ -22,7 +22,7 @@ Quantidade recebe largura mínima de 12 em; os rótulos curtos Item, Produto e Q
 
 - 15 testes web: regressões anteriores e importação Android por lotes, inválidos/vazios/erros/repetições, restauração, botão, foco, URL, cabeçalhos e preferências de coluna. Escalas 90/100/140/160, claro/escuro, retrato/paisagem; os testes de aparência anteriores continuam verificando as quatro páginas.
 - 8 unitários Java e 5 de política de assinatura.
-- 27 instrumentados: 24 anteriores + 3 de ImportRepairTest. Incluem provedor DocumentsProvider real no APK de instrumentação, UI DocumentsUI/SAF acionada por toque no WebView, seleções simultâneas de 2, 3 e 7 documentos, ClipData, conteúdo lido via ContentResolver, notas/valores, mistura inválida/vazia, repetição após recriação, cancelamento/resultado sem URIs/sem permissão, arquivos fora de SAF recusados, layouts Android e clique que abre a URL oficial externamente.
+- 27 instrumentados: 24 anteriores + 3 de ImportRepairTest. Incluem provedor DocumentsProvider real no APK de instrumentação, UI DocumentsUI/SAF acionada por toque no WebView, seleções simultâneas de 2, 3, 5 e 7 documentos, ClipData, conteúdo lido via ContentResolver, notas/valores, mistura inválida/vazia, repetição após recriação, cancelamento/resultado sem URIs/sem permissão, arquivos fora de SAF recusados, layouts Android com 14 colunas visíveis (além das 16 nos testes existentes) e clique que abre a URL oficial externamente.
 - O provedor e UiAutomator pertencem somente ao APK de instrumentação; não são incluídos no aplicativo pessoal.
 - Lint/build, instrumentação executada no Actions e download/verificação do APK final são exigidos antes da aprovação. Resultados reais, contagens, capturas, SHA-256 e links ficam na issue #1 e release 1.2.1.
 

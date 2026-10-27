@@ -31,7 +31,9 @@
     more.id = 'nativeImportMore'; more.type = 'button'; more.className = 'btn-secondary';
     more.textContent = 'Adicionar XMLs';
     more.addEventListener('click', () => document.getElementById('multipleXmlFiles').click());
-    document.getElementById('notesTabs').before(more);
+    const controls = document.createElement('div');
+    controls.className = 'actions'; controls.style.flexDirection = 'column';
+    controls.append(more); document.getElementById('notesTabs').before(controls);
     const originalShowStatus = showStatus;
     window.showStatus = (message, type) => {
       // The original status lives inside the upload card, hidden after opening

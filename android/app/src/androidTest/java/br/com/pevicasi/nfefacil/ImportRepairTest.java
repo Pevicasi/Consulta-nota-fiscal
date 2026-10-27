@@ -28,7 +28,7 @@ public class ImportRepairTest {
     }
     private void ready(ActivityScenario<MainActivity> scenario)throws Exception {waitJs(scenario,"typeof acceptNativeXmlDocuments === 'function' && !!document.documentElement.dataset.nativeTheme");}
     private void reset(ActivityScenario<MainActivity> scenario)throws Exception {
-        ready(scenario);js(scenario,"localStorage.clear();startNewConsultation();loadedXmls=[];scannedCodes=[];renderScannedCodes();markupPercentInput.value='20';true");
+        ready(scenario);js(scenario,"localStorage.clear();startNewConsultation();loadedXmls=[];scannedCodes=[];renderScannedCodes();markupPercentInput.value='20';document.querySelectorAll('.column-checkbox').forEach(e=>{if(!e.checked)e.click()});true");
     }
     @Test public void realSafPicksTwoThreeAndSevenDocumentsAndKeepsNotesAfterReopen()throws Exception {
         Instrumentation.ActivityMonitor observer=new Instrumentation.ActivityMonitor(){
@@ -56,6 +56,10 @@ public class ImportRepairTest {
             scenario.recreate();ready(scenario);assertEquals("true",js(scenario,"loadedNotes.length === 5 && document.querySelectorAll('#notesTabs button').length === 5"));
             select(scenario,"nota1.xml","nota2.xml");waitJs(scenario,"document.getElementById('status').textContent.includes('2 repetida(s)')");
             assertEquals("true",js(scenario,"loadedNotes.length === 5 && loadedXmls.length === 5"));
+            js(scenario,"startNewConsultation();true");
+            select(scenario,"nota1.xml","nota2.xml","nota3.xml","nota4.xml","nota5.xml");
+            waitJs(scenario,"loadedNotes.length === 5 && document.getElementById('status').textContent.includes('5 nota(s) adicionada(s)')");
+            scrollWeb(scenario,"#notesTabs");AppearanceTest.screenshot("saf-imported-five-notes",scenario);
             scenario.onActivity(a->{WebView web=web(a.getWindow().getDecorView());assertFalse(web.getSettings().getAllowContentAccess());assertFalse(web.getSettings().getAllowFileAccess());});
         }finally{instrumentation.removeMonitor(observer);}
     }
@@ -87,6 +91,7 @@ public class ImportRepairTest {
     @Test public void androidWebViewLayoutsAndOfficialExternalButtonAtAllReportedScales()throws Exception {
         try(ActivityScenario<MainActivity> scenario=ActivityScenario.launch(MainActivity.class)){
             reset(scenario);js(scenario,"addScannedCode('35261012345678000195550010000001231123456784');acceptNativeXmlDocuments([{name:'layout.xml',text:"+JSONObject.quote(SafDocumentsProvider.xml(1))+"}]);true");
+            js(scenario,"document.querySelector('.column-checkbox[data-column-key=\"14\"]').click();document.querySelector('.column-checkbox[data-column-key=\"15\"]').click();true");
             for(boolean landscape:new boolean[]{false,true}){
                 if(landscape)device.setOrientationLeft();else device.setOrientationNatural();Thread.sleep(500);
                 for(int percent:new int[]{90,100,140,160})for(boolean dark:new boolean[]{false,true}){
@@ -94,7 +99,7 @@ public class ImportRepairTest {
                     waitJs(scenario,"document.documentElement.dataset.nativeFontPercent === '"+percent+"' && document.documentElement.dataset.nativeTheme === '"+(dark?"dark":"light")+"'");
                     js(scenario,"acceptNativeXmlDocuments([{name:'layout.xml',text:"+JSONObject.quote(SafDocumentsProvider.xml(1))+"}]);true");
                     assertEquals("true",js(scenario,"['0','1','7'].every(k=>{const e=document.querySelector('th[data-column-key=\"'+k+'\"] .header-label'),r=e.getBoundingClientRect(),p=e.closest('th').getBoundingClientRect();return getComputedStyle(e).whiteSpace==='nowrap' && r.height<=parseFloat(getComputedStyle(e).lineHeight)+2 && r.right<=p.right+1;})"));
-                    assertEquals("true",js(scenario,"document.querySelector('.table-wrap').scrollWidth>document.querySelector('.table-wrap').clientWidth && document.getElementById('markupPercent').value==='20' && loadedNotes[0].data.totalDiscount===5.5"));
+                    assertEquals("true",js(scenario,"Array.from(document.querySelectorAll('#draggableHeaderRow th')).filter(e=>e.getClientRects().length).length===14 && document.querySelector('.table-wrap').scrollWidth>document.querySelector('.table-wrap').clientWidth && document.getElementById('markupPercent').value==='20' && loadedNotes[0].data.totalDiscount===5.5"));
                     if(percent==160){
                         scrollWeb(scenario,"th[data-column-key=\"7\"] .header-label");
                         AppearanceTest.screenshot("repairs-table-"+(dark?"dark":"light")+"-160-"+(landscape?"landscape":"portrait"),scenario);
