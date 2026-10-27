@@ -14,6 +14,14 @@ import android.os.SystemClock;
 
 /** Bounded ML Kit rereads separate aligned codes merged into one full-frame ROI. */
 final class FiscalScanner {
+    /** Live frames never wait for Bitmap conversion or regional rereads; next frame supplies fresh geometry. */
+    static Task<DetectedKeys> scanLive(BarcodeScanner scanner,InputImage full,Executor worker){
+        long started=SystemClock.elapsedRealtime();
+        try{return scanner.process(full).continueWith(worker,task->{
+            ScanMetrics.record("live-full-frame",started,0);
+            return DetectedKeys.barcodes(task.getResult());
+        });}catch(RuntimeException error){return Tasks.forException(error);}
+    }
     static Task<DetectedKeys> scan(BarcodeScanner scanner, InputImage full, Bitmap upright, Executor worker) {
         return scanLazy(scanner, full, () -> upright, worker);
     }

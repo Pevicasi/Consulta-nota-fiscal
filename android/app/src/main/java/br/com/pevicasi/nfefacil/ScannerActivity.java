@@ -51,10 +51,19 @@ public class ScannerActivity extends AppearanceActivity {
     private boolean torchOn;
     private volatile boolean photoMode, choosing, destroyed;
     private long lastOcr;
+    private long lastSelectionTrack;
     private final AtomicBoolean busy = new AtomicBoolean();
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
-    private final BarcodeScanner barcode = BarcodeScanning.getClient(new BarcodeScannerOptions.Builder()
-        .setBarcodeFormats(com.google.mlkit.vision.barcode.common.Barcode.FORMAT_CODE_128).enableAllPotentialBarcodes().build());
+    static BarcodeScanner newBarcodeScanner(){
+        return BarcodeScanning.getClient(new BarcodeScannerOptions.Builder().setBarcodeFormats(
+            com.google.mlkit.vision.barcode.common.Barcode.FORMAT_CODE_128,
+            com.google.mlkit.vision.barcode.common.Barcode.FORMAT_EAN_13,com.google.mlkit.vision.barcode.common.Barcode.FORMAT_EAN_8,
+            com.google.mlkit.vision.barcode.common.Barcode.FORMAT_UPC_A,com.google.mlkit.vision.barcode.common.Barcode.FORMAT_UPC_E,
+            com.google.mlkit.vision.barcode.common.Barcode.FORMAT_ITF,com.google.mlkit.vision.barcode.common.Barcode.FORMAT_CODE_39,
+            com.google.mlkit.vision.barcode.common.Barcode.FORMAT_CODE_93,com.google.mlkit.vision.barcode.common.Barcode.FORMAT_CODABAR)
+            .enableAllPotentialBarcodes().build());
+    }
+    private final BarcodeScanner barcode=newBarcodeScanner();
     private final TextRecognizer ocr = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS);
     private final ActivityResultLauncher<String> permission = registerForActivityResult(
         new ActivityResultContracts.RequestPermission(), granted -> { if (granted) startCamera(); else status.setText("Câmera sem permissão. Use Galeria ou permita o acesso nas configurações do Android."); });
@@ -159,8 +168,9 @@ public class ScannerActivity extends AppearanceActivity {
     @androidx.annotation.OptIn(markerClass = {androidx.camera.core.ExperimentalGetImage.class, androidx.camera.view.TransformExperimental.class})
     private void analyze(ImageProxy frame) {
         synchronized (busy) {
-            if (destroyed || photoMode || choosing || android.os.SystemClock.uptimeMillis() < retryAfter || !busy.compareAndSet(false, true)) { frame.close(); return; }
+            if (destroyed || photoMode || (choosing && (pendingKeys==null || pendingKeys.length<2 || selectedKeyIndex<0 || android.os.SystemClock.uptimeMillis()-lastSelectionTrack<200)) || android.os.SystemClock.uptimeMillis() < retryAfter || !busy.compareAndSet(false, true)) { frame.close(); return; }
         }
+        if(choosing)lastSelectionTrack=android.os.SystemClock.uptimeMillis();
         android.media.Image media = frame.getImage();
         if (media == null) { frame.close(); busy.set(false); runOnUiThread(this::closeReadersWhenIdle); return; }
         final int generation = cameraGeneration;
@@ -172,17 +182,10 @@ public class ScannerActivity extends AppearanceActivity {
         final InputImage image;
         try { image=InputImage.fromMediaImage(media,frame.getImageInfo().getRotationDegrees()); }
         catch(RuntimeException error){close.run();return;}
-        FiscalScanner.scanLazy(barcode,image,()->{
-            Bitmap raw=null,converted=null;
-            try {
-                raw=frame.toBitmap();Matrix rotation=new Matrix();rotation.postRotate(frame.getImageInfo().getRotationDegrees());
-                converted=Bitmap.createBitmap(raw,0,0,raw.getWidth(),raw.getHeight(),rotation,true);bitmap.set(converted);return converted;
-            }catch(RuntimeException|OutOfMemoryError error){return null;}
-            finally{if(raw!=null&&raw!=converted)raw.recycle();}
-        },executor).addOnCompleteListener(task->{
+        FiscalScanner.scanLive(barcode,image,executor).addOnCompleteListener(task->{
             if(!task.isSuccessful()||destroyed||generation!=cameraGeneration||photoMode){close.run();return;}
-            DetectedKeys detected=task.getResult();showDetections(detected,source,900);
-            if(!detected.keys().isEmpty()) {ScanMetrics.record("frame-confirmation",started,0);close.run();}
+            boolean wasChoosing=choosing;DetectedKeys detected=task.getResult();showDetections(detected,source,900);
+            if(!detected.keys().isEmpty()) {ScanMetrics.record(!wasChoosing&&choosing?"frame-confirmation":"frame-valid-result",started,0);close.run();}
             else if(!choosing&&android.os.SystemClock.elapsedRealtime()-lastOcr>1500){
                 lastOcr=android.os.SystemClock.elapsedRealtime();final long ocrStart=lastOcr;
                 try {ocr.process(image).addOnCompleteListener(text->{

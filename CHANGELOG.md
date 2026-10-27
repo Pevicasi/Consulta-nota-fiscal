@@ -1,3 +1,9 @@
+# 1.4.1
+
+- Scanner: guia fixo nas quatro cores, candidato real azul, chave válida verde; sem busca autônoma ou linha decorativa.
+- Rastreamento de etiquetas curtas e EAN separado da validação NF-e; câmera ao vivo sem Bitmap ou ROIs bloqueantes.
+- Tabela, IPI, cálculos e site sem alterações.
+
 # 1.4.0
 
 - Busca colorida em movimento, rastreamento real e caminho rápido/lazy no scanner.

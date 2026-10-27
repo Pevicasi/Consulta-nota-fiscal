@@ -30,30 +30,40 @@ public class ScannerUpdateTest {
   c.save();if(variant==1)c.rotate(4,900,500);if(variant==4){p.setAlpha(160);p.setFilterBitmap(true);}c.drawBitmap(stamp,60,350,p);c.restore();if(variant==6){BitMatrix second=new MultiFormatWriter().encode(MultiBarcodeTest.key("65",456),BarcodeFormat.CODE_128,w,h);for(int y=0;y<h;y++)for(int x=0;x<w;x++)stamp.setPixel(x,y,second.get(x,y)?Color.BLACK:Color.WHITE);c.drawBitmap(stamp,60,650,null);}stamp.recycle();
   if(variant==5){p.setColor(Color.rgb(220,220,220));p.setStrokeWidth(3);c.drawLine(950,100,955,800,p);}return sheet;
  }
+ private static Bitmap candidateSheet(int kind,int position)throws Exception{
+  Bitmap b=Bitmap.createBitmap(1800,900,Bitmap.Config.ARGB_8888);b.eraseColor(Color.WHITE);int width=kind==0?1100:600,height=150;
+  BitMatrix code=new MultiFormatWriter().encode(kind==0?"TESTE1234":"5901234123457",kind==0?BarcodeFormat.CODE_128:BarcodeFormat.EAN_13,width,height);
+  Bitmap stamp=Bitmap.createBitmap(width,height,Bitmap.Config.ARGB_8888);for(int y=0;y<height;y++)for(int x=0;x<width;x++)stamp.setPixel(x,y,code.get(x,y)?Color.BLACK:Color.WHITE);
+  new Canvas(b).drawBitmap(stamp,position==0?80:500,position==0?220:530,null);stamp.recycle();return b;
+ }
+ private static void assertCorner(ScannerOverlay overlay,int color){
+  Bitmap rendered=Bitmap.createBitmap(overlay.getWidth(),overlay.getHeight(),Bitmap.Config.ARGB_8888);overlay.draw(new Canvas(rendered));RectF r=overlay.drawingBounds();float length=Math.min(14*overlay.getResources().getDisplayMetrics().density,Math.min(r.width(),r.height())*.45f);
+  assertEquals("Tracked corner color",color,rendered.getPixel(Math.round(r.left),Math.round(r.top+length*.8f)));rendered.recycle();
+ }
  private static File directory(){File d=InstrumentationRegistry.getInstrumentation().getTargetContext().getExternalFilesDir("appearance-evidence");assertTrue(d.isDirectory()||d.mkdirs());return d;}
- @Test public void benchmarkBeforeAndAfterUsesTheSameSyntheticDanfeFramesAndLazyFastPath()throws Exception{
-  BarcodeScanner scanner=BarcodeScanning.getClient(new BarcodeScannerOptions.Builder().setBarcodeFormats(com.google.mlkit.vision.barcode.common.Barcode.FORMAT_CODE_128).enableAllPotentialBarcodes().build());ExecutorService worker=Executors.newSingleThreadExecutor();JSONArray samples=new JSONArray();
+ @Test public void benchmarkAgainst140UsesSameDanfeFramesAndImmediateLivePath()throws Exception{
+  BarcodeScanner scanner=ScannerActivity.newBarcodeScanner();ExecutorService worker=Executors.newSingleThreadExecutor();JSONArray samples=new JSONArray();
   try{
    Bitmap warm=sheet(0);Tasks.await(scanner.process(InputImage.fromBitmap(warm,0)),30,TimeUnit.SECONDS);warm.recycle();
    for(int variant=0;variant<7;variant++){
     Bitmap bitmap=sheet(variant);try{
      for(int repeat=0;repeat<3;repeat++){
-      long start,before,after;DetectedKeys old,now;AtomicInteger conversions=new AtomicInteger();
+      long start,before,after;DetectedKeys old,now;
       if(repeat%2==0){
        start=SystemClock.elapsedRealtime();old=Tasks.await(FiscalScannerBaseline.scan(scanner,InputImage.fromBitmap(bitmap,0),bitmap,worker),60,TimeUnit.SECONDS);before=SystemClock.elapsedRealtime()-start;
-       start=SystemClock.elapsedRealtime();now=Tasks.await(FiscalScanner.scanLazy(scanner,InputImage.fromBitmap(bitmap,0),()->{conversions.incrementAndGet();return bitmap;},worker),60,TimeUnit.SECONDS);after=SystemClock.elapsedRealtime()-start;
+       start=SystemClock.elapsedRealtime();now=Tasks.await(FiscalScanner.scanLive(scanner,InputImage.fromBitmap(bitmap,0),worker),60,TimeUnit.SECONDS);after=SystemClock.elapsedRealtime()-start;
       }else{
-       start=SystemClock.elapsedRealtime();now=Tasks.await(FiscalScanner.scanLazy(scanner,InputImage.fromBitmap(bitmap,0),()->{conversions.incrementAndGet();return bitmap;},worker),60,TimeUnit.SECONDS);after=SystemClock.elapsedRealtime()-start;
+       start=SystemClock.elapsedRealtime();now=Tasks.await(FiscalScanner.scanLive(scanner,InputImage.fromBitmap(bitmap,0),worker),60,TimeUnit.SECONDS);after=SystemClock.elapsedRealtime()-start;
        start=SystemClock.elapsedRealtime();old=Tasks.await(FiscalScannerBaseline.scan(scanner,InputImage.fromBitmap(bitmap,0),bitmap,worker),60,TimeUnit.SECONDS);before=SystemClock.elapsedRealtime()-start;
       }
-      assertTrue("Previously recognized keys must be retained",now.keys().containsAll(old.keys()));if(variant==0)assertTrue("Clear DANFE must decode",now.keys().contains(MultiBarcodeTest.key("55",123)));if(variant==0)assertEquals("Fast path must not request bitmap conversion",0,conversions.get());
-      samples.put(new JSONObject().put("variant",new String[]{"clear","tilted4deg","small","low-light-background","low-contrast","fold-line","multiple-code128"}[variant]).put("repeat",repeat).put("beforeMs",before).put("afterMs",after).put("bitmapConversions",conversions.get()).put("validCount",now.keys().size()));
+      assertTrue("Previously recognized keys must be retained",now.keys().containsAll(old.keys()));if(variant==0)assertTrue("Clear DANFE must decode",now.keys().contains(MultiBarcodeTest.key("55",123)));
+      samples.put(new JSONObject().put("variant",new String[]{"clear","tilted4deg","small","low-light-background","low-contrast","fold-line","multiple-code128"}[variant]).put("repeat",repeat).put("beforeMs",before).put("afterMs",after).put("mode","live-full-frame").put("validCount",now.keys().size()));
      }
     }finally{bitmap.recycle();}
    }
   }finally{scanner.close();worker.shutdown();try(java.io.Writer out=new FileWriter(new File(directory(),"scanner-benchmark.json"))){out.write(samples.toString(2));}}
  }
- @Test public void movingSearchThenRealDetectorTrackingHasSequentialEvidenceAndStopsOnPause()throws Exception{
+ @Test public void fixedGuideThenBlueCandidateThenGreenValidatedKeyHasSequentialEvidence()throws Exception{
   androidx.test.uiautomator.UiDevice device=androidx.test.uiautomator.UiDevice.getInstance(InstrumentationRegistry.getInstrumentation());
   String previousScale=device.executeShellCommand("settings get global animator_duration_scale").trim();
   device.executeShellCommand("settings put global animator_duration_scale 1");
@@ -65,12 +75,21 @@ public class ScannerUpdateTest {
    for(String mode:new String[]{"light","dark"})for(int font:new int[]{90,160}){
     s.onActivity(a->{a.setThemeMode(mode);a.setFontPercent(font);overlay.clear();overlay.setActive(true);});
     RectF first=new RectF();
-    for(int n=0;n<3;n++){Thread.sleep(320);final int step=n;s.onActivity(a->{RectF r=overlay.drawingBounds();if(step==0)first.set(r);else assertFalse("Search frame must move before detection",first.equals(r));try{frames.put(new JSONObject().put("theme",mode).put("font",font).put("step",step).put("bounds",r.toShortString()).put("tracking",overlay.isTracking()));}catch(Exception e){throw new AssertionError(e);}});AppearanceTest.screenshot("search-"+mode+"-"+font+"-"+n,s);}
+    for(int n=0;n<3;n++){Thread.sleep(220);final int step=n;s.onActivity(a->{RectF r=overlay.drawingBounds();if(step==0)first.set(r);else assertEquals("Idle guide must stay fixed even when Android animations are enabled",first,r);try{frames.put(new JSONObject().put("theme",mode).put("font",font).put("step",step).put("bounds",r.toShortString()).put("tracking",overlay.isTracking()));}catch(Exception e){throw new AssertionError(e);}});AppearanceTest.screenshot("idle-fixed-"+mode+"-"+font+"-"+n,s);}
+    for(int kind=0;kind<2;kind++)for(int position=0;position<2;position++){
+     Bitmap candidate=candidateSheet(kind,position);BarcodeScanner reader=ScannerActivity.newBarcodeScanner();ExecutorService worker=Executors.newSingleThreadExecutor();
+     try{
+      DetectedKeys detected=Tasks.await(FiscalScanner.scanLive(reader,InputImage.fromBitmap(candidate,0),worker),30,TimeUnit.SECONDS);assertTrue("Short/EAN candidates must never become NF-e",detected.keys().isEmpty());assertNotNull("Candidate geometry must come from real ML Kit",detected.potentialBounds());
+      s.onActivity(a->{FrameLayout parent=(FrameLayout)overlay.getParent();ImageView image=new ImageView(a);image.setImageBitmap(candidate);image.setScaleType(ImageView.ScaleType.FIT_XY);parent.addView(image,Math.max(0,parent.indexOfChild(overlay)));Rect real=detected.potentialBounds();float x=overlay.getWidth()/1800f,y=overlay.getHeight()/900f;overlay.track(new RectF(real.left*x,real.top*y,real.right*x,real.bottom*y),false,3000);});
+      Thread.sleep(80);AppearanceTest.screenshot("candidate-blue-"+kind+"-"+position+"-"+mode+"-"+font,s);
+      s.onActivity(a->{assertTrue(overlay.isTracking());assertCorner(overlay,Color.rgb(66,133,244));FrameLayout parent=(FrameLayout)overlay.getParent();for(int i=parent.getChildCount()-1;i>=0;i--)if(parent.getChildAt(i) instanceof ImageView)parent.removeViewAt(i);overlay.clear();});
+     }finally{reader.close();worker.shutdown();candidate.recycle();}
+    }
     // Display a synthetic video frame, decode it with the real bundled ML Kit, then map its real bounds to that displayed frame.
     Bitmap bitmap=sheet(0);BarcodeScanner scanner=BarcodeScanning.getClient(new BarcodeScannerOptions.Builder().setBarcodeFormats(com.google.mlkit.vision.barcode.common.Barcode.FORMAT_CODE_128).build());
-    try{DetectedKeys found=DetectedKeys.barcodes(Tasks.await(scanner.process(InputImage.fromBitmap(bitmap,0)),30,TimeUnit.SECONDS));assertNotNull(found.bounds(null));
+    try{java.util.concurrent.Executor direct=Runnable::run;DetectedKeys found=Tasks.await(FiscalScanner.scanLive(scanner,InputImage.fromBitmap(bitmap,0),direct),30,TimeUnit.SECONDS);assertNotNull(found.bounds(null));
      s.onActivity(a->{FrameLayout parent=(FrameLayout)overlay.getParent();ImageView image=new ImageView(a);image.setImageBitmap(bitmap);image.setScaleType(ImageView.ScaleType.FIT_XY);parent.addView(image,Math.max(0,parent.indexOfChild(overlay)));Rect real=found.bounds(null);float x=overlay.getWidth()/1800f,y=overlay.getHeight()/900f;overlay.track(new RectF(real.left*x,real.top*y,real.right*x,real.bottom*y),true,3000);});Thread.sleep(150);AppearanceTest.screenshot("tracking-real-"+mode+"-"+font,s);
-     s.onActivity(a->assertTrue(overlay.isTracking()));
+     s.onActivity(a->{assertTrue(overlay.isTracking());assertCorner(overlay,Color.rgb(52,168,83));});
      long confirmationStart=SystemClock.elapsedRealtime();s.onActivity(a->a.offerKeys(found.keys()));long confirmationMs=SystemClock.elapsedRealtime()-confirmationStart;
      frames.put(new JSONObject().put("theme",mode).put("font",font).put("stage","valid-result-to-dialog").put("ms",confirmationMs));
      s.onActivity(a->{try{java.lang.reflect.Field f=ScannerActivity.class.getDeclaredField("confirmation");f.setAccessible(true);android.app.AlertDialog dialog=(android.app.AlertDialog)f.get(a);assertTrue(dialog.isShowing());dialog.getButton(android.app.AlertDialog.BUTTON_NEGATIVE).performClick();}catch(Exception e){throw new AssertionError(e);}});

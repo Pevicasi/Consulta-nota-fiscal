@@ -13,9 +13,11 @@ final class DetectedKeys {
     static DetectedKeys barcodes(List<Barcode> results) {
         DetectedKeys found = new DetectedKeys();
         for (Barcode result : results) {
-            if (result.getFormat() != Barcode.FORMAT_CODE_128) continue;
+            Rect box=result.getBoundingBox();
+            // Geometry is not fiscal identity: EAN/short CODE128 may be tracked but never confirmed as NF-e.
+            if(box!=null&&!box.isEmpty()&&(found.potential==null||(long)box.width()*box.height()>(long)found.potential.width()*found.potential.height()))found.potential=new Rect(box);
+            if(result.getFormat()!=Barcode.FORMAT_CODE_128)continue;
             String key=NfeKey.barcode(result.getRawValue());
-            if(key.isEmpty()&&result.getBoundingBox()!=null)found.potential=new Rect(result.getBoundingBox());
             found.add(key, result.getBoundingBox());
         }
         return found;
