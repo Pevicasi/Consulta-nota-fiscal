@@ -44,12 +44,7 @@ public class AppearanceTest {
                 a.setFontPercent(120);
                 a.getWindow().getDecorView().findViewWithTag("appearance-theme").performClick();
             });
-            InstrumentationRegistry.getInstrumentation().waitForIdleSync();
-            android.view.accessibility.AccessibilityNodeInfo root=InstrumentationRegistry.getInstrumentation().getUiAutomation().getRootInActiveWindow();
-            assertNotNull(root);boolean clicked=false;
-            for(android.view.accessibility.AccessibilityNodeInfo node:root.findAccessibilityNodeInfosByText("Escuro"))
-                if("Escuro".contentEquals(node.getText()))clicked|=node.performAction(android.view.accessibility.AccessibilityNodeInfo.ACTION_CLICK);
-            assertTrue("Theme choice must be accessible and clickable",clicked);
+            clickAccessibleChoice("Escuro");
             waitJs(scenario,"document.documentElement.dataset.nativeTheme === 'dark'");
         }
         try(ActivityScenario<MainActivity> next=ActivityScenario.launch(MainActivity.class)) {
@@ -139,6 +134,16 @@ public class AppearanceTest {
     private static void shell(String command)throws Exception {
         try(ParcelFileDescriptor descriptor=InstrumentationRegistry.getInstrumentation().getUiAutomation().executeShellCommand(command);
             InputStream in=new ParcelFileDescriptor.AutoCloseInputStream(descriptor)) {while(in.read()!=-1){} }
+    }
+    private static void clickAccessibleChoice(String text)throws Exception {
+        long end=System.currentTimeMillis()+10000;
+        while(System.currentTimeMillis()<end){
+            android.view.accessibility.AccessibilityNodeInfo root=InstrumentationRegistry.getInstrumentation().getUiAutomation().getRootInActiveWindow();
+            if(root!=null)for(android.view.accessibility.AccessibilityNodeInfo node:root.findAccessibilityNodeInfosByText(text))
+                if(node.getText()!=null && text.contentEquals(node.getText()) && node.performAction(android.view.accessibility.AccessibilityNodeInfo.ACTION_CLICK))return;
+            Thread.sleep(100); // Wait for the actual dialog/accessibility window, not just main-loop idle.
+        }
+        fail("Theme choice must be accessible and clickable: "+text);
     }
     private static void screenshot(String name)throws Exception {
         Bitmap bitmap=InstrumentationRegistry.getInstrumentation().getUiAutomation().takeScreenshot();assertNotNull(bitmap);
