@@ -54,6 +54,9 @@ public class ScannerUpdateTest {
   }finally{scanner.close();worker.shutdown();try(java.io.Writer out=new FileWriter(new File(directory(),"scanner-benchmark.json"))){out.write(samples.toString(2));}}
  }
  @Test public void movingSearchThenRealDetectorTrackingHasSequentialEvidenceAndStopsOnPause()throws Exception{
+  androidx.test.uiautomator.UiDevice device=androidx.test.uiautomator.UiDevice.getInstance(InstrumentationRegistry.getInstrumentation());
+  String previousScale=device.executeShellCommand("settings get global animator_duration_scale").trim();
+  device.executeShellCommand("settings put global animator_duration_scale 1");
   try(ActivityScenario<ScannerActivity>s=ActivityScenario.launch(ScannerActivity.class)){
    AtomicReference<ScannerOverlay> ref=new AtomicReference<>();
    s.onActivity(a->{try{java.lang.reflect.Field f=ScannerActivity.class.getDeclaredField("overlay");f.setAccessible(true);ref.set((ScannerOverlay)f.get(a));java.lang.reflect.Field analysis=ScannerActivity.class.getDeclaredField("analysis");analysis.setAccessible(true);if(analysis.get(a)!=null)((androidx.camera.core.ImageAnalysis)analysis.get(a)).clearAnalyzer();}catch(Exception e){throw new AssertionError(e);}});
@@ -67,14 +70,23 @@ public class ScannerUpdateTest {
     Bitmap bitmap=sheet(0);BarcodeScanner scanner=BarcodeScanning.getClient(new BarcodeScannerOptions.Builder().setBarcodeFormats(com.google.mlkit.vision.barcode.common.Barcode.FORMAT_CODE_128).build());
     try{DetectedKeys found=DetectedKeys.barcodes(Tasks.await(scanner.process(InputImage.fromBitmap(bitmap,0)),30,TimeUnit.SECONDS));assertNotNull(found.bounds(null));
      s.onActivity(a->{FrameLayout parent=(FrameLayout)overlay.getParent();ImageView image=new ImageView(a);image.setImageBitmap(bitmap);image.setScaleType(ImageView.ScaleType.FIT_XY);parent.addView(image,Math.max(0,parent.indexOfChild(overlay)));Rect real=found.bounds(null);float x=overlay.getWidth()/1800f,y=overlay.getHeight()/900f;overlay.track(new RectF(real.left*x,real.top*y,real.right*x,real.bottom*y),true,3000);});Thread.sleep(150);AppearanceTest.screenshot("tracking-real-"+mode+"-"+font,s);
-     s.onActivity(a->{assertTrue(overlay.isTracking());FrameLayout parent=(FrameLayout)overlay.getParent();for(int i=parent.getChildCount()-1;i>=0;i--)if(parent.getChildAt(i) instanceof ImageView)parent.removeViewAt(i);});
+     s.onActivity(a->assertTrue(overlay.isTracking()));
+     long confirmationStart=SystemClock.elapsedRealtime();s.onActivity(a->a.offerKeys(found.keys()));long confirmationMs=SystemClock.elapsedRealtime()-confirmationStart;
+     frames.put(new JSONObject().put("theme",mode).put("font",font).put("stage","valid-result-to-dialog").put("ms",confirmationMs));
+     s.onActivity(a->{try{java.lang.reflect.Field f=ScannerActivity.class.getDeclaredField("confirmation");f.setAccessible(true);android.app.AlertDialog dialog=(android.app.AlertDialog)f.get(a);assertTrue(dialog.isShowing());dialog.getButton(android.app.AlertDialog.BUTTON_NEGATIVE).performClick();}catch(Exception e){throw new AssertionError(e);}});
+     s.onActivity(a->{FrameLayout parent=(FrameLayout)overlay.getParent();for(int i=parent.getChildCount()-1;i>=0;i--)if(parent.getChildAt(i) instanceof ImageView)parent.removeViewAt(i);});
     }finally{scanner.close();bitmap.recycle();}
    }
-   s.moveToState(androidx.lifecycle.Lifecycle.State.CREATED);RectF frozen=new RectF();InstrumentationRegistry.getInstrumentation().runOnMainSync(()->frozen.set(overlay.drawingBounds()));Thread.sleep(150);InstrumentationRegistry.getInstrumentation().runOnMainSync(()->assertEquals(frozen,overlay.drawingBounds()));
+   s.moveToState(androidx.lifecycle.Lifecycle.State.CREATED);Thread.sleep(100);RectF frozen=new RectF();InstrumentationRegistry.getInstrumentation().runOnMainSync(()->frozen.set(overlay.drawingBounds()));Thread.sleep(150);InstrumentationRegistry.getInstrumentation().runOnMainSync(()->assertEquals(frozen,overlay.drawingBounds()));
    try(java.io.Writer out=new FileWriter(new File(directory(),"scanner-animation-frames.json"))){out.write(frames.toString(2));}
-  }
+  }finally{device.executeShellCommand("settings put global animator_duration_scale "+(previousScale.equals("null")?"0":previousScale));}
  }
- @Test public void reducedMotionDoesNotExploreAndRealPotentialIsNotAValidatedKey(){
-  InstrumentationRegistry.getInstrumentation().runOnMainSync(()->{ScannerOverlay overlay=new ScannerOverlay(InstrumentationRegistry.getInstrumentation().getTargetContext());overlay.layout(0,0,1000,600);overlay.setActive(false);Bitmap b=Bitmap.createBitmap(1000,600,Bitmap.Config.ARGB_8888);overlay.draw(new Canvas(b));RectF first=overlay.drawingBounds();overlay.draw(new Canvas(b));assertEquals(first,overlay.drawingBounds());assertFalse(overlay.isTracking());overlay.track(new RectF(50,60,400,100),false,1000);overlay.draw(new Canvas(b));assertTrue(overlay.isTracking());assertEquals(new RectF(50,60,400,100),overlay.drawingBounds());b.recycle();});
+ @Test public void reducedMotionDoesNotExploreAndRealPotentialIsNotAValidatedKey()throws Exception{
+  androidx.test.uiautomator.UiDevice device=androidx.test.uiautomator.UiDevice.getInstance(InstrumentationRegistry.getInstrumentation());String previous=device.executeShellCommand("settings get global animator_duration_scale").trim();device.executeShellCommand("settings put global animator_duration_scale 0");
+  try(ActivityScenario<ScannerActivity>s=ActivityScenario.launch(ScannerActivity.class)){
+   Thread.sleep(600);AtomicReference<ScannerOverlay> reference=new AtomicReference<>();RectF first=new RectF();
+   s.onActivity(a->{try{java.lang.reflect.Field field=ScannerActivity.class.getDeclaredField("overlay");field.setAccessible(true);ScannerOverlay overlay=(ScannerOverlay)field.get(a);reference.set(overlay);assertFalse(android.animation.ValueAnimator.areAnimatorsEnabled());overlay.clear();overlay.setActive(true);Bitmap b=Bitmap.createBitmap(overlay.getWidth(),overlay.getHeight(),Bitmap.Config.ARGB_8888);overlay.draw(new Canvas(b));first.set(overlay.drawingBounds());b.recycle();}catch(Exception e){throw new AssertionError(e);}});
+   Thread.sleep(200);s.onActivity(a->{ScannerOverlay overlay=reference.get();Bitmap b=Bitmap.createBitmap(overlay.getWidth(),overlay.getHeight(),Bitmap.Config.ARGB_8888);overlay.draw(new Canvas(b));assertEquals(first,overlay.drawingBounds());assertFalse(overlay.isTracking());overlay.track(new RectF(50,60,400,100),false,1000);overlay.draw(new Canvas(b));assertEquals(new RectF(50,60,400,100),overlay.drawingBounds());b.recycle();});
+  }finally{device.executeShellCommand("settings put global animator_duration_scale "+(previous.equals("null")?"0":previous));}
  }
 }

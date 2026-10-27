@@ -318,7 +318,7 @@ public class ScannerActivity extends AppearanceActivity {
             @Override public void onCaptureSuccess(ImageProxy image) {
                 try {
                     Bitmap bitmap = image.toBitmap(); Matrix rotation = new Matrix(); rotation.postRotate(image.getImageInfo().getRotationDegrees());
-                    showPhoto(Bitmap.createBitmap(bitmap, 0, 0, bitmap.getWidth(), bitmap.getHeight(), rotation, true));
+                    Bitmap rotated=Bitmap.createBitmap(bitmap,0,0,bitmap.getWidth(),bitmap.getHeight(),rotation,true);if(rotated!=bitmap)bitmap.recycle();showPhoto(rotated);
                 } catch (RuntimeException e) { status.setText("Não foi possível preparar a foto."); photoMode = false; overlay.setActive(true); capture.setEnabled(true); }
                 finally { image.close(); }
             }
@@ -344,7 +344,8 @@ public class ScannerActivity extends AppearanceActivity {
                     matrix.postRotate(exif.getRotationDegrees());
                 }
                 Bitmap rotated = Bitmap.createBitmap(bitmap, 0, 0, bitmap.getWidth(), bitmap.getHeight(), matrix, true);
-                runOnUiThread(() -> { if (!destroyed) showPhoto(rotated); });
+                if(rotated!=bitmap)bitmap.recycle();
+                runOnUiThread(() -> { if (!destroyed) showPhoto(rotated);else rotated.recycle(); });
             } catch (Exception e) { runOnUiThread(() -> status.setText("Imagem inválida ou sem acesso. Escolha outra imagem.")); }
         });
     }
@@ -363,7 +364,7 @@ public class ScannerActivity extends AppearanceActivity {
         InputImage image = InputImage.fromBitmap(crop, 0);
         final long started=android.os.SystemClock.elapsedRealtime();
         FiscalScanner.scan(barcode,image,crop,executor).addOnCompleteListener(task->{
-            if(!task.isSuccessful()||destroyed||!photoMode||generation!=photoGeneration){finishCrop(crop);return;}
+            if(!task.isSuccessful()||destroyed||!photoMode||generation!=photoGeneration){if(!destroyed&&!task.isSuccessful())status.setText("Falha na leitura. Tente outra imagem.");finishCrop(crop);return;}
             Set<String> keys=task.getResult().keys();
             if(!keys.isEmpty()){offerKeys(keys);ScanMetrics.record("photo-confirmation",started,0);finishCrop(crop);return;}
             try{ocr.process(image).addOnCompleteListener(text->{

@@ -87,6 +87,7 @@ public class AppIntegrationTest {
             android.view.MotionEvent move=android.view.MotionEvent.obtain(now,now+10,2,3000,3000,0);
             view.onTouchEvent(down);view.onTouchEvent(move);down.recycle();move.recycle();
             Bitmap moved=view.crop();assertEquals(940,moved.getWidth());assertEquals(470,moved.getHeight());
+            try{java.lang.reflect.Field selected=CropImageView.class.getDeclaredField("selection");selected.setAccessible(true);((RectF)selected.get(view)).set(0,0,1000,500);Bitmap full=view.crop();assertNotSame(bitmap,full);full.recycle();assertFalse(bitmap.isRecycled());view.draw(new Canvas(Bitmap.createBitmap(1000,500,Bitmap.Config.ARGB_8888)));}catch(Exception e){throw new AssertionError(e);}
         });
     }
     @Test public void scannerOpensAndClosesWithCameraPermission() {

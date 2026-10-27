@@ -46,6 +46,8 @@ public final class CropImageView extends View {
         int y=Math.max(0,Math.min(bitmap.getHeight()-1,Math.round((selection.top-image.top)*scale)));
         int w=Math.max(1,Math.min(bitmap.getWidth()-x,Math.round(selection.width()*scale)));
         int h=Math.max(1,Math.min(bitmap.getHeight()-y,Math.round(selection.height()*scale)));
-        return Bitmap.createBitmap(bitmap,x,y,w,h);
+        Bitmap result=Bitmap.createBitmap(bitmap,x,y,w,h);
+        // A full-image crop may alias the editor source; the scanner owns and recycles its crop.
+        return result==bitmap?bitmap.copy(Bitmap.Config.ARGB_8888,false):result;
     }
 }
