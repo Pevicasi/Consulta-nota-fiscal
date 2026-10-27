@@ -1,0 +1,202 @@
+[
+  {
+    "factor": 12,
+    "units": 120,
+    "cost": 211,
+    "price": 253,
+    "base": "UN",
+    "ipi": 0,
+    "st": 0,
+    "equivalent": true
+  },
+  {
+    "factor": 2,
+    "units": 10,
+    "cost": 1500,
+    "price": 1800,
+    "base": "UN",
+    "ipi": 0,
+    "st": 0,
+    "equivalent": true
+  },
+  {
+    "factor": 12,
+    "units": 24,
+    "cost": 200,
+    "price": 240,
+    "base": "UN",
+    "ipi": 0,
+    "st": 0,
+    "equivalent": true
+  },
+  {
+    "factor": 1,
+    "units": 10,
+    "cost": 400,
+    "price": 480,
+    "base": "UN",
+    "ipi": 0,
+    "st": 0,
+    "equivalent": true
+  },
+  {
+    "factor": 1,
+    "units": 81,
+    "cost": 300,
+    "price": 360,
+    "base": "UN",
+    "ipi": 0,
+    "st": 0,
+    "equivalent": true
+  },
+  {
+    "factor": 1,
+    "units": 21,
+    "cost": 200,
+    "price": 240,
+    "base": "UN",
+    "ipi": 0,
+    "st": 0,
+    "equivalent": true
+  },
+  {
+    "factor": 15,
+    "units": 30,
+    "cost": 200,
+    "price": 240,
+    "base": "UN",
+    "ipi": 0,
+    "st": 0,
+    "equivalent": true
+  },
+  {
+    "factor": 20,
+    "units": 60,
+    "cost": 200,
+    "price": 240,
+    "base": "UN",
+    "ipi": 0,
+    "st": 0,
+    "equivalent": true
+  },
+  {
+    "factor": 1,
+    "units": 4,
+    "cost": 500,
+    "price": 600,
+    "base": "UN",
+    "ipi": 0,
+    "st": 0,
+    "equivalent": true
+  },
+  {
+    "factor": 12,
+    "units": 24,
+    "cost": 583,
+    "price": 700,
+    "base": "UN",
+    "ipi": 50,
+    "st": 25,
+    "equivalent": true
+  },
+  {
+    "factor": 1,
+    "units": 2,
+    "cost": 6000,
+    "price": 7200,
+    "base": "CX",
+    "ipi": 0,
+    "st": 0,
+    "equivalent": false
+  },
+  {
+    "factor": 1,
+    "units": 2,
+    "cost": 6000,
+    "price": 7200,
+    "base": "CX",
+    "ipi": 0,
+    "st": 0,
+    "equivalent": false
+  },
+  {
+    "factor": 12,
+    "units": 24,
+    "cost": 200,
+    "price": 240,
+    "base": "UN",
+    "ipi": 0,
+    "st": 0,
+    "equivalent": true
+  },
+  {
+    "factor": 15,
+    "units": 30,
+    "cost": 200,
+    "price": 240,
+    "base": "UN",
+    "ipi": 0,
+    "st": 0,
+    "equivalent": true
+  },
+  {
+    "factor": 20,
+    "units": 20,
+    "cost": 200,
+    "price": 240,
+    "base": "UN",
+    "ipi": 0,
+    "st": 0,
+    "equivalent": true
+  },
+  {
+    "factor": 1,
+    "units": 3,
+    "cost": 6000,
+    "price": 7200,
+    "base": "CX",
+    "ipi": 0,
+    "st": 0,
+    "equivalent": false
+  },
+  {
+    "factor": 12,
+    "units": 24,
+    "cost": 500,
+    "price": 600,
+    "base": "UN",
+    "ipi": 0,
+    "st": 0,
+    "equivalent": true
+  },
+  {
+    "factor": 1,
+    "units": 2,
+    "cost": 6000,
+    "price": 7200,
+    "base": "CX",
+    "ipi": 0,
+    "st": 0,
+    "equivalent": false
+  },
+  {
+    "factor": 10,
+    "units": 20,
+    "cost": 400,
+    "price": 480,
+    "base": "UN",
+    "ipi": 0,
+    "st": 0,
+    "equivalent": true
+  },
+  {
+    "factor": 27,
+    "units": 81,
+    "cost": 300,
+    "price": 360,
+    "base": "UN",
+    "ipi": 0,
+    "st": 0,
+    "equivalent": true
+  }
+]

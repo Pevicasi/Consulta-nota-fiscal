@@ -1,3 +1,10 @@
+## 1.4.2 (10)
+
+- Android: Produto mostra somente xProd; removidos editores, confirmações e ações por produto.
+- Conversão automática documentada de caixas/fardos/pacotes, sem dividir novamente XML já em UN; ausência/conflito usa unidade comercial rotulada.
+- Motor fiscal, IPI/ST/frete/desconto, markup, CSV e impressão preservados; scanner e site público intactos.
+- Matriz sintética de 20 itens, testes de WebView, temas, fontes, orientação, persistência e capturas.
+
 # 1.4.1
 
 - Scanner: guia fixo nas quatro cores, candidato real azul, chave válida verde; sem busca autônoma ou linha decorativa.

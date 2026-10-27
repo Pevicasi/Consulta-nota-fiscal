@@ -31,27 +31,22 @@ public class FinancialTest {
         js(s,"localStorage.clear();costFactors={};startNewConsultation();loadedXmls=[];markupPercentInput.value='20';document.querySelectorAll('.column-checkbox').forEach(e=>{if(!e.checked)e.click()});acceptNativeXmlDocuments([{name:'acquisition.xml',text:"+JSONObject.quote(fixture())+"}]);true");
         waitJs(s,"currentFinance && loadedNotes.length === 1 && currentItems.length === 5");
     }
-    private static void factor(ActivityScenario<MainActivity> s,int index,String value)throws Exception{
-        js(s,"openProductCost("+index+");document.querySelector('.cost-details[data-cost-item=\""+index+"\"]').open=true;true");
-        js(s,"(()=>{const e=document.querySelector('[data-cost-field=\"factor\"][data-cost-index=\""+index+"\"]');e.value="+JSONObject.quote(value)+";e.dispatchEvent(new Event('input',{bubbles:true}));const c=document.querySelector('[data-cost-field=\"confirmed\"][data-cost-index=\""+index+"\"]');c.click();return true;})()");
-    }
     private static void number(ActivityScenario<MainActivity> s,String code,double expected)throws Exception{assertEquals(code,expected,Double.parseDouble(js(s,code)),.001);}
     @Test public void completeCostsAndSellableUnitsAreCalculatedInRealWebViewAndPersist()throws Exception{
         try(ActivityScenario<MainActivity> s=ActivityScenario.launch(MainActivity.class)){
             load(s);number(s,"currentFinance.classifiedCents",42700);number(s,"currentFinance.totals.ipi",1700);number(s,"currentFinance.items[0].costCents",5750);number(s,"NfeCost.price(currentFinance.items[0],20)",6900);
-            assertEquals("false",js(s,"currentFinance.items[1].ready"));assertEquals("null",js(s,"NfeCost.price(currentFinance.items[1],20)"));
-            factor(s,1,"12");factor(s,2,"6");factor(s,3,"10");
+            assertEquals("true",js(s,"currentFinance.items[1].ready"));
             number(s,"currentFinance.items[1].conversion.units",24);number(s,"currentFinance.items[1].costCents",550);number(s,"NfeCost.price(currentFinance.items[1],20)",660);
-            number(s,"NfeCost.price(currentFinance.items[2],20)",1200);number(s,"NfeCost.price(currentFinance.items[3],20)",360);assertEquals("\"KG\"",js(s,"currentFinance.items[4].conversion.base"));number(s,"NfeCost.price(currentFinance.items[4],20)",2400);
+            number(s,"NfeCost.price(currentFinance.items[2],20)",7200);number(s,"NfeCost.price(currentFinance.items[3],20)",3600);assertEquals("\"KG\"",js(s,"currentFinance.items[4].conversion.base"));number(s,"NfeCost.price(currentFinance.items[4],20)",2400);
             js(s,"markupPercentInput.value='0';markupPercentInput.dispatchEvent(new Event('input',{bubbles:true}));true");number(s,"NfeCost.price(currentFinance.items[1],getMarkupPercent())",550);
             js(s,"markupPercentInput.value='12.5';markupPercentInput.dispatchEvent(new Event('input',{bubbles:true}));true");number(s,"NfeCost.price(currentFinance.items[1],getMarkupPercent())",619);
             s.recreate();waitJs(s,"typeof acceptNativeXmlDocuments === 'function' && currentFinance?.items.length === 5");number(s,"currentFinance.items[1].conversion.factor",12);number(s,"NfeCost.price(currentFinance.items[1],getMarkupPercent())",619);
-            factor(s,1,"0");assertEquals("false",js(s,"currentFinance.items[1].ready"));assertEquals("null",js(s,"NfeCost.price(currentFinance.items[1],20)"));
+            assertEquals("true",js(s,"document.querySelectorAll('#itemsBody input,#itemsBody button').length===0"));
         }
     }
     @Test public void invoiceDivergenceAndExportsUseTheSameFinancialMethod()throws Exception{
         try(ActivityScenario<MainActivity> s=ActivityScenario.launch(MainActivity.class)){
-            load(s);factor(s,1,"12");
+            load(s);
             assertEquals("\"6.60\"",js(s,"buildFiscalCSV().rows[1][5]"));assertEquals("\"12.00\"",js(s,"buildFiscalCSV().rows[1][22]"));
             assertEquals("true",js(s,"buildFiscalCSV().headers.includes('IPI item') && document.querySelector('[data-unit-price=\"1\"]').textContent.includes('6,60')"));
             String other=fixture().replace("<nNF>900</nNF>","<nNF>901</nNF>").replace("<vNF>427</vNF>","<vNF>429.34</vNF>");
