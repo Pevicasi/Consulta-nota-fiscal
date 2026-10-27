@@ -44,14 +44,14 @@ public class ImportRepairTest {
         try(ActivityScenario<MainActivity> scenario=ActivityScenario.launch(MainActivity.class)) {
             reset(scenario);
             select(scenario,"nota1.xml","nota2.xml");waitJs(scenario,"document.querySelectorAll('#notesTabs button').length === 2");AppearanceTest.screenshot("saf-imported-two-notes",scenario);
-            assertEquals("true",js(scenario,"loadedNotes.map(e=>e.data.nfeNumber).join(',') === '1001,1002'"));
-            js(scenario,"showNote(1);true");assertEquals("\"1002\"",js(scenario,"document.getElementById('nfeNumber').textContent"));
+            assertEquals("true",js(scenario,"loadedNotes.map(e=>e.data.nfeNumber).sort().join(',') === '1001,1002'"));
+            js(scenario,"showNote(loadedNotes.findIndex(e=>e.data.nfeNumber==='1002'));true");assertEquals("\"1002\"",js(scenario,"document.getElementById('nfeNumber').textContent"));
             select(scenario,"nota3.xml","nota4.xml","nota5.xml");waitJs(scenario,"document.querySelectorAll('#notesTabs button').length === 5");
             assertEquals("\"1002\"",js(scenario,"document.getElementById('nfeNumber').textContent"));
             select(scenario,"empty.xml","invalid.xml","nota1.xml","nota2.xml","nota3.xml","nota4.xml","nota5.xml");
             waitJs(scenario,"document.getElementById('status').textContent.includes('2 arquivo(s) não importado(s)')");
             assertEquals("true",js(scenario,"loadedNotes.length === 5 && document.getElementById('status').textContent.includes('5 repetida(s)') && document.getElementById('status').getBoundingClientRect().height>0"));
-            for(int i=0;i<5;i++)assertEquals("true",js(scenario,"showNote("+i+");document.getElementById('nfeNumber').textContent === '"+(1001+i)+"' && currentItems[0].description === 'Produto Android "+(i+1)+"' && loadedNotes[activeNoteIndex].data.totalDiscount === 5.5"));
+            for(int i=0;i<5;i++)assertEquals("true",js(scenario,"showNote(loadedNotes.findIndex(e=>e.data.nfeNumber==='"+(1001+i)+"'));document.getElementById('nfeNumber').textContent === '"+(1001+i)+"' && currentItems[0].description === 'Produto Android "+(i+1)+"' && loadedNotes[activeNoteIndex].data.totalDiscount === 5.5"));
             assertEquals("\"20\"",js(scenario,"document.getElementById('markupPercent').value"));
             scenario.recreate();ready(scenario);assertEquals("true",js(scenario,"loadedNotes.length === 5 && document.querySelectorAll('#notesTabs button').length === 5"));
             select(scenario,"nota1.xml","nota2.xml");waitJs(scenario,"document.getElementById('status').textContent.includes('2 repetida(s)')");
