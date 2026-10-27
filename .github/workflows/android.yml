@@ -206,3 +206,53 @@ jobs:
       - name: Remove temporary private key
         if: always()
         run: rm -rf -- "$RUNNER_TEMP/nfe-signing"
+
+  publish-personal:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [build, device-tests]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      actions: read
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Preserve previous APK and publish verified personal APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p delivery/current delivery/previous delivery/archive
+          gh run download "$GITHUB_RUN_ID" --name "nfe-facil-1.2.0-$GITHUB_SHA" --dir delivery/current
+          (cd delivery/current && sha256sum -c SHA256SUMS)
+          cp delivery/current/app-debug.apk delivery/NF-e-Facil-1.2.0.apk
+          (cd delivery && sha256sum NF-e-Facil-1.2.0.apk > SHA256SUMS)
+          if ! gh release view v1.1.0 >/dev/null 2>&1; then
+            gh run download 40442578145 --name nfe-facil-1.1.0-5b73ae1bcb005ac06f22496f054c26d66dee5a40 --dir delivery/previous
+            (cd delivery/previous && sha256sum -c SHA256SUMS)
+            echo '550976a868f36d147165954447d39507cfe17b03957d0a9c04f03a9a4721c35e  delivery/previous/app-debug.apk' | sha256sum -c -
+            cp delivery/previous/app-debug.apk delivery/archive/NF-e-Facil-1.1.0.apk
+            (cd delivery/archive && sha256sum NF-e-Facil-1.1.0.apk > SHA256SUMS)
+            cat > delivery/archive/NOTES.md <<'NOTES'
+          APK histórico 1.1.0 (código 3), preservado sem reconstrução a pedido do proprietário. Não contém as melhorias de aparência da versão 1.2.0 e não é a entrega atual.
+
+          Origem: commit 5b73ae1bcb005ac06f22496f054c26d66dee5a40, Actions 40442578145, artefato 12706986411. SHA-256 conferido contra o arquivo original. Este arquivo de versão mantém o APK disponível além da validade do artefato do Actions. Não excluir antes da aprovação do proprietário.
+          NOTES
+            gh release create v1.1.0 delivery/archive/NF-e-Facil-1.1.0.apk delivery/archive/SHA256SUMS --target 5b73ae1bcb005ac06f22496f054c26d66dee5a40 --title 'NF-e Fácil 1.1.0 — APK anterior preservado' --notes-file delivery/archive/NOTES.md --latest=false
+          fi
+          cat > delivery/NOTES.md <<NOTES
+          NF-e Fácil 1.2.0 (código 4), pacote original br.com.pevicasi.nfefacil, APK universal com assinatura debug automática para uso pessoal. Sem Secrets de assinatura e sem otimização/remoção de ABI.
+
+          A−, A+ e Restaurar padrão (90%–160%), Claro/Escuro/Automático (Android), preferências persistidas em todas as telas próprias e WebView local. Tabela com rolagem horizontal, desconto verde e seleção fiscal sem cortes. Site público e páginas externas preservados.
+
+          Build, lint (zero erros), 13 testes web, 8 unitários Java, 5 de assinatura e 24 instrumentados Android passaram antes desta publicação. Relatórios e capturas: https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID . Código: $GITHUB_SHA . Auditoria: https://github.com/$GITHUB_REPOSITORY/issues/1 . Checksum do APK no arquivo SHA256SUMS.
+
+          APK anterior preservado na release v1.1.0; nenhum artefato anterior excluído. Assinatura debug pode variar entre runners e impedir atualização entre certificados diferentes; não há desinstalação ou limpeza automática. Não testado no telefone físico do proprietário, impressão física, APIs governamentais reais ou Play Protect.
+          NOTES
+          if gh release view v1.2.0 >/dev/null 2>&1; then
+            published=$(gh release view v1.2.0 --json targetCommitish --jq .targetCommitish)
+            test "$published" = "$GITHUB_SHA" || { echo 'Existing release preserved: bump version before publishing another APK.'; exit 1; }
+          else
+            gh release create v1.2.0 delivery/NF-e-Facil-1.2.0.apk delivery/SHA256SUMS delivery/current/SIGNING-CERT-SHA256.txt delivery/current/PERSONAL-DEBUG-SIGNING.txt delivery/current/APK-SIZE.json --target "$GITHUB_SHA" --title 'NF-e Fácil 1.2.0 — fontes e modo noturno' --notes-file delivery/NOTES.md --latest
+          fi
