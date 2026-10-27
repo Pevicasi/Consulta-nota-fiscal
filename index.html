@@ -1375,6 +1375,10 @@
             <span>% total do ICMS-ST</span>
             <strong id="totalSTPercent">0,00%</strong>
           </div>
+          <div class="total-box" id="discountTotalBox" hidden style="background:var(--success-bg);border-color:var(--success-text);">
+            <span style="color:var(--success-text);font-weight:700">Desconto da nota</span>
+            <strong id="totalDiscount" style="color:var(--success-text)">R$ 0,00</strong>
+          </div>
           <div class="total-box">
             <span>Valor total da nota</span>
             <strong id="totalInvoice">R$ 0,00</strong>
@@ -1838,6 +1842,7 @@
         totalProducts: num(directText(icmsTot, 'vProd')),
         totalBCST: num(directText(icmsTot, 'vBCST')),
         totalST: num(directText(icmsTot, 'vST')),
+        totalDiscount: Math.max(0, num(directText(icmsTot, 'vDesc'))),
         totalInvoice: num(directText(icmsTot, 'vNF')),
         items
       };
@@ -2199,6 +2204,9 @@
         : 0;
       document.getElementById('totalSTPercent').textContent =
         `${percentBR.format(totalSTPercent)}%`;
+      const discount = Number(data.totalDiscount) || 0;
+      document.getElementById('discountTotalBox').hidden = !(discount > 0);
+      document.getElementById('totalDiscount').textContent = brl.format(discount);
       document.getElementById('totalInvoice').textContent = brl.format(data.totalInvoice);
 
       renderItems();
