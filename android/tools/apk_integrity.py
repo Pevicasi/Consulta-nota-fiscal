@@ -8,6 +8,6 @@ def check_site_assets(apk):
         for page in PAGES:
             if archive.read('assets/site/' + page) != (root / page).read_bytes():
                 raise ValueError('Bundled site differs from source: ' + page)
-        for asset in ('android-bridge.js', 'android-appearance.js', 'android-invoice.js'):
+        for asset in ('android-bridge.js', 'android-appearance.js', 'android-invoice.js', 'android-price-print.js'):
             if archive.read('assets/' + asset) != (root / 'android/app/src/main/assets' / asset).read_bytes():
                 raise ValueError('Bundled Android asset differs from source: ' + asset)

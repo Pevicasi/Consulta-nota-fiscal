@@ -33,19 +33,19 @@ jobs:
           mkdir -p delivery/current
           gh run download "$VALIDATED_RUN_ID" --name "nfe-facil-validated-1.4.3-$GITHUB_SHA" --dir delivery/current
           (cd delivery/current && sha256sum -c SHA256SUMS)
-          cp delivery/current/app-debug.apk delivery/NF-e-Facil-1.4.3.apk
-          (cd delivery && sha256sum NF-e-Facil-1.4.3.apk > SHA256SUMS)
+          cp delivery/current/app-debug.apk delivery/Consulta-Nota-Fiscal-1.4.3.apk
+          (cd delivery && sha256sum Consulta-Nota-Fiscal-1.4.3.apk > SHA256SUMS)
           cat > delivery/NOTES.md <<NOTES
-          NF-e Fácil 1.4.3 (código 11), pacote original br.com.pevicasi.nfefacil, APK universal com assinatura debug automática para uso pessoal. Sem Secrets de assinatura e sem otimização/remoção de ABI.
+          Consulta Nota Fiscal 1.4.3 (código 11), pacote original br.com.pevicasi.nfefacil, APK universal com assinatura debug automática para uso pessoal. Sem Secrets de assinatura e sem otimização/remoção de ABI.
 
-          Scanner congelado, sem alterações; Quantidade em duas linhas (UN ou kg acima, CX/FD/PCT abaixo), Produto somente nome; VALOR e VALOR COM DESCONTO renomeiam as colunas existentes sem adicionar colunas; preço sugerido usa custo real com encargos, IPI visível; IPI/ST/FCP-ST/frete/seguro/outras despesas/descontos e conciliação em centavos; custo e preço por unidade por UN/kg e embalagem calculada automaticamente a partir de descrição/XML, sem formulário ou confirmação e sem dividir novamente qCom em UN. Equivalência ausente/conflitante conserva preço por unidade comercial explicitamente rotulada. Pendências de conciliação fiscal continuam bloqueando preço. CSV/impressão usam a mesma metodologia. Site público preservado byte a byte nesta atualização; interface nova somente no Android. SAF, fontes, temas e scanner preservados.
+          Somente duas alterações no app: nome exibido Consulta Nota Fiscal e botão Imprimir lista de preços. O cupom usa somente nomes e preços sugeridos já exibidos na nota selecionada, sem recalcular, em bobina 80 mm (80 × 297 mm), com quebra de nomes e paginação. Seleção da Epson TM-T20 Receipt5 pelo diálogo/driver de impressão Android. Nenhuma alteração em scanner, importação, tabela, cálculos, temas/fontes, site, permissões, package ID, versão 1.4.3/código 11 ou dados.
 
-          Build, lint (zero erros), 33 testes JavaScript (23 navegador + 10 motor), 11 unitários Java, 5 de assinatura e 36 instrumentados Android passaram antes desta publicação. Relatórios e capturas: https://github.com/$GITHUB_REPOSITORY/actions/runs/$VALIDATED_RUN_ID . Código: $GITHUB_SHA . Auditoria: https://github.com/$GITHUB_REPOSITORY/issues/1 . Checksum do APK no arquivo SHA256SUMS.
+          Build, lint (zero erros), 34 testes JavaScript (24 navegador + 10 motor), 11 unitários Java, 5 de assinatura e 37 instrumentados Android passaram antes desta publicação. Relatórios e capturas: https://github.com/$GITHUB_REPOSITORY/actions/runs/$VALIDATED_RUN_ID . Código: $GITHUB_SHA . Auditoria: https://github.com/$GITHUB_REPOSITORY/issues/1 . Checksum do APK no arquivo SHA256SUMS.
 
           Política atual: apenas o APK mais recente validado. A limpeza dos APKs antigos ocorre após conferir o download público desta versão. Não recriar históricos. Assinatura debug pode variar entre runners e impedir atualização entre certificados diferentes; não há desinstalação ou limpeza automática. Não testado no telefone físico do proprietário, impressão física, APIs governamentais reais ou Play Protect.
           NOTES
-          if gh release view v1.4.3 >/dev/null 2>&1; then
-            published=$(gh release view v1.4.3 --json targetCommitish --jq .targetCommitish)
+          if gh release view consulta-nota-fiscal-1.4.3 >/dev/null 2>&1; then
+            published=$(gh release view consulta-nota-fiscal-1.4.3 --json targetCommitish --jq .targetCommitish)
             if [ "$published" != "$GITHUB_SHA" ]; then
               git fetch --no-tags --depth=1 origin "$published"
               # A delivery-only repair must preserve the already published APK.
@@ -54,5 +54,5 @@ jobs:
               echo '::notice::Application source unchanged; existing published APK preserved.'
             fi
           else
-            gh release create v1.4.3 delivery/NF-e-Facil-1.4.3.apk delivery/SHA256SUMS delivery/current/SIGNING-CERT-SHA256.txt delivery/current/PERSONAL-DEBUG-SIGNING.txt delivery/current/APK-SIZE.json --target "$GITHUB_SHA" --title 'NF-e Fácil 1.4.3 — quantidades, kg e descontos' --notes-file delivery/NOTES.md --latest
+            gh release create consulta-nota-fiscal-1.4.3 delivery/Consulta-Nota-Fiscal-1.4.3.apk delivery/SHA256SUMS delivery/current/SIGNING-CERT-SHA256.txt delivery/current/PERSONAL-DEBUG-SIGNING.txt delivery/current/APK-SIZE.json --target "$GITHUB_SHA" --title 'Consulta Nota Fiscal 1.4.3 — lista de preços térmica' --notes-file delivery/NOTES.md --latest
           fi

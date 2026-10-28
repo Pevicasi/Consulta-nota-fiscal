@@ -108,7 +108,7 @@ jobs:
             bash tools/run-device-tests.sh
       - name: Report completed instrumented tests
         if: always()
-        run: python3 android/tools/report-tests.py android/app/build/reports/androidTests/connected/debug/index.html 36 'Instrumented'
+        run: python3 android/tools/report-tests.py android/app/build/reports/androidTests/connected/debug/index.html 37 'Instrumented'
       - name: Verify the exact APK installed by Android tests
         env:
           EXPECTED_VERSION_CODE: '11'
@@ -200,7 +200,7 @@ jobs:
         if: always()
         run: |
           python3 android/tools/report-tests.py android/app/build/reports/tests/testReleaseUnitTest/index.html 11 'Release unit'
-          python3 android/tools/report-tests.py android/app/build/reports/androidTests/connected/release/index.html 36 'Release instrumented'
+          python3 android/tools/report-tests.py android/app/build/reports/androidTests/connected/release/index.html 37 'Release instrumented'
       - name: Verify distribution identity, signature and checksum
         env:
           ANDROID_SIGNING_CERT_SHA256: ${{ vars.ANDROID_SIGNING_CERT_SHA256 }}

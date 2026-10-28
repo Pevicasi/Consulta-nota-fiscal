@@ -22,12 +22,12 @@ android {
             }
         }
     }
-    defaultConfig { resValue 'string', 'app_name', 'NF-e Fácil' }
+    defaultConfig { resValue 'string', 'app_name', 'Consulta Nota Fiscal' }
     buildTypes {
         debug {
             // Personal-use APK: original app identity, automatic Android debug signing.
             // This key can change across GitHub runners; upgrades may require backup and reinstall.
-            resValue 'string', 'app_name', 'NF-e Fácil'
+            resValue 'string', 'app_name', 'Consulta Nota Fiscal'
         }
         release {
             debuggable false

@@ -227,8 +227,8 @@ public class MainActivity extends AppearanceActivity {
         web.setBackgroundColor(android.graphics.Color.parseColor(isDark()?"#111827":"#F4F7FB"));
         String url = web.getUrl();
         if (url == null || !url.matches("https://appassets\\.androidplatform\\.net/assets/site/(index|consulta_precos_v(15|16|17))\\.html")) return;
-        try (InputStream in = getAssets().open("android-appearance.js"); InputStream invoice = getAssets().open("android-invoice.js")) {
-            web.evaluateJavascript(readUtf8(in)+";"+readUtf8(invoice)+";window.applyNativeAppearance?.({dark:"+isDark()+",fontPercent:"+fontPercent()+"});", ignored -> {
+        try (InputStream in = getAssets().open("android-appearance.js"); InputStream invoice = getAssets().open("android-invoice.js"); InputStream pricePrint = getAssets().open("android-price-print.js")) {
+            web.evaluateJavascript(readUtf8(in)+";"+readUtf8(invoice)+";"+readUtf8(pricePrint)+";window.applyNativeAppearance?.({dark:"+isDark()+",fontPercent:"+fontPercent()+"});", ignored -> {
                 if (isDestroyed()) return;
                 web.postVisualStateCallback(System.nanoTime(), new WebView.VisualStateCallback() {
                     @Override public void onComplete(long requestId) {
@@ -269,7 +269,13 @@ public class MainActivity extends AppearanceActivity {
                     web.evaluateJavascript("window.acceptNativeClipboard?.(" + JSONObject.quote(text) + ")", null);
                 } else toast("A área de transferência está vazia.");
                 break;
-            case "print": ((PrintManager)getSystemService(PRINT_SERVICE)).print("NF-e Fácil", web.createPrintDocumentAdapter("Nota fiscal"), null); break;
+            case "print": ((PrintManager)getSystemService(PRINT_SERVICE)).print("Consulta Nota Fiscal", web.createPrintDocumentAdapter("Nota fiscal"), null); break;
+            case "printPriceList":
+                if (isNotesPage()) {
+                    JSONArray rows = new JSONArray(msg.getString("value"));
+                    if (rows.length() > 0) ((PrintManager)getSystemService(PRINT_SERVICE)).print("Lista de preços", new PriceListPrinter(rows), PriceListPrinter.attributes());
+                }
+                break;
             case "export":
                 if (pendingExport != null) { toast("Conclua a exportação anterior."); break; }
                 JSONObject file = new JSONObject(msg.getString("value")); String value = file.getString("data");
