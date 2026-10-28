@@ -1,3 +1,10 @@
+## 1.4.3 (11)
+
+- Quantidade mostra UN/kg acima e CX/FD/PCT abaixo na mesma célula; Produto somente nome.
+- Preço por kg para fardos com peso comprovado; custo/venda por embalagem sem arredondamento intermediário.
+- Títulos VALOR e VALOR COM DESCONTO, separados de custo real com encargos e preço sugerido.
+- Scanner e site preservados; publicação do APK testado após inspeção das capturas Android.
+
 ## 1.4.2 (10)
 
 - Android: Produto mostra somente xProd; removidos editores, confirmações e ações por produto.

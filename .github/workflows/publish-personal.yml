@@ -1,0 +1,58 @@
+name: Publish validated personal APK
+on:
+  workflow_dispatch:
+    inputs:
+      validated_run_id:
+        description: 'Successful Android run whose captures and exact APK were reviewed'
+        type: string
+        required: true
+permissions:
+  contents: read
+jobs:
+  publish-personal:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      actions: read
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      VALIDATED_RUN_ID: ${{ inputs.validated_run_id }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Publish validated personal APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF" = refs/heads/main
+          [[ "$VALIDATED_RUN_ID" =~ ^[0-9]+$ ]]
+          test "$(gh api repos/$GITHUB_REPOSITORY/actions/runs/$VALIDATED_RUN_ID --jq .head_sha)" = "$GITHUB_SHA"
+          test "$(gh api repos/$GITHUB_REPOSITORY/actions/runs/$VALIDATED_RUN_ID --jq .head_branch)" = main
+          test "$(gh api repos/$GITHUB_REPOSITORY/actions/runs/$VALIDATED_RUN_ID --jq .path)" = .github/workflows/android.yml
+          test "$(gh api repos/$GITHUB_REPOSITORY/actions/runs/$VALIDATED_RUN_ID --jq .conclusion)" = success
+          mkdir -p delivery/current
+          gh run download "$VALIDATED_RUN_ID" --name "nfe-facil-validated-1.4.3-$GITHUB_SHA" --dir delivery/current
+          (cd delivery/current && sha256sum -c SHA256SUMS)
+          cp delivery/current/app-debug.apk delivery/NF-e-Facil-1.4.3.apk
+          (cd delivery && sha256sum NF-e-Facil-1.4.3.apk > SHA256SUMS)
+          cat > delivery/NOTES.md <<NOTES
+          NF-e Fácil 1.4.3 (código 11), pacote original br.com.pevicasi.nfefacil, APK universal com assinatura debug automática para uso pessoal. Sem Secrets de assinatura e sem otimização/remoção de ABI.
+
+          Scanner congelado, sem alterações; Quantidade em duas linhas (UN ou kg acima, CX/FD/PCT abaixo), Produto somente nome; VALOR e VALOR COM DESCONTO renomeiam as colunas existentes sem adicionar colunas; preço sugerido usa custo real com encargos, IPI visível; IPI/ST/FCP-ST/frete/seguro/outras despesas/descontos e conciliação em centavos; custo e preço por unidade por UN/kg e embalagem calculada automaticamente a partir de descrição/XML, sem formulário ou confirmação e sem dividir novamente qCom em UN. Equivalência ausente/conflitante conserva preço por unidade comercial explicitamente rotulada. Pendências de conciliação fiscal continuam bloqueando preço. CSV/impressão usam a mesma metodologia. Site público preservado byte a byte nesta atualização; interface nova somente no Android. SAF, fontes, temas e scanner preservados.
+
+          Build, lint (zero erros), 33 testes JavaScript (23 navegador + 10 motor), 11 unitários Java, 5 de assinatura e 36 instrumentados Android passaram antes desta publicação. Relatórios e capturas: https://github.com/$GITHUB_REPOSITORY/actions/runs/$VALIDATED_RUN_ID . Código: $GITHUB_SHA . Auditoria: https://github.com/$GITHUB_REPOSITORY/issues/1 . Checksum do APK no arquivo SHA256SUMS.
+
+          Política atual: apenas o APK mais recente validado. A limpeza dos APKs antigos ocorre após conferir o download público desta versão. Não recriar históricos. Assinatura debug pode variar entre runners e impedir atualização entre certificados diferentes; não há desinstalação ou limpeza automática. Não testado no telefone físico do proprietário, impressão física, APIs governamentais reais ou Play Protect.
+          NOTES
+          if gh release view v1.4.3 >/dev/null 2>&1; then
+            published=$(gh release view v1.4.3 --json targetCommitish --jq .targetCommitish)
+            if [ "$published" != "$GITHUB_SHA" ]; then
+              git fetch --no-tags --depth=1 origin "$published"
+              # A delivery-only repair must preserve the already published APK.
+              # Any app/build/test change still requires a new version.
+              git diff --exit-code "$published" "$GITHUB_SHA" -- . ':!.github/workflows/android.yml' ':!docs/APARENCIA.md' ':!docs/VALIDACAO.md' || { echo 'Existing release preserved: bump version before publishing changed app code.'; exit 1; }
+              echo '::notice::Application source unchanged; existing published APK preserved.'
+            fi
+          else
+            gh release create v1.4.3 delivery/NF-e-Facil-1.4.3.apk delivery/SHA256SUMS delivery/current/SIGNING-CERT-SHA256.txt delivery/current/PERSONAL-DEBUG-SIGNING.txt delivery/current/APK-SIZE.json --target "$GITHUB_SHA" --title 'NF-e Fácil 1.4.3 — quantidades, kg e descontos' --notes-file delivery/NOTES.md --latest
+          fi

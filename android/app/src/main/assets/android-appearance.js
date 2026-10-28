@@ -72,7 +72,7 @@
       const labelWidth=context.measureText(label?.textContent||header.textContent).width;
       const heading=(key==='0'?Math.max(labelWidth,iconWidth):labelWidth+iconWidth)+padding+4;
       if(key==='0'||key==='7'){
-        const values=Array.from(table.querySelectorAll('tbody td[data-column-key="'+key+'"]')).map(td=>context.measureText(td.textContent).width+padding);
+        const values=Array.from(table.querySelectorAll('tbody td[data-column-key="'+key+'"]')).map(td=>Math.max(...Array.from(td.querySelectorAll('.quantity-primary,.quantity-packaging')).map(e=>context.measureText(e.textContent).width),td.querySelector('.quantity-primary')?0:context.measureText(td.textContent).width)+padding);
         return Math.ceil(Math.max(heading,...values));
       }
       if(key==='1')return 0;

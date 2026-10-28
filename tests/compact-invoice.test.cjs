@@ -8,7 +8,7 @@ test('Android table contains only original product names and calculates document
  assert.equal(await p.locator('#itemsBody input,#itemsBody details,#itemsBody button,#productCostDialog,.cost-audit-print').count(),0);
  assert.match(await p.locator('td[data-column-key="16"]').nth(1).innerText(),/0,50.*UN/);
  assert.match(await p.locator('[data-unit-price="1"]').innerText(),/6,60/);
- assert.equal(await p.evaluate(()=>buildFiscalCSV().rows[1].at(-2)),'0.50');
+ assert.equal(await p.evaluate(()=>buildFiscalCSV().rows[1][buildFiscalCSV().headers.indexOf('IPI por unidade')]),'0.50');
  for(const percent of [90,100,140,160])for(const dark of [false,true]){await p.evaluate(o=>{applyNativeAppearance(o);fitNativeInvoiceColumns()}, {fontPercent:percent,dark});assert.equal(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),true);}
  await p.close();
 });

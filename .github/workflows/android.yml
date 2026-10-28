@@ -47,7 +47,7 @@ jobs:
         run: python3 android/tools/report-tests.py android/app/build/reports/tests/testDebugUnitTest/index.html 11 'Unit'
       - name: Verify personal APK identity, signature, site and checksum
         env:
-          EXPECTED_VERSION_CODE: '10'
+          EXPECTED_VERSION_CODE: '11'
           EXPECTED_ABI: universal
         run: python3 android/tools/verify-qa.py android/app/build/outputs/apk/debug/app-debug.apk
       - name: Record raw APK size and ABI breakdown
@@ -57,7 +57,7 @@ jobs:
       - name: Upload installable APK
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: nfe-facil-1.4.2-${{ github.sha }}
+          name: nfe-facil-1.4.3-${{ github.sha }}
           path: |
             android/app/build/outputs/apk/debug/app-debug.apk
             android/app/build/outputs/apk/debug/SHA256SUMS
@@ -108,10 +108,10 @@ jobs:
             bash tools/run-device-tests.sh
       - name: Report completed instrumented tests
         if: always()
-        run: python3 android/tools/report-tests.py android/app/build/reports/androidTests/connected/debug/index.html 35 'Instrumented'
+        run: python3 android/tools/report-tests.py android/app/build/reports/androidTests/connected/debug/index.html 36 'Instrumented'
       - name: Verify the exact APK installed by Android tests
         env:
-          EXPECTED_VERSION_CODE: '10'
+          EXPECTED_VERSION_CODE: '11'
           EXPECTED_ABI: universal
         run: |
           python3 android/tools/verify-qa.py android/app/build/outputs/apk/debug/app-debug.apk
@@ -119,7 +119,7 @@ jobs:
       - name: Preserve the APK exercised in the emulator for publication
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: nfe-facil-validated-1.4.2-${{ github.sha }}
+          name: nfe-facil-validated-1.4.3-${{ github.sha }}
           path: |
             android/app/build/outputs/apk/debug/app-debug.apk
             android/app/build/outputs/apk/debug/SHA256SUMS
@@ -200,11 +200,11 @@ jobs:
         if: always()
         run: |
           python3 android/tools/report-tests.py android/app/build/reports/tests/testReleaseUnitTest/index.html 11 'Release unit'
-          python3 android/tools/report-tests.py android/app/build/reports/androidTests/connected/release/index.html 35 'Release instrumented'
+          python3 android/tools/report-tests.py android/app/build/reports/androidTests/connected/release/index.html 36 'Release instrumented'
       - name: Verify distribution identity, signature and checksum
         env:
           ANDROID_SIGNING_CERT_SHA256: ${{ vars.ANDROID_SIGNING_CERT_SHA256 }}
-          EXPECTED_VERSION_CODE: '10'
+          EXPECTED_VERSION_CODE: '11'
         run: python3 android/tools/verify-distribution.py android/app/build/outputs/apk/release/app-release.apk
       - name: Upload approved distribution APK
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
@@ -225,46 +225,3 @@ jobs:
       - name: Remove temporary private key
         if: always()
         run: rm -rf -- "$RUNNER_TEMP/nfe-signing"
-
-  publish-personal:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    needs: [build, device-tests]
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      actions: read
-    env:
-      GH_TOKEN: ${{ github.token }}
-      GH_REPO: ${{ github.repository }}
-    steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-      - name: Publish validated personal APK
-        shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p delivery/current delivery/previous delivery/archive
-          gh run download "$GITHUB_RUN_ID" --name "nfe-facil-validated-1.4.2-$GITHUB_SHA" --dir delivery/current
-          (cd delivery/current && sha256sum -c SHA256SUMS)
-          cp delivery/current/app-debug.apk delivery/NF-e-Facil-1.4.2.apk
-          (cd delivery && sha256sum NF-e-Facil-1.4.2.apk > SHA256SUMS)
-          cat > delivery/NOTES.md <<NOTES
-          NF-e Fácil 1.4.2 (código 10), pacote original br.com.pevicasi.nfefacil, APK universal com assinatura debug automática para uso pessoal. Sem Secrets de assinatura e sem otimização/remoção de ABI.
-
-          Scanner congelado, sem alterações; tabela Android com apenas nome em Produto e coluna IPI visível; IPI/ST/FCP-ST/frete/seguro/outras despesas/descontos e conciliação em centavos; custo e preço por unidade com embalagem calculada automaticamente a partir de descrição/XML, sem formulário ou confirmação e sem dividir novamente qCom em UN. Equivalência ausente/conflitante conserva preço por unidade comercial explicitamente rotulada. Pendências de conciliação fiscal continuam bloqueando preço. CSV/impressão usam a mesma metodologia. Site público preservado byte a byte nesta atualização; interface nova somente no Android. SAF, fontes, temas e scanner preservados.
-
-          Build, lint (zero erros), 32 testes JavaScript (22 navegador + 10 motor), 11 unitários Java, 5 de assinatura e 35 instrumentados Android passaram antes desta publicação. Relatórios e capturas: https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID . Código: $GITHUB_SHA . Auditoria: https://github.com/$GITHUB_REPOSITORY/issues/1 . Checksum do APK no arquivo SHA256SUMS.
-
-          Política atual: apenas o APK mais recente validado. A limpeza dos APKs antigos ocorre após conferir o download público desta versão. Não recriar históricos. Assinatura debug pode variar entre runners e impedir atualização entre certificados diferentes; não há desinstalação ou limpeza automática. Não testado no telefone físico do proprietário, impressão física, APIs governamentais reais ou Play Protect.
-          NOTES
-          if gh release view v1.4.2 >/dev/null 2>&1; then
-            published=$(gh release view v1.4.2 --json targetCommitish --jq .targetCommitish)
-            if [ "$published" != "$GITHUB_SHA" ]; then
-              git fetch --no-tags --depth=1 origin "$published"
-              # A delivery-only repair must preserve the already published APK.
-              # Any app/build/test change still requires a new version.
-              git diff --exit-code "$published" "$GITHUB_SHA" -- . ':!.github/workflows/android.yml' ':!docs/APARENCIA.md' ':!docs/VALIDACAO.md' || { echo 'Existing release preserved: bump version before publishing changed app code.'; exit 1; }
-              echo '::notice::Application source unchanged; existing published APK preserved.'
-            fi
-          else
-            gh release create v1.4.2 delivery/NF-e-Facil-1.4.2.apk delivery/SHA256SUMS delivery/current/SIGNING-CERT-SHA256.txt delivery/current/PERSONAL-DEBUG-SIGNING.txt delivery/current/APK-SIZE.json --target "$GITHUB_SHA" --title 'NF-e Fácil 1.4.2 — unidades automáticas e tabela limpa' --notes-file delivery/NOTES.md --latest
-          fi
